@@ -1,0 +1,20 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Zen Maru Gothic', sans-serif; background: #fdf2f8; color: #333; }
+.app { height: 100vh; display: flex; flex-direction: column; }
+.toolbar { display: flex; gap: 8px; align-items: center; padding: 10px 16px; background: #fff; box-shadow: 0 2px 12px rgba(255,79,163,.12); }
+.logo { font-family: 'Dela Gothic One'; font-size: 22px; color: #ff4fa3; margin-right: 12px; }
+.btn { border: none; border-radius: 999px; padding: 8px 16px; background: #ffe4ef; color: #c2185b; cursor: pointer; font: inherit; }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.primary { background: linear-gradient(135deg, #ff7eb3, #a78bfa); color: #fff; }
+.main { flex: 1; display: flex; overflow: hidden; }
+.panel { width: 260px; padding: 16px; background: #fff; overflow-y: auto; }
+.panel h3 { font-size: 14px; color: #c2185b; margin: 16px 0 8px; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sticker { font-size: 28px; background: #fff6fb; border: none; border-radius: 12px; padding: 6px; cursor: pointer; }
+.sticker:hover { transform: scale(1.15); }
+.text-style { display: block; width: 100%; margin-bottom: 6px; padding: 10px; font-size: 22px; background: #f5f0ff; border: none; border-radius: 12px; cursor: pointer; }
+.chip { grid-column: span 2; border: 2px solid transparent; border-radius: 999px; padding: 6px; background: #f5f0ff; cursor: pointer; font: inherit; }
+.chip.active, .swatch.active { border-color: #ff4fa3; }
+.swatch { height: 36px; border-radius: 10px; border: 2px solid #eee; cursor: pointer; }
+.canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; }
+.canvas-wrap canvas { border-radius: 16px; box-shadow: 0 8px 32px rgba(167,139,250,.25); }
