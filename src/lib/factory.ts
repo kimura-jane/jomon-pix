@@ -1,8 +1,14 @@
 import { useEditor } from '../store';
-import { stageRef } from './stageRef';
+import type { TextPreset } from './fonts';
+
+export const newId = () =>
+  'el-' +
+  (typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now().toString(36));
 
 const base = () => ({
-  id: 'el-' + crypto.randomUUID(),
+  id: newId(),
   x: 150,
   y: 150,
   rotation: 0,
@@ -38,15 +44,16 @@ export function addSticker(emoji: string) {
   useEditor.getState().add({ ...base(), type: 'sticker', emoji, size: 120 });
 }
 
-export async function addText(style: { fontFamily: string; fill: string; stroke?: string }) {
+export function addText(p: TextPreset) {
   useEditor.getState().add({
     ...base(),
     type: 'text',
-    text: 'ダブルクリックで編集',
-    fontSize: 48,
-    ...style,
+    text: 'テキスト',
+    fontSize: 56,
+    fontFamily: p.fontFamily,
+    fill: p.fill,
+    stroke: p.stroke,
+    glow: p.glow,
+    letterSpacing: 0,
   });
-  // Webフォントの読み込みが終わったら描き直す
-  await document.fonts.load(`48px "${style.fontFamily}"`);
-  stageRef.current?.batchDraw();
 }
