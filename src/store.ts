@@ -1,18 +1,24 @@
 import { create } from 'zustand';
-import type { CanvasEl } from './types';
+import type { CanvasEl, PenStyle, Tool } from './types';
+
+export type PenSettings = { style: PenStyle; color: string; width: number };
 
 type EditorState = {
   elements: CanvasEl[];
   selectedId: string | null;
   bgColor: string;
+  tool: Tool;
+  pen: PenSettings;
   past: CanvasEl[][];
   future: CanvasEl[][];
-  add: (el: CanvasEl) => void;
+  add: (el: CanvasEl, selectAfter?: boolean) => void;
   update: (id: string, patch: Partial<CanvasEl>) => void;
   remove: (id: string) => void;
   bringToFront: (id: string) => void;
   select: (id: string | null) => void;
   setBgColor: (c: string) => void;
+  setTool: (t: Tool) => void;
+  setPen: (p: Partial<PenSettings>) => void;
   undo: () => void;
   redo: () => void;
 };
@@ -29,12 +35,14 @@ export const useEditor = create<EditorState>()((set) => {
     elements: [],
     selectedId: null,
     bgColor: '#fff6fb',
+    tool: 'select',
+    pen: { style: 'pen', color: '#ff4fa3', width: 6 },
     past: [],
     future: [],
 
-    add: (el) => {
+    add: (el, selectAfter = true) => {
       commit((els) => [...els, el]);
-      set({ selectedId: el.id });
+      if (selectAfter) set({ selectedId: el.id });
     },
     update: (id, patch) =>
       commit((els) =>
@@ -42,7 +50,7 @@ export const useEditor = create<EditorState>()((set) => {
       ),
     remove: (id) => {
       commit((els) => els.filter((e) => e.id !== id));
-      set({ selectedId: null });
+      set((s) => ({ selectedId: s.selectedId === id ? null : s.selectedId }));
     },
     bringToFront: (id) =>
       commit((els) => {
@@ -51,6 +59,8 @@ export const useEditor = create<EditorState>()((set) => {
       }),
     select: (id) => set({ selectedId: id }),
     setBgColor: (c) => set({ bgColor: c }),
+    setTool: (t) => set((s) => ({ tool: t, selectedId: t === 'select' ? s.selectedId : null })),
+    setPen: (p) => set((s) => ({ pen: { ...s.pen, ...p } })),
 
     undo: () =>
       set((s) => {
