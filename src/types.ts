@@ -1,4 +1,6 @@
 export type FilterPreset = 'none' | 'vivid' | 'mono' | 'sepia' | 'soft' | 'cool';
+export type Tool = 'select' | 'pen' | 'eraser';
+export type PenStyle = 'pen' | 'marker' | 'dashed' | 'neon' | 'dotted' | 'rainbow' | 'sparkle';
 
 type Base = {
   id: string;
@@ -25,6 +27,8 @@ export type TextEl = Base & {
   fontFamily: string;
   fill: string;
   stroke?: string;
+  glow?: string;
+  letterSpacing: number;
 };
 
 export type StickerEl = Base & {
@@ -33,4 +37,12 @@ export type StickerEl = Base & {
   size: number;
 };
 
-export type CanvasEl = ImageEl | TextEl | StickerEl;
+export type LineEl = Base & {
+  type: 'line';
+  points: number[];
+  penStyle: PenStyle;
+  color: string;
+  width: number;
+};
+
+export type CanvasEl = ImageEl | TextEl | StickerEl | LineEl;
