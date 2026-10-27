@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useEditor } from '../store';
 import { addImageFromFile } from '../lib/factory';
-import { exportPNG } from '../lib/stageRef';
+import { exportBlob } from '../lib/stageRef';
 import { removeBg } from '../lib/removeBg';
+import { SaveModal } from './SaveModal';
 import type { Tool } from '../types';
 
 const TOOLS: { key: Tool; label: string }[] = [
@@ -18,6 +19,8 @@ export function Toolbar() {
   const { setTool, update, remove, bringToFront, undo, redo } = useEditor.getState();
   const selected = elements.find((e) => e.id === selectedId);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveBlob, setSaveBlob] = useState<Blob | null>(null);
 
   const onRemoveBg = async () => {
     if (!selected || selected.type !== 'image') return;
@@ -30,6 +33,18 @@ export function Toolbar() {
       alert('背景削除に失敗しました');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onSave = async () => {
+    setSaving(true);
+    try {
+      setSaveBlob(await exportBlob());
+    } catch (e) {
+      console.error(e);
+      alert('画像の作成に失敗しました');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -70,7 +85,11 @@ export function Toolbar() {
       </button>
       <button className="btn" onClick={undo}>↶</button>
       <button className="btn" onClick={redo}>↷</button>
-      <button className="btn primary" onClick={exportPNG}>保存</button>
+      <button className="btn primary" disabled={saving} onClick={onSave}>
+        {saving ? '作成中…' : '保存'}
+      </button>
+
+      {saveBlob && <SaveModal blob={saveBlob} onClose={() => setSaveBlob(null)} />}
     </header>
   );
 }
