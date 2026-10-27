@@ -3,14 +3,24 @@ import { useEditor } from '../store';
 import { addImageFromFile } from '../lib/factory';
 import { exportPNG } from '../lib/stageRef';
 import { removeBg } from '../lib/removeBg';
+import type { Tool } from '../types';
+
+const TOOLS: { key: Tool; label: string }[] = [
+  { key: 'select', label: '👆 選択' },
+  { key: 'pen', label: '✏️ ペン' },
+  { key: 'eraser', label: '🧽 消しゴム' },
+];
 
 export function Toolbar() {
-  const { elements, selectedId, update, remove, bringToFront, undo, redo } = useEditor();
+  const elements = useEditor((s) => s.elements);
+  const selectedId = useEditor((s) => s.selectedId);
+  const tool = useEditor((s) => s.tool);
+  const { setTool, update, remove, bringToFront, undo, redo } = useEditor.getState();
   const selected = elements.find((e) => e.id === selectedId);
   const [busy, setBusy] = useState(false);
 
   const onRemoveBg = async () => {
-    if (selected?.type !== 'image') return;
+    if (!selected || selected.type !== 'image') return;
     setBusy(true);
     try {
       const src = await removeBg(selected.src);
@@ -25,7 +35,17 @@ export function Toolbar() {
 
   return (
     <header className="toolbar">
-      <span className="logo">decopix</span>
+      <span className="logo">
+        JOMON <small>pix</small>
+      </span>
+
+      {TOOLS.map((t) => (
+        <button key={t.key} className={'btn' + (tool === t.key ? ' active' : '')} onClick={() => setTool(t.key)}>
+          {t.label}
+        </button>
+      ))}
+      <span className="divider" />
+
       <label className="btn primary">
         ＋画像
         <input
@@ -34,7 +54,7 @@ export function Toolbar() {
           multiple
           hidden
           onChange={(e) => {
-            [...(e.target.files ?? [])].forEach(addImageFromFile);
+            Array.from(e.target.files ?? []).forEach(addImageFromFile);
             e.target.value = '';
           }}
         />
