@@ -1,6 +1,9 @@
 export type FilterPreset = 'none' | 'vivid' | 'mono' | 'sepia' | 'soft' | 'cool';
 export type Tool = 'select' | 'pen' | 'eraser';
 export type PenStyle = 'pen' | 'marker' | 'dashed' | 'neon' | 'dotted' | 'rainbow' | 'sparkle';
+export type Tab =
+  | 'image' | 'text' | 'pen' | 'stamp' | 'glasses'
+  | 'mosaic' | 'beauty' | 'edit' | 'frame' | 'layer';
 
 type Base = {
   id: string;
@@ -10,6 +13,8 @@ type Base = {
   scaleX: number;
   scaleY: number;
   opacity: number;
+  hidden?: boolean;
+  locked?: boolean;
 };
 
 export type ImageEl = Base & {
@@ -23,26 +28,29 @@ export type ImageEl = Base & {
 export type TextEl = Base & {
   type: 'text';
   text: string;
-  fontSize: number;
   fontFamily: string;
+  fontSize: number;
   fill: string;
-  stroke?: string;
-  glow?: string;
+  stroke: string;
+  strokeWidth: number;
+  glow: string;
   letterSpacing: number;
+  vertical: boolean;
+  align: 'left' | 'center' | 'right';
 };
 
-export type StickerEl = Base & {
-  type: 'sticker';
-  emoji: string;
-  size: number;
-};
+export type StickerEl = Base & { type: 'sticker'; emoji: string; size: number };
 
 export type LineEl = Base & {
   type: 'line';
   points: number[];
-  penStyle: PenStyle;
   color: string;
   width: number;
+  penStyle: PenStyle;
 };
 
 export type CanvasEl = ImageEl | TextEl | StickerEl | LineEl;
+
+export type Patch = Partial<
+  Omit<ImageEl, 'type'> & Omit<TextEl, 'type'> & Omit<StickerEl, 'type'> & Omit<LineEl, 'type'>
+>;
