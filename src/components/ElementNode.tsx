@@ -1,128 +1,97 @@
 import { useEffect, useRef } from 'react';
-import { Image as KImage, Text as KText, Line } from 'react-konva';
 import Konva from 'konva';
-import type { ImageConfig } from 'konva/lib/shapes/Image';
+import { Image as KImage, Text, Line } from 'react-konva';
 import useImage from 'use-image';
 import { useEditor } from '../store';
 import { penProps } from '../lib/pens';
-import type { CanvasEl, FilterPreset, ImageEl, TextEl } from '../types';
+import type { CanvasEl, FilterPreset, ImageEl, Tab } from '../types';
 
-export const PRESETS: Record<FilterPreset, Partial<ImageConfig>> = {
-  none: { filters: [] },
-  vivid: { filters: [Konva.Filters.HSL, Konva.Filters.Contrast], saturation: 0.6, contrast: 15 },
-  mono: { filters: [Konva.Filters.Grayscale] },
-  sepia: { filters: [Konva.Filters.Sepia] },
-  soft: { filters: [Konva.Filters.Brighten, Konva.Filters.Blur], brightness: 0.08, blurRadius: 1 },
-  cool: { filters: [Konva.Filters.RGB], red: 200, green: 225, blue: 255 },
+const PRESETS: Record<FilterPreset, { filters: any[]; props: Record<string, number> }> = {
+  none: { filters: [], props: {} },
+  vivid: { filters: [Konva.Filters.HSL, Konva.Filters.Contrast], props: { saturation: 0.6, contrast: 15 } },
+  mono: { filters: [Konva.Filters.Grayscale], props: {} },
+  sepia: { filters: [Konva.Filters.Sepia], props: {} },
+  soft: { filters: [Konva.Filters.Brighten, Konva.Filters.Blur], props: { brightness: 0.08, blurRadius: 1 } },
+  cool: { filters: [Konva.Filters.RGB], props: { red: 200, green: 225, blue: 255 } },
 };
 
-function commonProps(el: CanvasEl, interactive: boolean) {
-  const { select, update } = useEditor.getState();
+const TAB_OF: Record<CanvasEl['type'], Tab> = { image: 'edit', text: 'text', sticker: 'edit', line: 'pen' };
+
+function useCommon(el: CanvasEl) {
+  const { select, update, tool, setTab } = useEditor();
+  const canMove = tool === 'select' && !el.locked;
   return {
     id: el.id,
-    name: el.type,
-    x: el.x,
-    y: el.y,
-    rotation: el.rotation,
-    scaleX: el.scaleX,
-    scaleY: el.scaleY,
-    opacity: el.opacity,
-    draggable: interactive,
-    onMouseDown: () => {
-      if (interactive) select(el.id);
-    },
-    onTouchStart: () => {
-      if (interactive) select(el.id);
-    },
-    onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) =>
-      update(el.id, { x: e.target.x(), y: e.target.y() }),
+    x: el.x, y: el.y, rotation: el.rotation,
+    scaleX: el.scaleX, scaleY: el.scaleY, opacity: el.opacity,
+    draggable: canMove,
+    listening: tool !== 'pen',
+    onClick: () => { if (tool === 'select') { select(el.id); setTab(TAB_OF[el.type]); } },
+    onTap: () => { if (tool === 'select') { select(el.id); setTab(TAB_OF[el.type]); } },
+    onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => update(el.id, { x: e.target.x(), y: e.target.y() }),
     onTransformEnd: (e: Konva.KonvaEventObject<Event>) => {
       const n = e.target;
-      update(el.id, {
-        x: n.x(),
-        y: n.y(),
-        rotation: n.rotation(),
-        scaleX: n.scaleX(),
-        scaleY: n.scaleY(),
-      });
+      update(el.id, { x: n.x(), y: n.y(), rotation: n.rotation(), scaleX: n.scaleX(), scaleY: n.scaleY() });
     },
   };
 }
-type CommonProps = ReturnType<typeof commonProps>;
 
-function ImageShape({ el, common }: { el: ImageEl; common: CommonProps }) {
+function ImageNode({ el }: { el: ImageEl }) {
   const [img] = useImage(el.src, 'anonymous');
   const ref = useRef<Konva.Image>(null);
-
+  const common = useCommon(el);
+  const p = PRESETS[el.filter];
   useEffect(() => {
-    const node = ref.current;
-    if (!node || !img) return;
-    if (el.filter === 'none') node.clearCache();
-    else node.cache({ pixelRatio: 2 });
-    node.getLayer()?.batchDraw();
-  }, [img, el.filter]);
-
-  return (
-    <KImage ref={ref} image={img} width={el.width} height={el.height} {...PRESETS[el.filter]} {...common} />
-  );
-}
-
-function TextShape({ el, common }: { el: TextEl; common: CommonProps }) {
-  const ref = useRef<Konva.Text>(null);
-
-  // フォントが読み込まれたら描き直す
-  useEffect(() => {
-    let alive = true;
-    document.fonts
-      .load(`${el.fontSize}px "${el.fontFamily}"`, el.text)
-      .then(() => {
-        const node = ref.current;
-        if (!alive || !node) return;
-        node.fontFamily('sans-serif');
-        node.fontFamily(el.fontFamily);
-        node.getLayer()?.batchDraw();
-        node.getStage()?.findOne<Konva.Transformer>('Transformer')?.forceUpdate();
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [el.fontFamily, el.text, el.fontSize]);
-
-  return (
-    <KText
-      ref={ref}
-      {...common}
-      text={el.text}
-      fontSize={el.fontSize}
-      fontFamily={el.fontFamily}
-      fill={el.fill}
-      stroke={el.stroke}
-      strokeWidth={el.stroke ? Math.max(4, el.fontSize * 0.12) : 0}
-      fillAfterStrokeEnabled
-      letterSpacing={el.letterSpacing}
-      lineHeight={1.2}
-      shadowColor={el.glow ?? 'rgba(0,0,0,0.15)'}
-      shadowBlur={el.glow ? 18 : 4}
-      shadowOpacity={1}
-    />
-  );
+    const n = ref.current;
+    if (!n || !img) return;
+    if (el.filter === 'none') n.clearCache();
+    else n.cache({ pixelRatio: 2 });
+    n.getLayer()?.batchDraw();
+  }, [img, el.filter, el.width, el.height]);
+  return <KImage ref={ref} image={img} width={el.width} height={el.height} filters={p.filters} {...p.props} {...common} />;
 }
 
 export function ElementNode({ el }: { el: CanvasEl }) {
-  const tool = useEditor((s) => s.tool);
-  const common = commonProps(el, tool === 'select');
+  const common = useCommon(el);
+  const textRef = useRef<Konva.Text>(null);
+  const update = useEditor((s) => s.update);
 
-  switch (el.type) {
-    case 'image':
-      return <ImageShape el={el} common={common} />;
-    case 'text':
-      return <TextShape el={el} common={common} />;
-    case 'sticker':
-      return <KText {...common} text={el.emoji} fontSize={el.size} />;
-    case 'line':
-      return <Line {...common} {...penProps(el)} />;
-    default:
-      return null;
-  }
+  const family = el.type === 'text' ? el.fontFamily : '';
+  useEffect(() => {
+    if (!family) return;
+    document.fonts?.load(`40px "${family}"`).then(() => textRef.current?.getLayer()?.batchDraw());
+  }, [family]);
+
+  if (el.hidden) return null;
+
+  if (el.type === 'image') return <ImageNode el={el} />;
+
+  if (el.type === 'sticker')
+    return <Text text={el.emoji} fontSize={el.size} {...common} />;
+
+  if (el.type === 'line') return <Line {...penProps(el)} {...common} draggable={false} />;
+
+  const shown = el.vertical ? el.text.split('\n').map((l) => [...l].join('\n')).join('\n\n') : el.text;
+  return (
+    <Text
+      ref={textRef}
+      text={shown}
+      fontFamily={el.fontFamily}
+      fontSize={el.fontSize}
+      fill={el.fill}
+      stroke={el.stroke || undefined}
+      strokeWidth={el.stroke ? el.strokeWidth : 0}
+      fillAfterStrokeEnabled
+      lineJoin="round"
+      letterSpacing={el.letterSpacing}
+      align={el.align}
+      lineHeight={el.vertical ? 1.05 : 1.25}
+      shadowColor={el.glow || undefined}
+      shadowBlur={el.glow ? 22 : 0}
+      shadowOpacity={el.glow ? 1 : 0}
+      onDblClick={() => { const t = prompt('文字を入力', el.text); if (t != null) update(el.id, { text: t }); }}
+      onDblTap={() => { const t = prompt('文字を入力', el.text); if (t != null) update(el.id, { text: t }); }}
+      {...common}
+    />
+  );
 }
