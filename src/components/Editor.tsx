@@ -1,151 +1,116 @@
 import { useEffect, useRef, useState } from 'react';
+import type Konva from 'konva';
 import { Stage, Layer, Rect, Line, Transformer } from 'react-konva';
-import Konva from 'konva';
-import { useEditor } from '../store';
-import { stageRef, CANVAS_W, CANVAS_H } from '../lib/stageRef';
-import { penProps } from '../lib/pens';
-import { newId } from '../lib/factory';
+import { useEditor, newId } from '../store';
 import { ElementNode } from './ElementNode';
-import type { LineEl } from '../types';
-
-type KEvent = Konva.KonvaEventObject<MouseEvent | TouchEvent>;
+import { penProps } from '../lib/pens';
+import { CANVAS_W, CANVAS_H, stageRef } from '../lib/stageRef';
 
 export function Editor() {
-  const elements = useEditor((s) => s.elements);
-  const selectedId = useEditor((s) => s.selectedId);
-  const bgColor = useEditor((s) => s.bgColor);
-  const tool = useEditor((s) => s.tool);
-
+  const { elements, selectedId, bgColor, tool, pen, select, add, remove } = useEditor();
+  const wrap = useRef<HTMLDivElement>(null);
+  const sRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.5);
-  const [draft, setDraft] = useState<LineEl | null>(null);
-  const draftRef = useRef<LineEl | null>(null);
-  const isDown = useRef(false);
+  const [scale, setScale] = useState(0.4);
+  const [draft, setDraft] = useState<number[] | null>(null);
+  const erasing = useRef(false);
 
-  // 画面サイズに合わせてキャンバスを縮める
   useEffect(() => {
-    const wrap = wrapRef.current;
-    if (!wrap) return;
-    const fit = () => {
-      const s = Math.min(1, (wrap.clientWidth - 16) / CANVAS_W, (wrap.clientHeight - 16) / CANVAS_H);
-      setScale(Math.max(0.2, s));
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(wrap);
+    const ro = new ResizeObserver(([e]) => {
+      const { width, height } = e.contentRect;
+      setScale(Math.max(0.1, Math.min(width / CANVAS_W, height / CANVAS_H) * 0.96));
+    });
+    if (wrap.current) ro.observe(wrap.current);
     return () => ro.disconnect();
   }, []);
 
-  // 選んだ部品に変形ハンドルを付ける
+  useEffect(() => { stageRef.current = sRef.current; });
+
   useEffect(() => {
-    const tr = trRef.current;
-    const stage = stageRef.current;
-    if (!tr || !stage) return;
-    const node = tool === 'select' && selectedId ? stage.findOne('#' + selectedId) : undefined;
+    const tr = trRef.current, st = sRef.current;
+    if (!tr || !st) return;
+    const el = elements.find((e) => e.id === selectedId);
+    const ok = el && tool === 'select' && !el.locked && !el.hidden && el.type !== 'line';
+    const node = ok ? st.findOne('#' + selectedId) : null;
     tr.nodes(node ? [node] : []);
     tr.getLayer()?.batchDraw();
   }, [selectedId, elements, tool]);
 
-  const setDraftBoth = (d: LineEl | null) => {
-    draftRef.current = d;
-    setDraft(d);
-  };
-
   const eraseAt = () => {
-    const stage = stageRef.current;
-    const pos = stage?.getPointerPosition();
-    if (!stage || !pos) return;
-    const shape = stage.getIntersection(pos);
-    if (shape && shape.name() === 'line') useEditor.getState().remove(shape.id());
+    const st = sRef.current;
+    const p = st?.getPointerPosition();
+    if (!st || !p) return;
+    const shape = st.getIntersection(p);
+    const id = shape?.id();
+    const el = elements.find((e) => e.id === id);
+    if (el?.type === 'line' && !el.locked) remove(el.id);
   };
 
-  const onDown = (e: KEvent) => {
-    const { tool, pen, select } = useEditor.getState();
-    if (tool === 'select') {
-      if (e.target === e.target.getStage()) select(null);
-      return;
-    }
-    isDown.current = true;
-    if (tool === 'eraser') {
+  const down = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    const st = sRef.current!;
+    if (tool === 'pen') {
+      const p = st.getRelativePointerPosition();
+      if (p) setDraft([p.x, p.y, p.x + 0.1, p.y]);
+    } else if (tool === 'eraser') {
+      erasing.current = true;
       eraseAt();
-      return;
+    } else if (e.target === st || e.target.name() === 'bg') {
+      select(null);
     }
-    const pos = e.target.getStage()?.getRelativePointerPosition();
-    if (!pos) return;
-    setDraftBoth({
-      id: newId(),
-      type: 'line',
-      x: 0,
-      y: 0,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      opacity: 1,
-      points: [pos.x, pos.y, pos.x, pos.y],
-      penStyle: pen.style,
-      color: pen.color,
-      width: pen.width,
-    });
   };
-
-  const onMove = (e: KEvent) => {
-    if (!isDown.current) return;
-    e.evt.preventDefault();
-    if (useEditor.getState().tool === 'eraser') {
-      eraseAt();
-      return;
-    }
-    const pos = e.target.getStage()?.getRelativePointerPosition();
-    const d = draftRef.current;
-    if (!pos || !d) return;
-    setDraftBoth({ ...d, points: [...d.points, pos.x, pos.y] });
+  const moveH = () => {
+    if (tool === 'pen' && draft) {
+      const p = sRef.current!.getRelativePointerPosition();
+      if (p) setDraft([...draft, p.x, p.y]);
+    } else if (tool === 'eraser' && erasing.current) eraseAt();
   };
-
-  const onUp = () => {
-    isDown.current = false;
-    const d = draftRef.current;
-    if (d) {
-      useEditor.getState().add(d, false);
-      setDraftBoth(null);
+  const up = () => {
+    erasing.current = false;
+    if (draft && draft.length > 2) {
+      add({
+        id: newId(), type: 'line', x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1,
+        points: draft, color: pen.color, width: pen.width, penStyle: pen.style,
+      });
     }
+    setDraft(null);
   };
 
   return (
-    <div className="canvas-wrap" ref={wrapRef} style={{ cursor: tool === 'select' ? 'default' : 'crosshair' }}>
-      <Stage
-        width={CANVAS_W * scale}
-        height={CANVAS_H * scale}
-        scaleX={scale}
-        scaleY={scale}
-        ref={(n) => {
-          stageRef.current = n;
-        }}
-        onMouseDown={onDown}
-        onTouchStart={onDown}
-        onMouseMove={onMove}
-        onTouchMove={onMove}
-        onMouseUp={onUp}
-        onTouchEnd={onUp}
-        onMouseLeave={onUp}
-      >
-        <Layer>
-          <Rect width={CANVAS_W} height={CANVAS_H} fill={bgColor} listening={false} />
-          {elements.map((el) => (
-            <ElementNode key={el.id} el={el} />
-          ))}
-          {draft && <Line {...penProps(draft)} listening={false} />}
-          <Transformer
-            ref={trRef}
-            keepRatio
-            anchorSize={14}
-            anchorCornerRadius={7}
-            borderStroke="#ff4fa3"
-            anchorStroke="#ff4fa3"
-            boundBoxFunc={(oldBox, newBox) => (newBox.width < 20 || newBox.height < 20 ? oldBox : newBox)}
-          />
-        </Layer>
-      </Stage>
+    <div className="stage-wrap" ref={wrap}>
+      <div className="stage-card" style={{ width: CANVAS_W * scale, height: CANVAS_H * scale }}>
+        <Stage
+          ref={sRef}
+          width={CANVAS_W * scale}
+          height={CANVAS_H * scale}
+          scaleX={scale}
+          scaleY={scale}
+          onMouseDown={down}
+          onTouchStart={down}
+          onMouseMove={moveH}
+          onTouchMove={moveH}
+          onMouseUp={up}
+          onTouchEnd={up}
+          style={{ touchAction: 'none' }}
+        >
+          <Layer>
+            <Rect name="bg" width={CANVAS_W} height={CANVAS_H} fill={bgColor} />
+            {elements.map((el) => <ElementNode key={el.id} el={el} />)}
+            {draft && <Line {...penProps({ points: draft, color: pen.color, width: pen.width, penStyle: pen.style })} listening={false} />}
+            <Transformer
+              ref={trRef}
+              keepRatio
+              rotateAnchorOffset={30}
+              anchorSize={12}
+              anchorCornerRadius={6}
+              anchorStroke="#ff4fa3"
+              anchorFill="#fff"
+              borderStroke="#ff4fa3"
+              borderDash={[6, 4]}
+              boundBoxFunc={(o, n) => (Math.abs(n.width) < 20 || Math.abs(n.height) < 20 ? o : n)}
+            />
+          </Layer>
+        </Stage>
+      </div>
     </div>
   );
 }
