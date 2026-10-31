@@ -1,6 +1,12 @@
-// 背景削除のライブラリは重いので、ボタンを押した時にだけ読み込む
+// 背景削除は重いので、ボタンを押した時だけ読み込む
+// 自動保存できるように dataURL で返す
 export async function removeBg(src: string): Promise<string> {
   const { removeBackground } = await import('@imgly/background-removal');
   const blob = await removeBackground(src);
-  return URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
 }
