@@ -1,67 +1,48 @@
-import type { LineConfig } from 'konva/lib/shapes/Line';
+import type Konva from 'konva';
 import type { LineEl, PenStyle } from '../types';
 
-export const PENS: { key: PenStyle; label: string; group: 'まじめ' | 'かわいい' }[] = [
-  { key: 'pen', label: 'ボールペン', group: 'まじめ' },
-  { key: 'marker', label: 'マーカー', group: 'まじめ' },
-  { key: 'dashed', label: '点線', group: 'まじめ' },
-  { key: 'neon', label: 'ネオン', group: 'かわいい' },
-  { key: 'dotted', label: 'てんてん', group: 'かわいい' },
-  { key: 'rainbow', label: 'レインボー', group: 'かわいい' },
-  { key: 'sparkle', label: 'キラキラ', group: 'かわいい' },
+export const PENS: { style: PenStyle; label: string; group: 'まじめ' | 'かわいい' }[] = [
+  { style: 'pen', label: 'ボールペン', group: 'まじめ' },
+  { style: 'marker', label: 'マーカー', group: 'まじめ' },
+  { style: 'dashed', label: '点線', group: 'まじめ' },
+  { style: 'neon', label: 'ネオン', group: 'かわいい' },
+  { style: 'dotted', label: 'てんてん', group: 'かわいい' },
+  { style: 'rainbow', label: 'レインボー', group: 'かわいい' },
+  { style: 'sparkle', label: 'キラキラ', group: 'かわいい' },
 ];
 
-const RAINBOW = [0, '#ff5f6d', 0.2, '#ffc371', 0.4, '#fff35c', 0.6, '#5cff8d', 0.8, '#5cc8ff', 1, '#b05cff'];
+const RAINBOW = [0, '#ff5e7e', 0.2, '#ffb84d', 0.4, '#ffe94d', 0.6, '#5be37d', 0.8, '#4dc3ff', 1, '#b47bff'];
 
-export function penProps(el: LineEl): LineConfig {
-  const w = el.width;
-  const base: LineConfig = {
-    points: el.points,
-    stroke: el.color,
-    strokeWidth: w,
-    lineCap: 'round',
-    lineJoin: 'round',
-    tension: 0.4,
-    hitStrokeWidth: Math.max(20, w * 3),
-    opacity: el.opacity,
+type P = Pick<LineEl, 'points' | 'color' | 'width' | 'penStyle'>;
+
+export function penProps(el: P): Konva.LineConfig {
+  const common: Konva.LineConfig = {
+    points: el.points, stroke: el.color, strokeWidth: el.width,
+    lineCap: 'round', lineJoin: 'round', tension: 0.4,
   };
-
   switch (el.penStyle) {
     case 'marker':
-      return { ...base, strokeWidth: w * 3, opacity: el.opacity * 0.45, lineCap: 'butt', tension: 0.2 };
+      return { ...common, strokeWidth: el.width * 3, opacity: 0.45, lineCap: 'square' };
     case 'dashed':
-      return { ...base, dash: [w * 3, w * 2], lineCap: 'butt' };
+      return { ...common, dash: [el.width * 3, el.width * 2] };
     case 'neon':
-      return { ...base, shadowColor: el.color, shadowBlur: w * 4, shadowOpacity: 1 };
+      return { ...common, stroke: '#ffffff', shadowColor: el.color, shadowBlur: 18, shadowOpacity: 1 };
     case 'dotted':
-      return { ...base, strokeWidth: w * 1.6, dash: [0.001, w * 3] };
+      return { ...common, dash: [0.1, el.width * 2.2] };
     case 'rainbow': {
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (let i = 0; i < el.points.length; i += 2) {
-        minX = Math.min(minX, el.points[i]);
-        maxX = Math.max(maxX, el.points[i]);
-        minY = Math.min(minY, el.points[i + 1]);
-        maxY = Math.max(maxY, el.points[i + 1]);
-      }
+      const xs = el.points.filter((_, i) => i % 2 === 0);
+      const ys = el.points.filter((_, i) => i % 2 === 1);
       return {
-        ...base,
+        ...common,
         stroke: undefined,
-        strokeWidth: w * 1.5,
-        strokeLinearGradientStartPoint: { x: minX, y: minY },
-        strokeLinearGradientEndPoint: { x: maxX + 1, y: maxY + 1 },
+        strokeLinearGradientStartPoint: { x: Math.min(...xs), y: Math.min(...ys) },
+        strokeLinearGradientEndPoint: { x: Math.max(...xs) + 1, y: Math.max(...ys) + 1 },
         strokeLinearGradientColorStops: RAINBOW,
       };
     }
     case 'sparkle':
-      return {
-        ...base,
-        strokeWidth: w * 1.6,
-        dash: [0.001, w * 2.5],
-        shadowColor: '#fff6a8',
-        shadowBlur: 14,
-        shadowOpacity: 1,
-      };
+      return { ...common, dash: [0.1, el.width * 2.5], strokeWidth: el.width * 1.4, shadowColor: '#fff6a8', shadowBlur: 12, shadowOpacity: 1 };
     default:
-      return base;
+      return common;
   }
 }
