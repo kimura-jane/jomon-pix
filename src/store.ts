@@ -1,30 +1,14 @@
 
 import { create } from 'zustand';
-import {
-  persist,
-  createJSONStorage,
-} from 'zustand/middleware';
-import type {
-  CanvasEl,
-  Patch,
-  PenStyle,
-  Tab,
-  Tool,
-} from './types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { CanvasEl, Patch, PenStyle, Tab, Tool } from './types';
 
 export const newId = () =>
-  typeof crypto !== 'undefined' &&
-  'randomUUID' in crypto
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) +
-      Date.now().toString(36);
+    : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-export type CanvasPreset =
-  | 'square'
-  | '4:5'
-  | '9:16'
-  | 'photo'
-  | 'custom';
+export type CanvasPreset = 'square' | '4:5' | '9:16' | 'photo' | 'custom';
 
 export type CanvasCrop = {
   x: number;
@@ -34,18 +18,9 @@ export type CanvasCrop = {
 };
 
 const CANVAS_SIZES = {
-  square: {
-    width: 800,
-    height: 800,
-  },
-  '4:5': {
-    width: 800,
-    height: 1000,
-  },
-  '9:16': {
-    width: 900,
-    height: 1600,
-  },
+  square: { width: 800, height: 800 },
+  '4:5': { width: 800, height: 1000 },
+  '9:16': { width: 900, height: 1600 },
 };
 
 type Pen = {
@@ -54,11 +29,7 @@ type Pen = {
   width: number;
 };
 
-type Dir =
-  | 'front'
-  | 'back'
-  | 'up'
-  | 'down';
+type Dir = 'front' | 'back' | 'up' | 'down';
 
 type Snapshot = {
   elements: CanvasEl[];
@@ -85,19 +56,13 @@ type S = Snapshot & {
   select: (id: string | null) => void;
 
   setBg: (color: string) => void;
-  setCanvasPreset: (
-    preset: CanvasPreset,
-  ) => boolean;
-  cropCanvas: (
-    rect: CanvasCrop,
-  ) => boolean;
+  setCanvasPreset: (preset: CanvasPreset) => boolean;
+  cropCanvas: (rect: CanvasCrop) => boolean;
 
   setTab: (tab: Tab) => void;
   setTool: (tool: Tool) => void;
   setPen: (patch: Partial<Pen>) => void;
 
-  // スライダーの連続操作を
-  // 1回の編集履歴にまとめる
   beginHistoryGroup: (id: string) => void;
   endHistoryGroup: () => void;
 
@@ -106,7 +71,94 @@ type S = Snapshot & {
   clear: () => void;
 };
 
-// 編集履歴用のスナップショット
+// 自動保存の結果は作品とは別に管理する。
+// このストア自体は永続化しないため、保存失敗時も再帰的に保存しない。
+export type AutosaveStatus = 'idle' | 'saved' | 'failed';
+
+type AutosaveState = {
+  status: AutosaveStatus;
+  lastSavedAt: number;
+  errorMessage: string | null;
+};
+
+export const useAutosaveStatus = create<AutosaveState>(() => ({
+  status: 'idle',
+  lastSavedAt: 0,
+  errorMessage: null,
+}));
+
+function markSaved() {
+  useAutosaveStatus.setState({
+    status: 'saved',
+    lastSavedAt: Date.now(),
+    errorMessage: null,
+  });
+}
+
+function markSaveFailed(error: unknown, reading: boolean) {
+  const name = error instanceof Error ? error.name : '';
+  const isQuota =
+    name === 'QuotaExceededError' ||
+    name === 'NS_ERROR_DOM_QUOTA_REACHED';
+
+  const message = reading
+    ? '保存済みの作品を読み込めませんでした。既存データを保護するため、自動保存を停止しています。'
+    : isQuota
+      ? '保存容量が不足しています。変更内容を自動保存できませんでした。'
+      : '自動保存に失敗しました。変更内容がブラウザに保存されていない可能性があります。';
+
+  const previous = useAutosaveStatus.getState();
+  if (previous.status !== 'failed' || previous.errorMessage !== message) {
+    useAutosaveStatus.setState({
+      status: 'failed',
+      errorMessage: message,
+    });
+    console.warn('[JOMON pix] ' + message, error);
+  }
+}
+
+// 保存データを正常に読み込めないセッションでは上書きを禁止する。
+// 破損・読み取りエラー時に既存の作品を上書きしないための保護策。
+let storageReadFailed = false;
+
+const safeStorage = createJSONStorage(() => ({
+  getItem: (key: string) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      storageReadFailed = true;
+      markSaveFailed(error, true);
+      return null;
+    }
+  },
+
+  setItem: (key: string, value: string) => {
+    if (storageReadFailed) return;
+
+    try {
+      localStorage.setItem(key, value);
+      markSaved();
+    } catch (error) {
+      markSaveFailed(error, false);
+    }
+  },
+
+  removeItem: (key: string) => {
+    if (storageReadFailed) return;
+
+    try {
+      localStorage.removeItem(key);
+      useAutosaveStatus.setState({
+        status: 'idle',
+        lastSavedAt: 0,
+        errorMessage: null,
+      });
+    } catch (error) {
+      markSaveFailed(error, false);
+    }
+  },
+}));
+
 function snapshot(state: Snapshot): Snapshot {
   return {
     elements: state.elements,
@@ -117,23 +169,6 @@ function snapshot(state: Snapshot): Snapshot {
   };
 }
 
-// 自動保存
-const safeStorage = createJSONStorage(() => ({
-  getItem: (key: string) =>
-    localStorage.getItem(key),
-
-  setItem: (key: string, value: string) => {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      console.warn('自動保存の容量オーバー');
-    }
-  },
-
-  removeItem: (key: string) =>
-    localStorage.removeItem(key),
-}));
-
 type HistoryGroup = {
   id: string;
   before: Snapshot;
@@ -143,51 +178,27 @@ type HistoryGroup = {
 export const useEditor = create<S>()(
   persist(
     (set, get) => {
-      // 現在進行中の連続操作
-      // 永続保存には含めない
-      let historyGroup: HistoryGroup | null =
-        null;
+      let historyGroup: HistoryGroup | null = null;
 
-      // 連続操作を終了して履歴を確定
       const finishHistoryGroup = () => {
         const group = historyGroup;
-
         historyGroup = null;
-
-        if (!group || !group.changed) {
-          return;
-        }
+        if (!group || !group.changed) return;
 
         set((state) => ({
-          past: [
-            ...state.past,
-            group.before,
-          ].slice(-50),
+          past: [...state.past, group.before].slice(-50),
           future: [],
           savedAt: Date.now(),
         }));
       };
 
-      // 通常の変更では履歴を1件追加
-      // 連続操作中の同一要素では追加しない
-      const commit = (
-        changes: Partial<Snapshot>,
-        groupId?: string,
-      ) => {
-        const grouped =
-          !!groupId &&
-          historyGroup?.id === groupId;
-
-        if (!grouped) {
-          finishHistoryGroup();
-        }
+      const commit = (changes: Partial<Snapshot>, groupId?: string) => {
+        const grouped = !!groupId && historyGroup?.id === groupId;
+        if (!grouped) finishHistoryGroup();
 
         set((state) => {
           if (grouped) {
-            if (historyGroup) {
-              historyGroup.changed = true;
-            }
-
+            if (historyGroup) historyGroup.changed = true;
             return {
               ...changes,
               future: [],
@@ -197,10 +208,7 @@ export const useEditor = create<S>()(
 
           return {
             ...changes,
-            past: [
-              ...state.past,
-              snapshot(state),
-            ].slice(-50),
+            past: [...state.past, snapshot(state)].slice(-50),
             future: [],
             savedAt: Date.now(),
           };
@@ -211,41 +219,22 @@ export const useEditor = create<S>()(
         elements: [],
         selectedId: null,
         bgColor: '#fff6fb',
-
         canvasPreset: 'square',
         canvasWidth: 800,
         canvasHeight: 800,
-
         tab: 'image',
         tool: 'select',
-
-        pen: {
-          style: 'pen',
-          color: '#ff4fa3',
-          width: 6,
-        },
-
+        pen: { style: 'pen', color: '#ff4fa3', width: 6 },
         past: [],
         future: [],
         savedAt: 0,
 
-        // 連続操作を開始
         beginHistoryGroup: (id) => {
-          if (historyGroup?.id === id) {
-            return;
-          }
-
+          if (historyGroup?.id === id) return;
           finishHistoryGroup();
 
           const state = get();
-
-          if (
-            !state.elements.some(
-              (el) => el.id === id,
-            )
-          ) {
-            return;
-          }
+          if (!state.elements.some((el) => el.id === id)) return;
 
           historyGroup = {
             id,
@@ -254,47 +243,24 @@ export const useEditor = create<S>()(
           };
         },
 
-        // 連続操作を終了
         endHistoryGroup: () => {
           finishHistoryGroup();
         },
 
-        // 要素の追加
         add: (el) => {
-          commit({
-            elements: [
-              ...get().elements,
-              el,
-            ],
-          });
-
-          if (el.type !== 'line') {
-            set({
-              selectedId: el.id,
-            });
-          }
+          commit({ elements: [...get().elements, el] });
+          if (el.type !== 'line') set({ selectedId: el.id });
         },
 
-        // 要素の変更
         update: (id, patch) => {
           const current = get().elements;
-
-          if (
-            !current.some(
-              (el) => el.id === id,
-            )
-          ) {
-            return;
-          }
+          if (!current.some((el) => el.id === id)) return;
 
           commit(
             {
               elements: current.map((el) =>
                 el.id === id
-                  ? ({
-                      ...el,
-                      ...patch,
-                    } as CanvasEl)
+                  ? ({ ...el, ...patch } as CanvasEl)
                   : el,
               ),
             },
@@ -302,37 +268,18 @@ export const useEditor = create<S>()(
           );
         },
 
-        // 要素の削除
         remove: (id) => {
           const current = get();
-
-          if (
-            !current.elements.some(
-              (el) => el.id === id,
-            )
-          ) {
-            return;
-          }
+          if (!current.elements.some((el) => el.id === id)) return;
 
           commit({
-            elements: current.elements.filter(
-              (el) => el.id !== id,
-            ),
+            elements: current.elements.filter((el) => el.id !== id),
           });
-
-          if (current.selectedId === id) {
-            set({
-              selectedId: null,
-            });
-          }
+          if (current.selectedId === id) set({ selectedId: null });
         },
 
-        // 要素の複製
         duplicate: (id) => {
-          const el = get().elements.find(
-            (item) => item.id === id,
-          );
-
+          const el = get().elements.find((item) => item.id === id);
           if (!el) return;
 
           const copy = {
@@ -343,105 +290,52 @@ export const useEditor = create<S>()(
             locked: false,
           } as CanvasEl;
 
-          commit({
-            elements: [
-              ...get().elements,
-              copy,
-            ],
-          });
-
-          set({
-            selectedId: copy.id,
-          });
+          commit({ elements: [...get().elements, copy] });
+          set({ selectedId: copy.id });
         },
 
-        // レイヤーの前後移動
         move: (id, dir) => {
-          const arr = [
-            ...get().elements,
-          ];
-
-          const index = arr.findIndex(
-            (el) => el.id === id,
-          );
-
+          const arr = [...get().elements];
+          const index = arr.findIndex((el) => el.id === id);
           if (index < 0) return;
 
-          const [el] = arr.splice(
-            index,
-            1,
-          );
-
+          const [el] = arr.splice(index, 1);
           if (dir === 'front') {
             arr.push(el);
           } else if (dir === 'back') {
             arr.unshift(el);
           } else if (dir === 'up') {
-            arr.splice(
-              Math.min(
-                index + 1,
-                arr.length,
-              ),
-              0,
-              el,
-            );
+            arr.splice(Math.min(index + 1, arr.length), 0, el);
           } else {
-            arr.splice(
-              Math.max(index - 1, 0),
-              0,
-              el,
-            );
+            arr.splice(Math.max(index - 1, 0), 0, el);
           }
 
-          commit({
-            elements: arr,
-          });
+          commit({ elements: arr });
         },
 
-        // 要素の選択
         select: (id) => {
           finishHistoryGroup();
-
-          set({
-            selectedId: id,
-          });
+          set({ selectedId: id });
         },
 
-        // 背景色
         setBg: (color) => {
-          if (get().bgColor === color) {
-            return;
-          }
-
-          commit({
-            bgColor: color,
-          });
+          if (get().bgColor === color) return;
+          commit({ bgColor: color });
         },
 
-        // キャンバスサイズ変更
         setCanvasPreset: (preset) => {
-          if (preset === 'custom') {
-            return false;
-          }
+          if (preset === 'custom') return false;
 
           let width: number;
           let height: number;
 
           if (preset === 'photo') {
             const state = get();
-
-            const selected =
-              state.elements.find(
-                (el) =>
-                  el.id === state.selectedId &&
-                  el.type === 'image',
-              );
-
+            const selected = state.elements.find(
+              (el) => el.id === state.selectedId && el.type === 'image',
+            );
             const photo =
-              selected ??
-              state.elements.find(
-                (el) => el.type === 'image',
-              );
+              selected ?? state.elements.find((el) => el.type === 'image');
 
             if (
               !photo ||
@@ -453,27 +347,14 @@ export const useEditor = create<S>()(
             }
 
             width = 800;
-
-            height = Math.round(
-              width *
-                photo.height /
-                photo.width,
-            );
-
-            height = Math.max(
-              200,
-              Math.min(3200, height),
-            );
+            height = Math.round(width * photo.height / photo.width);
+            height = Math.max(200, Math.min(3200, height));
           } else {
-            width =
-              CANVAS_SIZES[preset].width;
-
-            height =
-              CANVAS_SIZES[preset].height;
+            width = CANVAS_SIZES[preset].width;
+            height = CANVAS_SIZES[preset].height;
           }
 
           const state = get();
-
           if (
             state.canvasPreset === preset &&
             state.canvasWidth === width &&
@@ -487,37 +368,18 @@ export const useEditor = create<S>()(
             canvasWidth: width,
             canvasHeight: height,
           });
-
           return true;
         },
 
-        // キャンバス全体の切り抜き
         cropCanvas: (rect) => {
           const state = get();
-
-          const values = [
-            rect.x,
-            rect.y,
-            rect.width,
-            rect.height,
-          ];
-
-          if (
-            !values.every(
-              Number.isFinite,
-            )
-          ) {
-            return false;
-          }
+          const values = [rect.x, rect.y, rect.width, rect.height];
+          if (!values.every(Number.isFinite)) return false;
 
           const x = Math.round(rect.x);
           const y = Math.round(rect.y);
-          const width = Math.round(
-            rect.width,
-          );
-          const height = Math.round(
-            rect.height,
-          );
+          const width = Math.round(rect.width);
+          const height = Math.round(rect.height);
 
           if (
             x < 0 ||
@@ -539,13 +401,11 @@ export const useEditor = create<S>()(
             return true;
           }
 
-          // トリミング範囲に合わせて位置調整
-          const elements =
-            state.elements.map((el) => ({
-              ...el,
-              x: el.x - x,
-              y: el.y - y,
-            })) as CanvasEl[];
+          const elements = state.elements.map((el) => ({
+            ...el,
+            x: el.x - x,
+            y: el.y - y,
+          })) as CanvasEl[];
 
           commit({
             elements,
@@ -553,18 +413,12 @@ export const useEditor = create<S>()(
             canvasWidth: width,
             canvasHeight: height,
           });
-
-          set({
-            selectedId: null,
-          });
-
+          set({ selectedId: null });
           return true;
         },
 
-        // タブ切り替え
         setTab: (tab) => {
           finishHistoryGroup();
-
           set({
             tab,
             tool:
@@ -576,78 +430,45 @@ export const useEditor = create<S>()(
           });
         },
 
-        // ペン・消しゴム切り替え
         setTool: (tool) => {
           finishHistoryGroup();
           set({ tool });
         },
 
-        // ペン設定
         setPen: (patch) => {
-          set({
-            pen: {
-              ...get().pen,
-              ...patch,
-            },
-          });
+          set({ pen: { ...get().pen, ...patch } });
         },
 
-        // 戻す
         undo: () => {
           finishHistoryGroup();
-
           const state = get();
+          if (!state.past.length) return;
 
-          if (!state.past.length) {
-            return;
-          }
-
-          const previous =
-            state.past[
-              state.past.length - 1
-            ];
-
+          const previous = state.past[state.past.length - 1];
           set({
             ...previous,
-            past: state.past.slice(
-              0,
-              -1,
-            ),
-            future: [
-              snapshot(state),
-              ...state.future,
-            ].slice(0, 50),
+            past: state.past.slice(0, -1),
+            future: [snapshot(state), ...state.future].slice(0, 50),
             selectedId: null,
             savedAt: Date.now(),
           });
         },
 
-        // やり直す
         redo: () => {
           finishHistoryGroup();
-
           const state = get();
-
-          if (!state.future.length) {
-            return;
-          }
+          if (!state.future.length) return;
 
           const next = state.future[0];
-
           set({
             ...next,
-            past: [
-              ...state.past,
-              snapshot(state),
-            ].slice(-50),
-            future:
-              state.future.slice(1),
+            past: [...state.past, snapshot(state)].slice(-50),
+            future: state.future.slice(1),
             selectedId: null,
             savedAt: Date.now(),
           });
         },
 
-        // 新しい作品
         clear: () => {
           commit({
             elements: [],
@@ -656,18 +477,13 @@ export const useEditor = create<S>()(
             canvasWidth: 800,
             canvasHeight: 800,
           });
-
-          set({
-            selectedId: null,
-          });
+          set({ selectedId: null });
         },
       };
     },
     {
       name: 'jomon-pix-work',
       storage: safeStorage,
-
-      // 編集履歴は永続保存しない
       partialize: (state) => ({
         elements: state.elements,
         bgColor: state.bgColor,
@@ -676,6 +492,12 @@ export const useEditor = create<S>()(
         canvasHeight: state.canvasHeight,
         savedAt: state.savedAt,
       }),
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          storageReadFailed = true;
+          markSaveFailed(error, true);
+        }
+      },
     },
   ),
 );
