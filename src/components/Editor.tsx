@@ -73,11 +73,15 @@ export function Editor() {
 
   const [scale, setScale] = useState(0.4);
   const [zoom, setZoom] = useState(1);
+
   const [offset, setOffset] = useState<Point>({
     x: 0,
     y: 0,
   });
-  const [draft, setDraft] = useState<number[] | null>(null);
+
+  const [draft, setDraft] = useState<number[] | null>(
+    null,
+  );
 
   // ドラッグ中も2本指の動きを受け取る
   useEffect(() => {
@@ -100,15 +104,24 @@ export function Editor() {
 
       if (width <= 0 || height <= 0) return;
 
-      const availableWidth = Math.max(1, width - 12);
-      const availableHeight = Math.max(1, height - 12);
+      const availableWidth = Math.max(
+        1,
+        width - 12,
+      );
+
+      const availableHeight = Math.max(
+        1,
+        height - 12,
+      );
 
       const nextScale = Math.min(
         availableWidth / canvasWidth,
         availableHeight / canvasHeight,
       );
 
-      setScale(Math.max(0.01, nextScale * 0.96));
+      setScale(
+        Math.max(0.01, nextScale * 0.96),
+      );
     };
 
     resize();
@@ -119,13 +132,14 @@ export function Editor() {
     return () => observer.disconnect();
   }, [canvasWidth, canvasHeight]);
 
-  // キャンバスの比率を変えたら表示を全体表示に戻す
+  // キャンバス比率変更時は全体表示に戻す
   useEffect(() => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
     gesture.current = null;
   }, [canvasWidth, canvasHeight]);
 
+  // 保存用のStage参照
   useEffect(() => {
     stageRef.current = sRef.current;
 
@@ -134,7 +148,7 @@ export function Editor() {
     };
   });
 
-  // 選択している要素の編集枠
+  // 選択中の要素に編集枠を接続
   useEffect(() => {
     const tr = trRef.current;
     const st = sRef.current;
@@ -142,7 +156,7 @@ export function Editor() {
     if (!tr || !st) return;
 
     const el = elements.find(
-      (e) => e.id === selectedId,
+      (item) => item.id === selectedId,
     );
 
     const canTransform =
@@ -167,16 +181,43 @@ export function Editor() {
     canvasHeight,
   ]);
 
+  // 画面上で指でつかみやすい大きさに調整
+  // KonvaのStage拡大率とCSSズームの両方を考慮
+  const visibleScale = Math.max(
+    0.05,
+    scale * zoom,
+  );
+
+  // 画面上で約26pxの操作点を目標とする
+  const anchorSize = Math.max(
+    18,
+    Math.min(
+      170,
+      Math.round(26 / visibleScale),
+    ),
+  );
+
+  // 回転ハンドルと要素の間隔
+  const rotateAnchorOffset = Math.max(
+    34,
+    Math.min(
+      200,
+      Math.round(38 / visibleScale),
+    ),
+  );
+
   // 拡大・縮小ボタン
   const changeZoom = (amount: number) => {
     setZoom((current) =>
       limitZoom(
-        Math.round((current + amount) * 100) / 100,
+        Math.round(
+          (current + amount) * 100,
+        ) / 100,
       ),
     );
   };
 
-  // 全体表示に戻す
+  // 全体表示
   const fitCanvas = () => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
@@ -191,8 +232,12 @@ export function Editor() {
     if (!info || !element) return;
 
     const rect = element.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+
+    const centerX =
+      rect.left + rect.width / 2;
+
+    const centerY =
+      rect.top + rect.height / 2;
 
     gesture.current = {
       distance: Math.max(1, info.distance),
@@ -207,7 +252,7 @@ export function Editor() {
     erasing.current = false;
   };
 
-  // 2本指で拡大・縮小・移動
+  // 2本指で拡大縮小・移動
   const movePinch = (touches: TouchList) => {
     const info = touchInfo(touches);
     const g = gesture.current;
@@ -216,16 +261,26 @@ export function Editor() {
     if (!info || !g || !element) return;
 
     const rect = element.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+
+    const centerX =
+      rect.left + rect.width / 2;
+
+    const centerY =
+      rect.top + rect.height / 2;
 
     const nextZoom = limitZoom(
       g.zoom * info.distance / g.distance,
     );
 
     const nextOffset = {
-      x: info.x - centerX - g.anchorX * nextZoom,
-      y: info.y - centerY - g.anchorY * nextZoom,
+      x:
+        info.x -
+        centerX -
+        g.anchorX * nextZoom,
+      y:
+        info.y -
+        centerY -
+        g.anchorY * nextZoom,
     };
 
     setZoom(nextZoom);
@@ -243,10 +298,13 @@ export function Editor() {
     const id = shape?.id();
 
     const el = elements.find(
-      (e) => e.id === id,
+      (item) => item.id === id,
     );
 
-    if (el?.type === 'line' && !el.locked) {
+    if (
+      el?.type === 'line' &&
+      !el.locked
+    ) {
       remove(el.id);
     }
   };
@@ -258,6 +316,7 @@ export function Editor() {
     >,
   ) => {
     const st = sRef.current;
+
     if (!st || gesture.current) return;
 
     if (tool === 'pen') {
@@ -345,6 +404,7 @@ export function Editor() {
       if (!gesture.current) {
         beginPinch(e.evt.touches);
       }
+
       return;
     }
 
@@ -384,6 +444,7 @@ export function Editor() {
         erasing.current = false;
         setDraft(null);
       }
+
       return;
     }
 
@@ -411,7 +472,8 @@ export function Editor() {
     color: '#3a2a36',
     fontSize: 17,
     fontWeight: 700,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    boxShadow:
+      '0 2px 8px rgba(0,0,0,0.08)',
     touchAction: 'manipulation' as const,
   };
 
@@ -430,7 +492,8 @@ export function Editor() {
           width: displayWidth,
           height: displayHeight,
           flexShrink: 0,
-          transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+          transform:
+            `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
           transformOrigin: 'center center',
         }}
       >
@@ -481,9 +544,17 @@ export function Editor() {
             <Transformer
               ref={trRef}
               keepRatio
-              rotateAnchorOffset={30}
-              anchorSize={12}
-              anchorCornerRadius={6}
+              // 四隅だけを使い、操作点の重なりを減らす
+              enabledAnchors={[
+                'top-left',
+                'top-right',
+                'bottom-left',
+                'bottom-right',
+              ]}
+              rotateEnabled
+              rotateAnchorOffset={rotateAnchorOffset}
+              anchorSize={anchorSize}
+              anchorCornerRadius={anchorSize / 2}
               anchorStroke="#ff4fa3"
               anchorFill="#fff"
               borderStroke="#ff4fa3"
@@ -510,7 +581,8 @@ export function Editor() {
           padding: 5,
           borderRadius: 15,
           background: 'rgba(255,246,251,0.9)',
-          boxShadow: '0 3px 14px rgba(0,0,0,0.08)',
+          boxShadow:
+            '0 3px 14px rgba(0,0,0,0.08)',
         }}
       >
         <button
