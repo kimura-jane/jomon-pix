@@ -79,7 +79,7 @@ const EXTRA_EMOJI = [
 
 const GLASSES = ['🕶', '😎', '🥽', '👓'];
 
-// 既存38種類と追加50種類を維持
+// 内蔵スタンプ全88種類
 const STAMP_GROUPS: {
   label: string;
   items: LibrarySticker[];
@@ -201,15 +201,15 @@ function Slider({
         max={max}
         step={step}
         value={value}
-        onChange={(e) =>
-          onChange(Number(e.target.value))
+        onChange={(event) =>
+          onChange(Number(event.target.value))
         }
       />
     </label>
   );
 }
 
-// 写真
+// 写真タブ
 function ImageTab() {
   const ref = useRef<HTMLInputElement>(null);
   const clear = useEditor((s) => s.clear);
@@ -222,12 +222,12 @@ function ImageTab() {
         accept="image/*"
         multiple
         hidden
-        onChange={async (e) => {
+        onChange={async (event) => {
           const files = Array.from(
-            e.target.files ?? [],
+            event.target.files ?? [],
           );
 
-          e.target.value = '';
+          event.target.value = '';
 
           try {
             for (const file of files) {
@@ -249,7 +249,9 @@ function ImageTab() {
       <button
         className="big-btn light"
         onClick={() => {
-          if (confirm('今の作品を消して新しく作る？')) {
+          if (
+            confirm('今の作品を消して新しく作る？')
+          ) {
             clear();
           }
         }}
@@ -265,7 +267,7 @@ function ImageTab() {
   );
 }
 
-// 文字
+// 文字タブ
 function TextTab({
   el,
 }: {
@@ -312,8 +314,10 @@ function TextTab({
               className="input"
               rows={2}
               value={el.text}
-              onChange={(e) =>
-                up({ text: e.target.value })
+              onChange={(event) =>
+                up({
+                  text: event.target.value,
+                })
               }
             />
           )}
@@ -372,8 +376,7 @@ function TextTab({
                     }}
                     onClick={() =>
                       up({
-                        fontFamily:
-                          font.family,
+                        fontFamily: font.family,
                       })
                     }
                   >
@@ -382,9 +385,7 @@ function TextTab({
                 ))}
               </div>
 
-              <div className="label">
-                色
-              </div>
+              <div className="label">色</div>
 
               <Dots
                 value={el.fill}
@@ -517,7 +518,7 @@ function TextTab({
   );
 }
 
-// ペン・消しゴム
+// ペン・消しゴムタブ
 function PenTab() {
   const {
     tool,
@@ -569,8 +570,7 @@ function PenTab() {
                   <button
                     key={p.style}
                     className={`chip ${
-                      pen.style ===
-                      p.style
+                      pen.style === p.style
                         ? 'on'
                         : ''
                     }`}
@@ -614,7 +614,7 @@ function PenTab() {
   );
 }
 
-// スタンプのサイズを百分率で取得
+// スタンプのサイズをキャンバス短辺の割合で計算
 function stickerPercent(
   sticker: StickerEl,
   shorterSide: number,
@@ -624,12 +624,13 @@ function stickerPercent(
     Math.abs(sticker.scaleX);
 
   return Math.round(
-    (actualWidth / Math.max(1, shorterSide)) *
+    actualWidth /
+      Math.max(1, shorterSide) *
       100,
   );
 }
 
-// スタンプの中心を維持してサイズを変更
+// スタンプの中心位置をできるだけ維持して拡大縮小
 function resizeSticker(
   sticker: StickerEl,
   percent: number,
@@ -658,8 +659,6 @@ function resizeSticker(
   const newScaleY =
     sticker.scaleY * factor;
 
-  // 回転と左右反転を維持しながら
-  // 見た目の中心が大きく動かないようにする
   const angle =
     sticker.rotation * Math.PI / 180;
 
@@ -691,7 +690,6 @@ function resizeSticker(
 // スタンプタブ
 function StampTab() {
   const [sub, setSub] = useState('顔デコ');
-
   const s = useEditor();
 
   const selected = s.elements.find(
@@ -740,6 +738,25 @@ function StampTab() {
     );
   };
 
+  // スライダーを触った瞬間の状態を記録する。
+  // 途中の値の変化は履歴に追加しない。
+  const beginSizeChange = () => {
+    if (
+      selectedSticker &&
+      !selectedSticker.locked &&
+      !selectedSticker.hidden
+    ) {
+      s.beginHistoryGroup(
+        selectedSticker.id,
+      );
+    }
+  };
+
+  // 指を離したら、操作前のサイズを履歴に1件記録
+  const endSizeChange = () => {
+    s.endHistoryGroup();
+  };
+
   const group = STAMP_GROUPS.find(
     (item) => item.label === sub,
   );
@@ -751,9 +768,19 @@ function StampTab() {
         ? EXTRA_EMOJI
         : [];
 
+  const sliderKeys = [
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown',
+    'Home',
+    'End',
+    'PageUp',
+    'PageDown',
+  ];
+
   return (
     <>
-      {/* 選択中のスタンプ編集 */}
       {selectedSticker && (
         <div
           style={{
@@ -846,13 +873,53 @@ function StampTab() {
               !!selectedSticker.hidden
             }
             aria-label="スタンプの大きさ"
-            onChange={(event) =>
+
+            // タッチ・マウス・ペン操作
+            onPointerDown={beginSizeChange}
+            onPointerUp={endSizeChange}
+            onPointerCancel={endSizeChange}
+
+            // iPhoneなどでのタッチ操作にも対応
+            onTouchStart={beginSizeChange}
+            onTouchEnd={endSizeChange}
+            onTouchCancel={endSizeChange}
+
+            // マウス操作の補助
+            onMouseDown={beginSizeChange}
+            onMouseUp={endSizeChange}
+
+            // キーボード操作もまとめて記録
+            onKeyDown={(event) => {
+              if (
+                sliderKeys.includes(
+                  event.key,
+                )
+              ) {
+                beginSizeChange();
+              }
+            }}
+            onKeyUp={(event) => {
+              if (
+                sliderKeys.includes(
+                  event.key,
+                )
+              ) {
+                endSizeChange();
+              }
+            }}
+
+            // スライダーから離れた場合も履歴を確定
+            onBlur={endSizeChange}
+
+            // 指を動かしている間は即座にサイズを反映
+            onChange={(event) => {
+              beginSizeChange();
               changeSize(
                 Number(
-                  event.target.value,
+                  event.currentTarget.value,
                 ),
-              )
-            }
+              );
+            }}
             style={{
               width: '100%',
               accentColor: '#ff4fa3',
@@ -873,7 +940,8 @@ function StampTab() {
               type="button"
               className="chip"
               disabled={
-                !!selectedSticker.locked
+                !!selectedSticker.locked ||
+                !!selectedSticker.hidden
               }
               onClick={() =>
                 changeSize(
@@ -888,7 +956,8 @@ function StampTab() {
               type="button"
               className="chip"
               disabled={
-                !!selectedSticker.locked
+                !!selectedSticker.locked ||
+                !!selectedSticker.hidden
               }
               onClick={() =>
                 changeSize(
@@ -903,7 +972,8 @@ function StampTab() {
               type="button"
               className="chip"
               disabled={
-                !!selectedSticker.locked
+                !!selectedSticker.locked ||
+                !!selectedSticker.hidden
               }
               onClick={() =>
                 changeSize(42)
@@ -1078,7 +1148,7 @@ function StampTab() {
   );
 }
 
-// 写真加工・キャンバス
+// 写真加工・キャンバスタブ
 function EditTab({
   el,
 }: {
@@ -1097,15 +1167,20 @@ function EditTab({
   const [busy, setBusy] = useState(false);
   const [cropOpen, setCropOpen] =
     useState(false);
-  const [canvasCropOpen, setCanvasCropOpen] =
-    useState(false);
+  const [
+    canvasCropOpen,
+    setCanvasCropOpen,
+  ] = useState(false);
 
   const off = !el;
 
   const changeCanvas = (
     preset: CanvasPreset,
   ) => {
-    const success = s.setCanvasPreset(preset);
+    const success =
+      s.setCanvasPreset(
+        preset,
+      );
 
     if (!success) {
       alert(
@@ -1141,10 +1216,7 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.move(
-                  el.id,
-                  'front',
-                )
+                s.move(el.id, 'front')
               }
             >
               ⤒ 最前面
@@ -1155,10 +1227,7 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.move(
-                  el.id,
-                  'up',
-                )
+                s.move(el.id, 'up')
               }
             >
               ↑ 1つ前へ
@@ -1169,10 +1238,7 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.move(
-                  el.id,
-                  'down',
-                )
+                s.move(el.id, 'down')
               }
             >
               ↓ 1つ後ろへ
@@ -1183,10 +1249,7 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.move(
-                  el.id,
-                  'back',
-                )
+                s.move(el.id, 'back')
               }
             >
               ⤓ 最背面
@@ -1197,13 +1260,9 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.update(
-                  el.id,
-                  {
-                    scaleX:
-                      -el.scaleX,
-                  },
-                )
+                s.update(el.id, {
+                  scaleX: -el.scaleX,
+                })
               }
             >
               ⇋ 左右反転
@@ -1214,13 +1273,9 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.update(
-                  el.id,
-                  {
-                    scaleY:
-                      -el.scaleY,
-                  },
-                )
+                s.update(el.id, {
+                  scaleY: -el.scaleY,
+                })
               }
             >
               ⇵ 上下反転
@@ -1231,9 +1286,7 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.duplicate(
-                  el.id,
-                )
+                s.duplicate(el.id)
               }
             >
               ⧉ 複製
@@ -1244,13 +1297,9 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.update(
-                  el.id,
-                  {
-                    locked:
-                      !el.locked,
-                  },
-                )
+                s.update(el.id, {
+                  locked: !el.locked,
+                })
               }
             >
               {el?.locked
@@ -1263,9 +1312,7 @@ function EditTab({
               disabled={off}
               onClick={() =>
                 el &&
-                s.remove(
-                  el.id,
-                )
+                s.remove(el.id)
               }
             >
               🗑 削除
@@ -1310,15 +1357,9 @@ function EditTab({
                 setBusy(true);
 
                 try {
-                  s.update(
-                    el.id,
-                    {
-                      src:
-                        await removeBg(
-                          el.src,
-                        ),
-                    },
-                  );
+                  s.update(el.id, {
+                    src: await removeBg(el.src),
+                  });
                 } catch {
                   alert(
                     '背景削除に失敗しました',
@@ -1346,32 +1387,23 @@ function EditTab({
       {sub === '色' &&
         (el?.type === 'image' ? (
           <div className="row">
-            {FILTERS.map(
-              (filter) => (
-                <button
-                  key={
-                    filter.id
-                  }
-                  className={`chip ${
-                    el.filter ===
-                    filter.id
-                      ? 'on'
-                      : ''
-                  }`}
-                  onClick={() =>
-                    s.update(
-                      el.id,
-                      {
-                        filter:
-                          filter.id,
-                      },
-                    )
-                  }
-                >
-                  {filter.label}
-                </button>
-              ),
-            )}
+            {FILTERS.map((filter) => (
+              <button
+                key={filter.id}
+                className={`chip ${
+                  el.filter === filter.id
+                    ? 'on'
+                    : ''
+                }`}
+                onClick={() =>
+                  s.update(el.id, {
+                    filter: filter.id,
+                  })
+                }
+              >
+                {filter.label}
+              </button>
+            ))}
           </div>
         ) : (
           <p className="hint-s">
@@ -1389,9 +1421,7 @@ function EditTab({
             {CANVAS_PRESETS.map(
               (preset) => (
                 <button
-                  key={
-                    preset.id
-                  }
+                  key={preset.id}
                   className={`chip ${
                     s.canvasPreset ===
                     preset.id
@@ -1424,9 +1454,7 @@ function EditTab({
           <button
             className="big-btn light"
             onClick={() =>
-              setCanvasCropOpen(
-                true,
-              )
+              setCanvasCropOpen(true)
             }
           >
             ✂ キャンバス全体をトリミング
@@ -1439,9 +1467,7 @@ function EditTab({
           <Dots
             value={s.bgColor}
             colors={BG}
-            onPick={
-              s.setBg
-            }
+            onPick={s.setBg}
           />
 
           <p className="hint-s">
@@ -1456,9 +1482,7 @@ function EditTab({
         createPortal(
           <CanvasCropModal
             onClose={() =>
-              setCanvasCropOpen(
-                false,
-              )
+              setCanvasCropOpen(false)
             }
           />,
           document.body,
@@ -1470,9 +1494,7 @@ function EditTab({
           <PhotoCropModal
             el={el}
             onClose={() =>
-              setCropOpen(
-                false,
-              )
+              setCropOpen(false)
             }
           />,
           document.body,
@@ -1482,9 +1504,7 @@ function EditTab({
 }
 
 // レイヤー名
-function layerName(
-  el: CanvasEl,
-) {
+function layerName(el: CanvasEl) {
   if (el.type === 'text') {
     return el.text || '文字';
   }
@@ -1520,107 +1540,94 @@ function LayerTab() {
 
   return (
     <>
-      {[...elements]
-        .reverse()
-        .map((el) => {
-          const thumbSrc =
-            el.type === 'image'
+      {[...elements].reverse().map((el) => {
+        const thumbSrc =
+          el.type === 'image'
+            ? el.src
+            : el.type === 'sticker'
               ? el.src
-              : el.type === 'sticker'
-                ? el.src
-                : undefined;
+              : undefined;
 
-          return (
+        return (
+          <div
+            key={el.id}
+            className={`layer ${
+              selectedId === el.id
+                ? 'on'
+                : ''
+            }`}
+            onClick={() => select(el.id)}
+          >
             <div
-              key={el.id}
-              className={`layer ${
-                selectedId === el.id
-                  ? 'on'
-                  : ''
-              }`}
-              onClick={() =>
-                select(el.id)
+              className="thumb"
+              style={
+                thumbSrc
+                  ? {
+                      backgroundImage:
+                        `url("${thumbSrc}")`,
+                      backgroundSize: 'contain',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    }
+                  : undefined
               }
             >
-              <div
-                className="thumb"
-                style={
-                  thumbSrc
-                    ? {
-                        backgroundImage:
-                          `url("${thumbSrc}")`,
-                        backgroundSize:
-                          'contain',
-                        backgroundPosition:
-                          'center',
-                        backgroundRepeat:
-                          'no-repeat',
-                      }
-                    : undefined
-                }
-              >
-                {!thumbSrc &&
-                  (el.type === 'sticker'
-                    ? el.emoji
-                    : el.type === 'text'
-                      ? '🔤'
-                      : el.type === 'line'
-                        ? '✏️'
-                        : '')}
-              </div>
-
-              <span className="name">
-                {layerName(el)}
-              </span>
-
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  move(el.id, 'up');
-                }}
-              >
-                ↑
-              </button>
-
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  move(el.id, 'down');
-                }}
-              >
-                ↓
-              </button>
-
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  update(el.id, {
-                    hidden:
-                      !el.hidden,
-                  });
-                }}
-              >
-                {el.hidden
-                  ? '🙈'
-                  : '👁'}
-              </button>
-
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  update(el.id, {
-                    locked:
-                      !el.locked,
-                  });
-                }}
-              >
-                {el.locked
-                  ? '🔒'
-                  : '🔓'}
-              </button>
+              {!thumbSrc &&
+                (el.type === 'sticker'
+                  ? el.emoji
+                  : el.type === 'text'
+                    ? '🔤'
+                    : el.type === 'line'
+                      ? '✏️'
+                      : '')}
             </div>
-          );
-        })}
+
+            <span className="name">
+              {layerName(el)}
+            </span>
+
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                move(el.id, 'up');
+              }}
+            >
+              ↑
+            </button>
+
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                move(el.id, 'down');
+              }}
+            >
+              ↓
+            </button>
+
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                update(el.id, {
+                  hidden: !el.hidden,
+                });
+              }}
+            >
+              {el.hidden ? '🙈' : '👁'}
+            </button>
+
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                update(el.id, {
+                  locked: !el.locked,
+                });
+              }}
+            >
+              {el.locked ? '🔒' : '🔓'}
+            </button>
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -1642,9 +1649,7 @@ export function Panel() {
     <section className="panel">
       <div className="grab" />
 
-      {tab === 'image' && (
-        <ImageTab />
-      )}
+      {tab === 'image' && <ImageTab />}
 
       {tab === 'text' && (
         <TextTab
@@ -1656,13 +1661,9 @@ export function Panel() {
         />
       )}
 
-      {tab === 'pen' && (
-        <PenTab />
-      )}
+      {tab === 'pen' && <PenTab />}
 
-      {tab === 'stamp' && (
-        <StampTab />
-      )}
+      {tab === 'stamp' && <StampTab />}
 
       {tab === 'glasses' && (
         <>
@@ -1672,9 +1673,7 @@ export function Panel() {
                 key={glasses}
                 className="cell"
                 onClick={() =>
-                  addSticker(
-                    glasses,
-                  )
+                  addSticker(glasses)
                 }
               >
                 {glasses}
@@ -1702,9 +1701,7 @@ export function Panel() {
 
       {tab === 'edit' && (
         <EditTab
-          key={
-            selectedId ?? 'none'
-          }
+          key={selectedId ?? 'none'}
           el={el}
         />
       )}
@@ -1715,9 +1712,7 @@ export function Panel() {
         </Soon>
       )}
 
-      {tab === 'layer' && (
-        <LayerTab />
-      )}
+      {tab === 'layer' && <LayerTab />}
     </section>
   );
 }
