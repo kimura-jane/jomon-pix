@@ -5,6 +5,7 @@ import { useEditor, type CanvasPreset } from '../store';
 import { addImageFromFile, addSticker, addText } from '../lib/factory';
 import { removeBg } from '../lib/removeBg';
 import { PhotoCropModal } from './PhotoCropModal';
+import { CanvasCropModal } from './CanvasCropModal';
 import { FONTS, FONT_GROUPS, TEXT_PRESETS } from '../lib/fonts';
 import { PENS } from '../lib/pens';
 import type { CanvasEl, FilterPreset, TextEl } from '../types';
@@ -455,6 +456,7 @@ function EditTab({ el }: { el?: CanvasEl }) {
 
   const [busy, setBusy] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
+  const [canvasCropOpen, setCanvasCropOpen] = useState(false);
   const off = !el;
 
   const changeCanvas = (preset: CanvasPreset) => {
@@ -691,6 +693,13 @@ function EditTab({ el }: { el?: CanvasEl }) {
             または最初の写真の縦横比を使います。
           </p>
 
+          <button
+            className="big-btn light"
+            onClick={() => setCanvasCropOpen(true)}
+          >
+            ✂ キャンバス全体をトリミング
+          </button>
+
           <div className="label">背景色</div>
           <Dots
             value={s.bgColor}
@@ -704,6 +713,14 @@ function EditTab({ el }: { el?: CanvasEl }) {
           </p>
         </>
       )}
+
+      {canvasCropOpen &&
+        createPortal(
+          <CanvasCropModal
+            onClose={() => setCanvasCropOpen(false)}
+          />,
+          document.body,
+        )}
 
       {cropOpen && el?.type === 'image' &&
         createPortal(
