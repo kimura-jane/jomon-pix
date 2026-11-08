@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from 'react';
-import type Konva from 'konva';
+import Konva from 'konva';
 import {
   Stage,
   Layer,
@@ -12,6 +12,44 @@ import { useEditor, newId } from '../store';
 import { ElementNode } from './ElementNode';
 import { penProps } from '../lib/pens';
 import { stageRef } from '../lib/stageRef';
+
+type Point = {
+  x: number;
+  y: number;
+};
+
+type Gesture = {
+  distance: number;
+  zoom: number;
+  anchorX: number;
+  anchorY: number;
+};
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
+
+function limitZoom(value: number) {
+  return Math.max(
+    MIN_ZOOM,
+    Math.min(MAX_ZOOM, value),
+  );
+}
+
+function touchInfo(touches: TouchList) {
+  const a = touches[0];
+  const b = touches[1];
+
+  if (!a || !b) return null;
+
+  const dx = b.clientX - a.clientX;
+  const dy = b.clientY - a.clientY;
+
+  return {
+    distance: Math.hypot(dx, dy),
+    x: (a.clientX + b.clientX) / 2,
+    y: (a.clientY + b.clientY) / 2,
+  };
+}
 
 export function Editor() {
   const {
@@ -31,17 +69,34 @@ export function Editor() {
   const sRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const erasing = useRef(false);
+  const gesture = useRef<Gesture | null>(null);
 
   const [scale, setScale] = useState(0.4);
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState<Point>({
+    x: 0,
+    y: 0,
+  });
   const [draft, setDraft] = useState<number[] | null>(null);
 
-  // キャンバスを画面の大きさに合わせて表示
+  // ドラッグ中も2本指の動きを受け取る
+  useEffect(() => {
+    const previous = Konva.hitOnDragEnabled;
+    Konva.hitOnDragEnabled = true;
+
+    return () => {
+      Konva.hitOnDragEnabled = previous;
+    };
+  }, []);
+
+  // キャンバスの基本表示サイズを計算
   useEffect(() => {
     const element = wrap.current;
     if (!element) return;
 
     const resize = () => {
-      const { width, height } = element.getBoundingClientRect();
+      const { width, height } =
+        element.getBoundingClientRect();
 
       if (width <= 0 || height <= 0) return;
 
@@ -64,24 +119,31 @@ export function Editor() {
     return () => observer.disconnect();
   }, [canvasWidth, canvasHeight]);
 
+  // キャンバスの比率を変えたら表示を全体表示に戻す
+  useEffect(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    gesture.current = null;
+  }, [canvasWidth, canvasHeight]);
+
   useEffect(() => {
     stageRef.current = sRef.current;
 
     return () => {
-      if (stageRef.current === sRef.current) {
-        stageRef.current = null;
-      }
+      stageRef.current = null;
     };
   });
 
-  // 選んだ写真・文字などに編集枠を表示
+  // 選択している要素の編集枠
   useEffect(() => {
     const tr = trRef.current;
     const st = sRef.current;
 
     if (!tr || !st) return;
 
-    const el = elements.find((e) => e.id === selectedId);
+    const el = elements.find(
+      (e) => e.id === selectedId,
+    );
 
     const canTransform =
       el &&
@@ -96,9 +158,81 @@ export function Editor() {
 
     tr.nodes(node ? [node] : []);
     tr.getLayer()?.batchDraw();
-  }, [selectedId, elements, tool, scale, canvasWidth, canvasHeight]);
+  }, [
+    selectedId,
+    elements,
+    tool,
+    scale,
+    canvasWidth,
+    canvasHeight,
+  ]);
 
-  // ペンの線を消す
+  // 拡大・縮小ボタン
+  const changeZoom = (amount: number) => {
+    setZoom((current) =>
+      limitZoom(
+        Math.round((current + amount) * 100) / 100,
+      ),
+    );
+  };
+
+  // 全体表示に戻す
+  const fitCanvas = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    gesture.current = null;
+  };
+
+  // 2本指操作の開始
+  const beginPinch = (touches: TouchList) => {
+    const info = touchInfo(touches);
+    const element = wrap.current;
+
+    if (!info || !element) return;
+
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    gesture.current = {
+      distance: Math.max(1, info.distance),
+      zoom,
+      anchorX:
+        (info.x - centerX - offset.x) / zoom,
+      anchorY:
+        (info.y - centerY - offset.y) / zoom,
+    };
+
+    setDraft(null);
+    erasing.current = false;
+  };
+
+  // 2本指で拡大・縮小・移動
+  const movePinch = (touches: TouchList) => {
+    const info = touchInfo(touches);
+    const g = gesture.current;
+    const element = wrap.current;
+
+    if (!info || !g || !element) return;
+
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const nextZoom = limitZoom(
+      g.zoom * info.distance / g.distance,
+    );
+
+    const nextOffset = {
+      x: info.x - centerX - g.anchorX * nextZoom,
+      y: info.y - centerY - g.anchorY * nextZoom,
+    };
+
+    setZoom(nextZoom);
+    setOffset(nextOffset);
+  };
+
+  // 消しゴム
   const eraseAt = () => {
     const st = sRef.current;
     const p = st?.getPointerPosition();
@@ -108,25 +242,34 @@ export function Editor() {
     const shape = st.getIntersection(p);
     const id = shape?.id();
 
-    const el = elements.find((e) => e.id === id);
+    const el = elements.find(
+      (e) => e.id === id,
+    );
 
     if (el?.type === 'line' && !el.locked) {
       remove(el.id);
     }
   };
 
-  // タップ・描き始め
+  // ペン・消しゴム・選択操作
   const down = (
-    e: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+    e: Konva.KonvaEventObject<
+      MouseEvent | TouchEvent
+    >,
   ) => {
     const st = sRef.current;
-    if (!st) return;
+    if (!st || gesture.current) return;
 
     if (tool === 'pen') {
       const p = st.getRelativePointerPosition();
 
       if (p) {
-        setDraft([p.x, p.y, p.x + 0.1, p.y]);
+        setDraft([
+          p.x,
+          p.y,
+          p.x + 0.1,
+          p.y,
+        ]);
       }
     } else if (tool === 'eraser') {
       erasing.current = true;
@@ -139,8 +282,9 @@ export function Editor() {
     }
   };
 
-  // ペンを動かす
   const moveH = () => {
+    if (gesture.current) return;
+
     const st = sRef.current;
     if (!st) return;
 
@@ -148,7 +292,11 @@ export function Editor() {
       const p = st.getRelativePointerPosition();
 
       if (p) {
-        setDraft([...draft, p.x, p.y]);
+        setDraft((previous) =>
+          previous
+            ? [...previous, p.x, p.y]
+            : null,
+        );
       }
     } else if (
       tool === 'eraser' &&
@@ -158,9 +306,13 @@ export function Editor() {
     }
   };
 
-  // 描き終わり
   const up = () => {
     erasing.current = false;
+
+    if (gesture.current) {
+      setDraft(null);
+      return;
+    }
 
     if (draft && draft.length > 2) {
       add({
@@ -182,16 +334,104 @@ export function Editor() {
     setDraft(null);
   };
 
+  const onTouchStart = (
+    e: Konva.KonvaEventObject<TouchEvent>,
+  ) => {
+    if (e.evt.touches.length >= 2) {
+      if (e.evt.cancelable) {
+        e.evt.preventDefault();
+      }
+
+      if (!gesture.current) {
+        beginPinch(e.evt.touches);
+      }
+      return;
+    }
+
+    if (!gesture.current) {
+      down(e);
+    }
+  };
+
+  const onTouchMove = (
+    e: Konva.KonvaEventObject<TouchEvent>,
+  ) => {
+    if (e.evt.touches.length >= 2) {
+      if (e.evt.cancelable) {
+        e.evt.preventDefault();
+      }
+
+      if (!gesture.current) {
+        beginPinch(e.evt.touches);
+      } else {
+        movePinch(e.evt.touches);
+      }
+
+      return;
+    }
+
+    if (!gesture.current) {
+      moveH();
+    }
+  };
+
+  const onTouchEnd = (
+    e: Konva.KonvaEventObject<TouchEvent>,
+  ) => {
+    if (gesture.current) {
+      if (e.evt.touches.length < 2) {
+        gesture.current = null;
+        erasing.current = false;
+        setDraft(null);
+      }
+      return;
+    }
+
+    if (e.evt.touches.length === 0) {
+      up();
+    }
+  };
+
+  const onTouchCancel = () => {
+    gesture.current = null;
+    erasing.current = false;
+    setDraft(null);
+  };
+
   const displayWidth = canvasWidth * scale;
   const displayHeight = canvasHeight * scale;
 
+  const zoomButtonStyle = {
+    width: 34,
+    height: 34,
+    padding: 0,
+    border: '1px solid #f2d7e8',
+    borderRadius: 11,
+    background: 'rgba(255,255,255,0.95)',
+    color: '#3a2a36',
+    fontSize: 17,
+    fontWeight: 700,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    touchAction: 'manipulation' as const,
+  };
+
   return (
-    <div className="stage-wrap" ref={wrap}>
+    <div
+      className="stage-wrap"
+      ref={wrap}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       <div
         className="stage-card"
         style={{
           width: displayWidth,
           height: displayHeight,
+          flexShrink: 0,
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+          transformOrigin: 'center center',
         }}
       >
         <Stage
@@ -201,13 +441,15 @@ export function Editor() {
           scaleX={scale}
           scaleY={scale}
           onMouseDown={down}
-          onTouchStart={down}
           onMouseMove={moveH}
-          onTouchMove={moveH}
           onMouseUp={up}
-          onTouchEnd={up}
-          onTouchCancel={up}
-          style={{ touchAction: 'none' }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onTouchCancel={onTouchCancel}
+          style={{
+            touchAction: 'none',
+          }}
         >
           <Layer>
             <Rect
@@ -255,6 +497,50 @@ export function Editor() {
             />
           </Layer>
         </Stage>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          right: 12,
+          bottom: 12,
+          zIndex: 5,
+          display: 'flex',
+          gap: 5,
+          padding: 5,
+          borderRadius: 15,
+          background: 'rgba(255,246,251,0.9)',
+          boxShadow: '0 3px 14px rgba(0,0,0,0.08)',
+        }}
+      >
+        <button
+          type="button"
+          style={zoomButtonStyle}
+          onClick={() => changeZoom(0.25)}
+          disabled={zoom >= MAX_ZOOM}
+          aria-label="拡大"
+        >
+          ＋
+        </button>
+
+        <button
+          type="button"
+          style={zoomButtonStyle}
+          onClick={() => changeZoom(-0.25)}
+          disabled={zoom <= MIN_ZOOM}
+          aria-label="縮小"
+        >
+          −
+        </button>
+
+        <button
+          type="button"
+          style={zoomButtonStyle}
+          onClick={fitCanvas}
+          aria-label="全体表示"
+        >
+          ⤢
+        </button>
       </div>
     </div>
   );
