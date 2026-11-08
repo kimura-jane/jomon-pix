@@ -1,8 +1,10 @@
 
 import { useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useEditor, type CanvasPreset } from '../store';
 import { addImageFromFile, addSticker, addText } from '../lib/factory';
 import { removeBg } from '../lib/removeBg';
+import { PhotoCropModal } from './PhotoCropModal';
 import { FONTS, FONT_GROUPS, TEXT_PRESETS } from '../lib/fonts';
 import { PENS } from '../lib/pens';
 import type { CanvasEl, FilterPreset, TextEl } from '../types';
@@ -28,10 +30,7 @@ const FILTERS: { id: FilterPreset; label: string }[] = [
   { id: 'mono', label: 'モノクロ' },
 ];
 
-const CANVAS_PRESETS: {
-  id: CanvasPreset;
-  label: string;
-}[] = [
+const CANVAS_PRESETS: { id: CanvasPreset; label: string }[] = [
   { id: 'square', label: '□ 正方形' },
   { id: '4:5', label: '▯ 4:5' },
   { id: '9:16', label: '▯ 9:16' },
@@ -52,9 +51,7 @@ const EMOJI = [
 const GLASSES = ['🕶', '😎', '🥽', '👓'];
 
 function Seg({
-  items,
-  value,
-  onChange,
+  items, value, onChange,
 }: {
   items: string[];
   value: string;
@@ -76,8 +73,7 @@ function Seg({
 }
 
 const Soon = ({
-  em,
-  children,
+  em, children,
 }: {
   em: string;
   children: ReactNode;
@@ -91,9 +87,7 @@ const Soon = ({
 );
 
 function Dots({
-  value,
-  colors,
-  onPick,
+  value, colors, onPick,
 }: {
   value: string;
   colors: string[];
@@ -114,12 +108,7 @@ function Dots({
 }
 
 function Slider({
-  label,
-  min,
-  max,
-  step = 1,
-  value,
-  onChange,
+  label, min, max, step = 1, value, onChange,
 }: {
   label: string;
   min: number;
@@ -162,14 +151,12 @@ function ImageTab() {
           e.target.value = '';
         }}
       />
-
       <button
         className="big-btn"
         onClick={() => ref.current?.click()}
       >
         ＋ 写真を追加
       </button>
-
       <button
         className="big-btn light"
         onClick={() =>
@@ -178,7 +165,6 @@ function ImageTab() {
       >
         ✨ 新しく作る
       </button>
-
       <p className="hint-s">
         作品は自動で保存されます。
         コラージュと作品一覧は準備中だよ
@@ -201,7 +187,6 @@ function TextTab({ el }: { el?: TextEl }) {
         value={sub}
         onChange={setSub}
       />
-
       {sub === '吹き出し' ? (
         <Soon em="💬">
           丸・ギザギザ・もくもく・LINE風の吹き出し
@@ -222,9 +207,7 @@ function TextTab({ el }: { el?: TextEl }) {
               className="input"
               rows={2}
               value={el.text}
-              onChange={(e) =>
-                up({ text: e.target.value })
-              }
+              onChange={(e) => up({ text: e.target.value })}
             />
           )}
 
@@ -234,13 +217,9 @@ function TextTab({ el }: { el?: TextEl }) {
               <button
                 key={p.label}
                 className="chip"
-                style={{
-                  fontFamily: p.style.fontFamily,
-                }}
+                style={{ fontFamily: p.style.fontFamily }}
                 onClick={() =>
-                  el
-                    ? up(p.style)
-                    : addText(p.style)
+                  el ? up(p.style) : addText(p.style)
                 }
               >
                 {p.label}
@@ -251,25 +230,19 @@ function TextTab({ el }: { el?: TextEl }) {
           {el && (
             <>
               <div className="label">フォント</div>
-
               <Seg
                 items={FONT_GROUPS}
                 value={group}
                 onChange={setGroup}
               />
-
               <div className="row">
-                {FONTS.filter(
-                  (f) => f.group === group,
-                ).map((f) => (
+                {FONTS.filter((f) => f.group === group).map((f) => (
                   <button
                     key={f.family}
                     className={`chip ${
                       el.fontFamily === f.family ? 'on' : ''
                     }`}
-                    style={{
-                      fontFamily: f.family,
-                    }}
+                    style={{ fontFamily: f.family }}
                     onClick={() =>
                       up({ fontFamily: f.family })
                     }
@@ -302,12 +275,8 @@ function TextTab({ el }: { el?: TextEl }) {
               <Dots
                 value={el.glow}
                 colors={[
-                  '',
-                  '#ff2fd0',
-                  '#ffe14d',
-                  '#4dc3ff',
-                  '#39ff88',
-                  '#ffffff',
+                  '', '#ff2fd0', '#ffe14d',
+                  '#4dc3ff', '#39ff88', '#ffffff',
                 ]}
                 onPick={(c) => up({ glow: c })}
               />
@@ -318,43 +287,33 @@ function TextTab({ el }: { el?: TextEl }) {
                   className={`chip ${
                     !el.vertical ? 'on' : ''
                   }`}
-                  onClick={() =>
-                    up({ vertical: false })
-                  }
+                  onClick={() => up({ vertical: false })}
                 >
                   横書き
                 </button>
-
                 <button
                   className={`chip ${
                     el.vertical ? 'on' : ''
                   }`}
-                  onClick={() =>
-                    up({ vertical: true })
-                  }
+                  onClick={() => up({ vertical: true })}
                 >
                   縦書き
                 </button>
-
-                {(['left', 'center', 'right'] as const).map(
-                  (a) => (
-                    <button
-                      key={a}
-                      className={`chip ${
-                        el.align === a ? 'on' : ''
-                      }`}
-                      onClick={() =>
-                        up({ align: a })
-                      }
-                    >
-                      {a === 'left'
-                        ? '左'
-                        : a === 'center'
-                          ? '中央'
-                          : '右'}
-                    </button>
-                  ),
-                )}
+                {(['left', 'center', 'right'] as const).map((a) => (
+                  <button
+                    key={a}
+                    className={`chip ${
+                      el.align === a ? 'on' : ''
+                    }`}
+                    onClick={() => up({ align: a })}
+                  >
+                    {a === 'left'
+                      ? '左'
+                      : a === 'center'
+                        ? '中央'
+                        : '右'}
+                  </button>
+                ))}
               </div>
 
               <Slider
@@ -362,21 +321,15 @@ function TextTab({ el }: { el?: TextEl }) {
                 min={16}
                 max={200}
                 value={el.fontSize}
-                onChange={(v) =>
-                  up({ fontSize: v })
-                }
+                onChange={(v) => up({ fontSize: v })}
               />
-
               <Slider
                 label="字間"
                 min={-5}
                 max={40}
                 value={el.letterSpacing}
-                onChange={(v) =>
-                  up({ letterSpacing: v })
-                }
+                onChange={(v) => up({ letterSpacing: v })}
               />
-
               <button
                 className="big-btn light"
                 onClick={() => addText()}
@@ -398,66 +351,49 @@ function PenTab() {
     <>
       <Seg
         items={['ペン', '消しゴム']}
-        value={
-          tool === 'eraser' ? '消しゴム' : 'ペン'
-        }
+        value={tool === 'eraser' ? '消しゴム' : 'ペン'}
         onChange={(v) =>
-          setTool(
-            v === '消しゴム' ? 'eraser' : 'pen',
-          )
+          setTool(v === '消しゴム' ? 'eraser' : 'pen')
         }
       />
-
       {tool === 'eraser' ? (
         <p className="hint-s">
           なぞった線を1本ずつ消せるよ
         </p>
       ) : (
         <>
-          {(['まじめ', 'かわいい'] as const).map(
-            (g) => (
-              <div key={g}>
-                <div className="label">{g}</div>
-                <div className="row">
-                  {PENS.filter(
-                    (p) => p.group === g,
-                  ).map((p) => (
-                    <button
-                      key={p.style}
-                      className={`chip ${
-                        pen.style === p.style
-                          ? 'on'
-                          : ''
-                      }`}
-                      onClick={() =>
-                        setPen({ style: p.style })
-                      }
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
+          {(['まじめ', 'かわいい'] as const).map((g) => (
+            <div key={g}>
+              <div className="label">{g}</div>
+              <div className="row">
+                {PENS.filter((p) => p.group === g).map((p) => (
+                  <button
+                    key={p.style}
+                    className={`chip ${
+                      pen.style === p.style ? 'on' : ''
+                    }`}
+                    onClick={() =>
+                      setPen({ style: p.style })
+                    }
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
-            ),
-          )}
-
+            </div>
+          ))}
           <div className="label">色</div>
           <Dots
             value={pen.color}
             colors={COLORS}
-            onPick={(c) =>
-              setPen({ color: c })
-            }
+            onPick={(c) => setPen({ color: c })}
           />
-
           <Slider
             label="太さ"
             min={2}
             max={40}
             value={pen.width}
-            onChange={(v) =>
-              setPen({ width: v })
-            }
+            onChange={(v) => setPen({ width: v })}
           />
         </>
       )}
@@ -472,47 +408,34 @@ function StampTab() {
     <>
       <Seg
         items={[
-          'マイスタンプ',
-          '埴輪',
-          '土偶',
-          '犬',
-          '絵文字',
+          'マイスタンプ', '埴輪',
+          '土偶', '犬', '絵文字',
         ]}
         value={sub}
         onChange={setSub}
       />
-
       {sub === 'マイスタンプ' && (
         <Soon em="📷">
           カメラロール → 背景を自動で消す → 登録
         </Soon>
       )}
-
       {sub === '埴輪' && (
-        <Soon em="🏺">
-          オリジナル埴輪スタンプ
-        </Soon>
+        <Soon em="🏺">オリジナル埴輪スタンプ</Soon>
       )}
-
       {sub === '土偶' && (
-        <Soon em="🗿">
-          オリジナル土偶スタンプ
-        </Soon>
+        <Soon em="🗿">オリジナル土偶スタンプ</Soon>
       )}
-
       {(sub === '犬' || sub === '絵文字') && (
         <div className="grid">
-          {(sub === '犬' ? DOGS : EMOJI).map(
-            (s) => (
-              <button
-                key={s}
-                className="cell"
-                onClick={() => addSticker(s)}
-              >
-                {s}
-              </button>
-            ),
-          )}
+          {(sub === '犬' ? DOGS : EMOJI).map((s) => (
+            <button
+              key={s}
+              className="cell"
+              onClick={() => addSticker(s)}
+            >
+              {s}
+            </button>
+          ))}
         </div>
       )}
     </>
@@ -531,6 +454,7 @@ function EditTab({ el }: { el?: CanvasEl }) {
   );
 
   const [busy, setBusy] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
   const off = !el;
 
   const changeCanvas = (preset: CanvasPreset) => {
@@ -547,10 +471,8 @@ function EditTab({ el }: { el?: CanvasEl }) {
     <>
       <Seg
         items={[
-          '配置',
-          '切り抜き',
-          '色',
-          'キャンバス',
+          '配置', '切り抜き',
+          '色', 'キャンバス',
         ]}
         value={sub}
         onChange={setSub}
@@ -563,7 +485,6 @@ function EditTab({ el }: { el?: CanvasEl }) {
               キャンバスの物をタップして選んでね
             </p>
           )}
-
           <div className="row">
             <button
               className="chip"
@@ -574,7 +495,6 @@ function EditTab({ el }: { el?: CanvasEl }) {
             >
               ⤒ 最前面
             </button>
-
             <button
               className="chip"
               disabled={off}
@@ -584,7 +504,6 @@ function EditTab({ el }: { el?: CanvasEl }) {
             >
               ↑ 1つ前へ
             </button>
-
             <button
               className="chip"
               disabled={off}
@@ -594,7 +513,6 @@ function EditTab({ el }: { el?: CanvasEl }) {
             >
               ↓ 1つ後ろへ
             </button>
-
             <button
               className="chip"
               disabled={off}
@@ -604,33 +522,28 @@ function EditTab({ el }: { el?: CanvasEl }) {
             >
               ⤓ 最背面
             </button>
-
             <button
               className="chip"
               disabled={off}
               onClick={() =>
-                el &&
-                s.update(el.id, {
+                el && s.update(el.id, {
                   scaleX: -el.scaleX,
                 })
               }
             >
               ⇋ 左右反転
             </button>
-
             <button
               className="chip"
               disabled={off}
               onClick={() =>
-                el &&
-                s.update(el.id, {
+                el && s.update(el.id, {
                   scaleY: -el.scaleY,
                 })
               }
             >
               ⇵ 上下反転
             </button>
-
             <button
               className="chip"
               disabled={off}
@@ -640,13 +553,11 @@ function EditTab({ el }: { el?: CanvasEl }) {
             >
               ⧉ 複製
             </button>
-
             <button
               className="chip"
               disabled={off}
               onClick={() =>
-                el &&
-                s.update(el.id, {
+                el && s.update(el.id, {
                   locked: !el.locked,
                 })
               }
@@ -655,7 +566,6 @@ function EditTab({ el }: { el?: CanvasEl }) {
                 ? '🔓 ロック解除'
                 : '🔒 ロック'}
             </button>
-
             <button
               className="chip"
               disabled={off}
@@ -666,7 +576,6 @@ function EditTab({ el }: { el?: CanvasEl }) {
               🗑 削除
             </button>
           </div>
-
           {el && (
             <Slider
               label="透明度"
@@ -675,9 +584,7 @@ function EditTab({ el }: { el?: CanvasEl }) {
               step={0.05}
               value={el.opacity}
               onChange={(v) =>
-                s.update(el.id, {
-                  opacity: v,
-                })
+                s.update(el.id, { opacity: v })
               }
             />
           )}
@@ -688,11 +595,18 @@ function EditTab({ el }: { el?: CanvasEl }) {
         el?.type === 'image' ? (
           <>
             <button
+              className="big-btn light"
+              disabled={busy}
+              onClick={() => setCropOpen(true)}
+            >
+              ✂ 写真をトリミング
+            </button>
+
+            <button
               className="big-btn"
               disabled={busy}
               onClick={async () => {
                 setBusy(true);
-
                 try {
                   s.update(el.id, {
                     src: await removeBg(el.src),
@@ -710,7 +624,7 @@ function EditTab({ el }: { el?: CanvasEl }) {
             </button>
 
             <p className="hint-s">
-              トリミングは準備中だよ
+              写真の切り抜き範囲を調整できます。
             </p>
           </>
         ) : (
@@ -751,7 +665,6 @@ function EditTab({ el }: { el?: CanvasEl }) {
           <div className="label">
             キャンバスのサイズ
           </div>
-
           <div className="row">
             {CANVAS_PRESETS.map((preset) => (
               <button
@@ -769,27 +682,21 @@ function EditTab({ el }: { el?: CanvasEl }) {
               </button>
             ))}
           </div>
-
           <p className="hint-s">
             現在のサイズ：
             {s.canvasWidth} × {s.canvasHeight}
           </p>
-
           <p className="hint-s">
             「写真に合わせる」は、選択中の写真、
             または最初の写真の縦横比を使います。
           </p>
 
-          <div className="label">
-            背景色
-          </div>
-
+          <div className="label">背景色</div>
           <Dots
             value={s.bgColor}
             colors={BG}
             onPick={s.setBg}
           />
-
           <p className="hint-s">
             サイズを変更しても写真や文字は消えません。
             キャンバスからはみ出した部分は
@@ -797,40 +704,34 @@ function EditTab({ el }: { el?: CanvasEl }) {
           </p>
         </>
       )}
+
+      {cropOpen && el?.type === 'image' &&
+        createPortal(
+          <PhotoCropModal
+            el={el}
+            onClose={() => setCropOpen(false)}
+          />,
+          document.body,
+        )}
     </>
   );
 }
 
 function layerName(e: CanvasEl) {
-  if (e.type === 'text') {
-    return e.text || '文字';
-  }
-
-  if (e.type === 'sticker') {
-    return 'スタンプ';
-  }
-
-  if (e.type === 'line') {
-    return 'ペン';
-  }
-
+  if (e.type === 'text') return e.text || '文字';
+  if (e.type === 'sticker') return 'スタンプ';
+  if (e.type === 'line') return 'ペン';
   return '写真';
 }
 
 function LayerTab() {
   const {
-    elements,
-    selectedId,
-    select,
-    update,
-    move,
+    elements, selectedId, select, update, move,
   } = useEditor();
 
   if (!elements.length) {
     return (
-      <p className="hint-s">
-        まだ何もないよ
-      </p>
+      <p className="hint-s">まだ何もないよ</p>
     );
   }
 
@@ -848,10 +749,7 @@ function LayerTab() {
             className="thumb"
             style={
               e.type === 'image'
-                ? {
-                    backgroundImage:
-                      `url(${e.src})`,
-                  }
+                ? { backgroundImage: `url(${e.src})` }
                 : undefined
             }
           >
@@ -864,9 +762,7 @@ function LayerTab() {
                   : ''}
           </div>
 
-          <span className="name">
-            {layerName(e)}
-          </span>
+          <span className="name">{layerName(e)}</span>
 
           <button
             onClick={(ev) => {
@@ -876,7 +772,6 @@ function LayerTab() {
           >
             ↑
           </button>
-
           <button
             onClick={(ev) => {
               ev.stopPropagation();
@@ -885,7 +780,6 @@ function LayerTab() {
           >
             ↓
           </button>
-
           <button
             onClick={(ev) => {
               ev.stopPropagation();
@@ -896,7 +790,6 @@ function LayerTab() {
           >
             {e.hidden ? '🙈' : '👁'}
           </button>
-
           <button
             onClick={(ev) => {
               ev.stopPropagation();
@@ -953,7 +846,6 @@ export function Panel() {
               </button>
             ))}
           </div>
-
           <Soon em="🕶">
             形・色・レンズを自分でカスタマイズ＆顔に自動でかける
           </Soon>
