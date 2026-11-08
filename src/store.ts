@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CanvasEl, Patch, PenStyle, Tab, Tool } from './types';
@@ -7,6 +8,14 @@ export const newId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+export type CanvasPreset = 'square' | '4:5' | '9:16' | 'photo';
+
+const CANVAS_SIZES = {
+  square: { width: 800, height: 800 },
+  '4:5': { width: 800, height: 1000 },
+  '9:16': { width: 900, height: 1600 },
+};
+
 type Pen = { style: PenStyle; color: string; width: number };
 type Dir = 'front' | 'back' | 'up' | 'down';
 
@@ -14,6 +23,9 @@ type S = {
   elements: CanvasEl[];
   selectedId: string | null;
   bgColor: string;
+  canvasPreset: CanvasPreset;
+  canvasWidth: number;
+  canvasHeight: number;
   tab: Tab;
   tool: Tool;
   pen: Pen;
@@ -27,6 +39,7 @@ type S = {
   move: (id: string, dir: Dir) => void;
   select: (id: string | null) => void;
   setBg: (c: string) => void;
+  setCanvasPreset: (preset: CanvasPreset) => boolean;
   setTab: (t: Tab) => void;
   setTool: (t: Tool) => void;
   setPen: (p: Partial<Pen>) => void;
@@ -35,7 +48,6 @@ type S = {
   clear: () => void;
 };
 
-// iPhoneの保存容量を超えても落ちないようにする
 const safeStorage = createJSONStorage(() => ({
   getItem: (k: string) => localStorage.getItem(k),
   setItem: (k: string, v: string) => {
@@ -63,6 +75,9 @@ export const useEditor = create<S>()(
         elements: [],
         selectedId: null,
         bgColor: '#fff6fb',
+        canvasPreset: 'square',
+        canvasWidth: 800,
+        canvasHeight: 800,
         tab: 'image',
         tool: 'select',
         pen: { style: 'pen', color: '#ff4fa3', width: 6 },
@@ -74,19 +89,33 @@ export const useEditor = create<S>()(
           commit([...get().elements, el]);
           if (el.type !== 'line') set({ selectedId: el.id });
         },
+
         update: (id, patch) =>
-          commit(get().elements.map((e) => (e.id === id ? ({ ...e, ...patch } as CanvasEl) : e))),
+          commit(
+            get().elements.map((e) =>
+              e.id === id ? ({ ...e, ...patch } as CanvasEl) : e,
+            ),
+          ),
+
         remove: (id) => {
           commit(get().elements.filter((e) => e.id !== id));
           if (get().selectedId === id) set({ selectedId: null });
         },
+
         duplicate: (id) => {
           const el = get().elements.find((e) => e.id === id);
           if (!el) return;
-          const copy = { ...el, id: newId(), x: el.x + 30, y: el.y + 30, locked: false } as CanvasEl;
+          const copy = {
+            ...el,
+            id: newId(),
+            x: el.x + 30,
+            y: el.y + 30,
+            locked: false,
+          } as CanvasEl;
           commit([...get().elements, copy]);
           set({ selectedId: copy.id });
         },
+
         move: (id, dir) => {
           const arr = [...get().elements];
           const i = arr.findIndex((e) => e.id === id);
@@ -94,35 +123,129 @@ export const useEditor = create<S>()(
           const [el] = arr.splice(i, 1);
           if (dir === 'front') arr.push(el);
           else if (dir === 'back') arr.unshift(el);
-          else if (dir === 'up') arr.splice(Math.min(i + 1, arr.length), 0, el);
+          else if (dir === 'up')
+            arr.splice(Math.min(i + 1, arr.length), 0, el);
           else arr.splice(Math.max(i - 1, 0), 0, el);
           commit(arr);
         },
+
         select: (id) => set({ selectedId: id }),
-        setBg: (c) => set({ bgColor: c, savedAt: Date.now() }),
-        setTab: (t) => set({ tab: t, tool: t === 'pen' ? get().tool === 'eraser' ? 'eraser' : 'pen' : 'select' }),
+
+        setBg: (c) =>
+          set({ bgColor: c, savedAt: Date.now() }),
+
+        setCanvasPreset: (preset) => {
+          let width: number;
+          let height: number;
+
+          if (preset === 'photo') {
+            const state = get();
+
+            const selected = state.elements.find(
+              (e) => e.id === state.selectedId && e.type === 'image',
+            );
+
+            const photo =
+              selected ??
+              state.elements.find((e) => e.type === 'image');
+
+            if (!photo || photo.type !== 'image') return false;
+            if (photo.width <= 0 || photo.height <= 0) return false;
+
+            width = 800;
+            height = Math.round(
+              width * photo.height / photo.width,
+            );
+
+            height = Math.max(200, Math.min(3200, height));
+          } else {
+            width = CANVAS_SIZES[preset].width;
+            height = CANVAS_SIZES[preset].height;
+          }
+
+          const state = get();
+
+          if (
+            state.canvasPreset === preset &&
+            state.canvasWidth === width &&
+            state.canvasHeight === height
+          ) {
+            return true;
+          }
+
+          set({
+            canvasPreset: preset,
+            canvasWidth: width,
+            canvasHeight: height,
+            savedAt: Date.now(),
+          });
+
+          return true;
+        },
+
+        setTab: (t) =>
+          set({
+            tab: t,
+            tool:
+              t === 'pen'
+                ? get().tool === 'eraser' ? 'eraser' : 'pen'
+                : 'select',
+          }),
+
         setTool: (t) => set({ tool: t }),
-        setPen: (p) => set({ pen: { ...get().pen, ...p } }),
+
+        setPen: (p) =>
+          set({ pen: { ...get().pen, ...p } }),
+
         undo: () => {
           const { past, elements, future } = get();
           if (!past.length) return;
-          set({ elements: past[past.length - 1], past: past.slice(0, -1), future: [elements, ...future], selectedId: null, savedAt: Date.now() });
+
+          set({
+            elements: past[past.length - 1],
+            past: past.slice(0, -1),
+            future: [elements, ...future],
+            selectedId: null,
+            savedAt: Date.now(),
+          });
         },
+
         redo: () => {
           const { past, elements, future } = get();
           if (!future.length) return;
-          set({ elements: future[0], future: future.slice(1), past: [...past, elements], selectedId: null, savedAt: Date.now() });
+
+          set({
+            elements: future[0],
+            future: future.slice(1),
+            past: [...past, elements],
+            selectedId: null,
+            savedAt: Date.now(),
+          });
         },
+
         clear: () => {
           commit([]);
-          set({ selectedId: null, bgColor: '#fff6fb' });
+          set({
+            selectedId: null,
+            bgColor: '#fff6fb',
+            canvasPreset: 'square',
+            canvasWidth: 800,
+            canvasHeight: 800,
+          });
         },
       };
     },
     {
       name: 'jomon-pix-work',
       storage: safeStorage,
-      partialize: (s) => ({ elements: s.elements, bgColor: s.bgColor, savedAt: s.savedAt }),
+      partialize: (s) => ({
+        elements: s.elements,
+        bgColor: s.bgColor,
+        canvasPreset: s.canvasPreset,
+        canvasWidth: s.canvasWidth,
+        canvasHeight: s.canvasHeight,
+        savedAt: s.savedAt,
+      }),
     },
   ),
 );
