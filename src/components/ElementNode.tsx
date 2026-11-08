@@ -17,6 +17,7 @@ import type {
   Tab,
 } from '../types';
 
+// 写真フィルター
 const PRESETS: Record<
   FilterPreset,
   {
@@ -66,14 +67,16 @@ const PRESETS: Record<
   },
 };
 
-const TAB_OF: Record<CanvasEl['type'], Tab> = {
+// スタンプには自動タブ切り替えを設定しない
+const TAB_OF: Partial<
+  Record<CanvasEl['type'], Tab>
+> = {
   image: 'edit',
   text: 'text',
-  sticker: 'edit',
   line: 'pen',
 };
 
-// 要素の選択・移動・回転・拡大縮小
+// 選択・移動・回転・拡大縮小などの共通処理
 function useCommon(el: CanvasEl) {
   const {
     select,
@@ -84,6 +87,20 @@ function useCommon(el: CanvasEl) {
 
   const canMove =
     tool === 'select' && !el.locked;
+
+  // スタンプをタップしても
+  // 現在開いているタブを維持する
+  const selectElement = () => {
+    if (tool !== 'select') return;
+
+    select(el.id);
+
+    const nextTab = TAB_OF[el.type];
+
+    if (nextTab) {
+      setTab(nextTab);
+    }
+  };
 
   return {
     id: el.id,
@@ -97,19 +114,8 @@ function useCommon(el: CanvasEl) {
     draggable: canMove,
     listening: tool !== 'pen',
 
-    onClick: () => {
-      if (tool === 'select') {
-        select(el.id);
-        setTab(TAB_OF[el.type]);
-      }
-    },
-
-    onTap: () => {
-      if (tool === 'select') {
-        select(el.id);
-        setTab(TAB_OF[el.type]);
-      }
-    },
+    onClick: selectElement,
+    onTap: selectElement,
 
     onDragEnd: (
       e: Konva.KonvaEventObject<DragEvent>,
@@ -123,40 +129,45 @@ function useCommon(el: CanvasEl) {
     onTransformEnd: (
       e: Konva.KonvaEventObject<Event>,
     ) => {
-      const n = e.target;
+      const node = e.target;
 
       update(el.id, {
-        x: n.x(),
-        y: n.y(),
-        rotation: n.rotation(),
-        scaleX: n.scaleX(),
-        scaleY: n.scaleY(),
+        x: node.x(),
+        y: node.y(),
+        rotation: node.rotation(),
+        scaleX: node.scaleX(),
+        scaleY: node.scaleY(),
       });
     },
   };
 }
 
-// 通常の写真
-function ImageNode({ el }: { el: ImageEl }) {
+// 写真
+function ImageNode({
+  el,
+}: {
+  el: ImageEl;
+}) {
   const [img] = useImage(el.src, 'anonymous');
   const ref = useRef<Konva.Image>(null);
 
   const common = useCommon(el);
-  const p = PRESETS[el.filter];
+  const preset = PRESETS[el.filter];
 
   useEffect(() => {
-    const n = ref.current;
-    if (!n || !img) return;
+    const node = ref.current;
+
+    if (!node || !img) return;
 
     if (el.filter === 'none') {
-      n.clearCache();
+      node.clearCache();
     } else {
-      n.cache({
+      node.cache({
         pixelRatio: 2,
       });
     }
 
-    n.getLayer()?.batchDraw();
+    node.getLayer()?.batchDraw();
   }, [
     img,
     el.filter,
@@ -170,14 +181,14 @@ function ImageNode({ el }: { el: ImageEl }) {
       image={img}
       width={el.width}
       height={el.height}
-      filters={p.filters}
-      {...p.props}
+      filters={preset.filters}
+      {...preset.props}
       {...common}
     />
   );
 }
 
-// 犬・埴輪・土偶などのイラストスタンプ
+// 犬・埴輪・土偶・顔デコなどの画像スタンプ
 function StickerImageNode({
   el,
   src,
@@ -212,6 +223,7 @@ export function ElementNode({
       ? el.fontFamily
       : '';
 
+  // 使用フォントの読み込み後に再描画
   useEffect(() => {
     if (!family) return;
 
@@ -224,6 +236,7 @@ export function ElementNode({
       });
   }, [family]);
 
+  // 非表示の要素
   if (el.hidden) return null;
 
   // 写真
@@ -233,7 +246,7 @@ export function ElementNode({
 
   // スタンプ
   if (el.type === 'sticker') {
-    // イラスト画像が設定されている場合
+    // イラスト画像スタンプ
     if (el.src) {
       return (
         <StickerImageNode
@@ -300,26 +313,26 @@ export function ElementNode({
       shadowBlur={el.glow ? 22 : 0}
       shadowOpacity={el.glow ? 1 : 0}
       onDblClick={() => {
-        const text = prompt(
+        const value = prompt(
           '文字を入力',
           el.text,
         );
 
-        if (text != null) {
+        if (value != null) {
           update(el.id, {
-            text,
+            text: value,
           });
         }
       }}
       onDblTap={() => {
-        const text = prompt(
+        const value = prompt(
           '文字を入力',
           el.text,
         );
 
-        if (text != null) {
+        if (value != null) {
           update(el.id, {
-            text,
+            text: value,
           });
         }
       }}
