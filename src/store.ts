@@ -1,474 +1,598 @@
 
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import type {
-  CanvasEl,
-  Patch,
-  PenStyle,
-  Tab,
-  Tool,
-} from './types';
+import { useEffect, useRef, useState } from 'react';
+import Konva from 'konva';
+import {
+  Stage,
+  Layer,
+  Rect,
+  Line,
+  Transformer,
+} from 'react-konva';
+import { useEditor, newId } from '../store';
+import { ElementNode } from './ElementNode';
+import { penProps } from '../lib/pens';
+import { stageRef } from '../lib/stageRef';
 
-export const newId = () =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) +
-      Date.now().toString(36);
-
-export type CanvasPreset =
-  | 'square'
-  | '4:5'
-  | '9:16'
-  | 'photo'
-  | 'custom';
-
-export type CanvasCrop = {
+type Point = {
   x: number;
   y: number;
-  width: number;
-  height: number;
 };
 
-const CANVAS_SIZES = {
-  square: { width: 800, height: 800 },
-  '4:5': { width: 800, height: 1000 },
-  '9:16': { width: 900, height: 1600 },
+type Gesture = {
+  distance: number;
+  zoom: number;
+  anchorX: number;
+  anchorY: number;
 };
 
-type Pen = {
-  style: PenStyle;
-  color: string;
-  width: number;
-};
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
 
-type Dir = 'front' | 'back' | 'up' | 'down';
+// 操作ハンドルは固定サイズにする。
+// Stageの縮小率で割ると巨大化するため禁止。
+const HANDLE_SIZE = 18;
+const ROTATE_OFFSET = 35;
 
-type Snapshot = {
-  elements: CanvasEl[];
-  bgColor: string;
-  canvasPreset: CanvasPreset;
-  canvasWidth: number;
-  canvasHeight: number;
-};
+function limitZoom(value: number) {
+  return Math.max(
+    MIN_ZOOM,
+    Math.min(MAX_ZOOM, value),
+  );
+}
 
-type S = Snapshot & {
-  selectedId: string | null;
-  tab: Tab;
-  tool: Tool;
-  pen: Pen;
-  past: Snapshot[];
-  future: Snapshot[];
-  savedAt: number;
+function touchInfo(touches: TouchList) {
+  const a = touches[0];
+  const b = touches[1];
 
-  add: (el: CanvasEl) => void;
-  update: (id: string, patch: Patch) => void;
-  remove: (id: string) => void;
-  duplicate: (id: string) => void;
-  move: (id: string, dir: Dir) => void;
-  select: (id: string | null) => void;
+  if (!a || !b) return null;
 
-  setBg: (c: string) => void;
-  setCanvasPreset: (preset: CanvasPreset) => boolean;
-  cropCanvas: (rect: CanvasCrop) => boolean;
+  const dx = b.clientX - a.clientX;
+  const dy = b.clientY - a.clientY;
 
-  setTab: (t: Tab) => void;
-  setTool: (t: Tool) => void;
-  setPen: (p: Partial<Pen>) => void;
-
-  undo: () => void;
-  redo: () => void;
-  clear: () => void;
-};
-
-// 編集履歴には要素とキャンバスの情報をまとめて記録する
-function snapshot(s: Snapshot): Snapshot {
   return {
-    elements: s.elements,
-    bgColor: s.bgColor,
-    canvasPreset: s.canvasPreset,
-    canvasWidth: s.canvasWidth,
-    canvasHeight: s.canvasHeight,
+    distance: Math.hypot(dx, dy),
+    x: (a.clientX + b.clientX) / 2,
+    y: (a.clientY + b.clientY) / 2,
   };
 }
 
-// iPhoneで保存容量を超えてもアプリを止めない
-const safeStorage = createJSONStorage(() => ({
-  getItem: (k: string) =>
-    localStorage.getItem(k),
+export function Editor() {
+  const {
+    elements,
+    selectedId,
+    bgColor,
+    canvasWidth,
+    canvasHeight,
+    tool,
+    pen,
+    select,
+    add,
+    remove,
+  } = useEditor();
 
-  setItem: (k: string, v: string) => {
-    try {
-      localStorage.setItem(k, v);
-    } catch {
-      console.warn('自動保存の容量オーバー');
+  const wrap = useRef<HTMLDivElement>(null);
+  const sRef = useRef<Konva.Stage>(null);
+  const trRef = useRef<Konva.Transformer>(null);
+  const erasing = useRef(false);
+  const gesture = useRef<Gesture | null>(null);
+
+  const [scale, setScale] = useState(0.4);
+  const [zoom, setZoom] = useState(1);
+
+  const [offset, setOffset] = useState<Point>({
+    x: 0,
+    y: 0,
+  });
+
+  const [draft, setDraft] = useState<number[] | null>(
+    null,
+  );
+
+  // ドラッグ中も2本指操作を受け取る
+  useEffect(() => {
+    const previous = Konva.hitOnDragEnabled;
+    Konva.hitOnDragEnabled = true;
+
+    return () => {
+      Konva.hitOnDragEnabled = previous;
+    };
+  }, []);
+
+  // キャンバスの基本表示サイズ
+  useEffect(() => {
+    const element = wrap.current;
+    if (!element) return;
+
+    const resize = () => {
+      const { width, height } =
+        element.getBoundingClientRect();
+
+      if (width <= 0 || height <= 0) return;
+
+      const availableWidth = Math.max(
+        1,
+        width - 12,
+      );
+
+      const availableHeight = Math.max(
+        1,
+        height - 12,
+      );
+
+      const nextScale = Math.min(
+        availableWidth / canvasWidth,
+        availableHeight / canvasHeight,
+      );
+
+      setScale(
+        Math.max(0.01, nextScale * 0.96),
+      );
+    };
+
+    resize();
+
+    const observer = new ResizeObserver(resize);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [canvasWidth, canvasHeight]);
+
+  // キャンバス比率変更時は全体表示に戻す
+  useEffect(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    gesture.current = null;
+  }, [canvasWidth, canvasHeight]);
+
+  // 保存処理で使うStage参照
+  useEffect(() => {
+    stageRef.current = sRef.current;
+
+    return () => {
+      stageRef.current = null;
+    };
+  });
+
+  // 選択中の要素に編集枠を接続
+  useEffect(() => {
+    const tr = trRef.current;
+    const st = sRef.current;
+
+    if (!tr || !st) return;
+
+    const el = elements.find(
+      (item) => item.id === selectedId,
+    );
+
+    const canTransform =
+      el &&
+      tool === 'select' &&
+      !el.locked &&
+      !el.hidden &&
+      el.type !== 'line';
+
+    const node = canTransform
+      ? st.findOne('#' + selectedId)
+      : null;
+
+    tr.nodes(node ? [node] : []);
+    tr.getLayer()?.batchDraw();
+  }, [
+    selectedId,
+    elements,
+    tool,
+    scale,
+    canvasWidth,
+    canvasHeight,
+  ]);
+
+  // キャンバス表示倍率の変更
+  const changeZoom = (amount: number) => {
+    setZoom((current) =>
+      limitZoom(
+        Math.round(
+          (current + amount) * 100,
+        ) / 100,
+      ),
+    );
+  };
+
+  // 全体表示に戻す
+  const fitCanvas = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    gesture.current = null;
+  };
+
+  // 2本指操作の開始
+  const beginPinch = (touches: TouchList) => {
+    const info = touchInfo(touches);
+    const element = wrap.current;
+
+    if (!info || !element) return;
+
+    const rect = element.getBoundingClientRect();
+
+    const centerX =
+      rect.left + rect.width / 2;
+
+    const centerY =
+      rect.top + rect.height / 2;
+
+    gesture.current = {
+      distance: Math.max(1, info.distance),
+      zoom,
+      anchorX:
+        (info.x - centerX - offset.x) / zoom,
+      anchorY:
+        (info.y - centerY - offset.y) / zoom,
+    };
+
+    setDraft(null);
+    erasing.current = false;
+  };
+
+  // 2本指で拡大縮小・移動
+  const movePinch = (touches: TouchList) => {
+    const info = touchInfo(touches);
+    const g = gesture.current;
+    const element = wrap.current;
+
+    if (!info || !g || !element) return;
+
+    const rect = element.getBoundingClientRect();
+
+    const centerX =
+      rect.left + rect.width / 2;
+
+    const centerY =
+      rect.top + rect.height / 2;
+
+    const nextZoom = limitZoom(
+      g.zoom * info.distance / g.distance,
+    );
+
+    const nextOffset = {
+      x:
+        info.x -
+        centerX -
+        g.anchorX * nextZoom,
+      y:
+        info.y -
+        centerY -
+        g.anchorY * nextZoom,
+    };
+
+    setZoom(nextZoom);
+    setOffset(nextOffset);
+  };
+
+  // 消しゴム処理
+  const eraseAt = () => {
+    const st = sRef.current;
+    const p = st?.getPointerPosition();
+
+    if (!st || !p) return;
+
+    const shape = st.getIntersection(p);
+    const id = shape?.id();
+
+    const el = elements.find(
+      (item) => item.id === id,
+    );
+
+    if (
+      el?.type === 'line' &&
+      !el.locked
+    ) {
+      remove(el.id);
     }
-  },
-
-  removeItem: (k: string) =>
-    localStorage.removeItem(k),
-}));
-
-export const useEditor = create<S>()(
-  persist(
-    (set, get) => {
-      // 変更前の作品を50回分まで記録
-      const commit = (changes: Partial<Snapshot>) => {
-        set((s) => ({
-          ...changes,
-          past: [
-            ...s.past,
-            snapshot(s),
-          ].slice(-50),
-          future: [],
-          savedAt: Date.now(),
-        }));
-      };
-
-      return {
-        elements: [],
-        selectedId: null,
-        bgColor: '#fff6fb',
-
-        canvasPreset: 'square',
-        canvasWidth: 800,
-        canvasHeight: 800,
-
-        tab: 'image',
-        tool: 'select',
-
-        pen: {
-          style: 'pen',
-          color: '#ff4fa3',
-          width: 6,
-        },
-
-        past: [],
-        future: [],
-        savedAt: 0,
-
-        add: (el) => {
-          commit({
-            elements: [...get().elements, el],
-          });
-
-          if (el.type !== 'line') {
-            set({ selectedId: el.id });
-          }
-        },
-
-        update: (id, patch) => {
-          const current = get().elements;
-
-          if (!current.some((e) => e.id === id)) {
-            return;
-          }
-
-          commit({
-            elements: current.map((e) =>
-              e.id === id
-                ? ({ ...e, ...patch } as CanvasEl)
-                : e,
-            ),
-          });
-        },
-
-        remove: (id) => {
-          const current = get();
-
-          if (!current.elements.some((e) => e.id === id)) {
-            return;
-          }
-
-          commit({
-            elements: current.elements.filter(
-              (e) => e.id !== id,
-            ),
-          });
-
-          if (current.selectedId === id) {
-            set({ selectedId: null });
-          }
-        },
-
-        duplicate: (id) => {
-          const el = get().elements.find(
-            (e) => e.id === id,
-          );
-
-          if (!el) return;
-
-          const copy = {
-            ...el,
-            id: newId(),
-            x: el.x + 30,
-            y: el.y + 30,
-            locked: false,
-          } as CanvasEl;
-
-          commit({
-            elements: [...get().elements, copy],
-          });
-
-          set({ selectedId: copy.id });
-        },
-
-        move: (id, dir) => {
-          const arr = [...get().elements];
-          const i = arr.findIndex(
-            (e) => e.id === id,
-          );
-
-          if (i < 0) return;
-
-          const [el] = arr.splice(i, 1);
-
-          if (dir === 'front') {
-            arr.push(el);
-          } else if (dir === 'back') {
-            arr.unshift(el);
-          } else if (dir === 'up') {
-            arr.splice(
-              Math.min(i + 1, arr.length),
-              0,
-              el,
-            );
-          } else {
-            arr.splice(
-              Math.max(i - 1, 0),
-              0,
-              el,
-            );
-          }
-
-          commit({ elements: arr });
-        },
-
-        select: (id) =>
-          set({ selectedId: id }),
-
-        setBg: (c) => {
-          if (get().bgColor === c) return;
-          commit({ bgColor: c });
-        },
-
-        // 正方形、4:5、9:16、写真の比率
-        setCanvasPreset: (preset) => {
-          if (preset === 'custom') {
-            return false;
-          }
-
-          let width: number;
-          let height: number;
-
-          if (preset === 'photo') {
-            const state = get();
-
-            const selected = state.elements.find(
-              (e) =>
-                e.id === state.selectedId &&
-                e.type === 'image',
-            );
-
-            const photo =
-              selected ??
-              state.elements.find(
-                (e) => e.type === 'image',
-              );
-
-            if (
-              !photo ||
-              photo.type !== 'image' ||
-              photo.width <= 0 ||
-              photo.height <= 0
-            ) {
-              return false;
-            }
-
-            width = 800;
-
-            height = Math.round(
-              width * photo.height / photo.width,
-            );
-
-            height = Math.max(
-              200,
-              Math.min(3200, height),
-            );
-          } else {
-            width = CANVAS_SIZES[preset].width;
-            height = CANVAS_SIZES[preset].height;
-          }
-
-          const state = get();
-
-          if (
-            state.canvasPreset === preset &&
-            state.canvasWidth === width &&
-            state.canvasHeight === height
-          ) {
-            return true;
-          }
-
-          commit({
-            canvasPreset: preset,
-            canvasWidth: width,
-            canvasHeight: height,
-          });
-
-          return true;
-        },
-
-        // キャンバス全体を指定範囲で切り抜く
-        cropCanvas: (rect) => {
-          const state = get();
-
-          const values = [
-            rect.x,
-            rect.y,
-            rect.width,
-            rect.height,
-          ];
-
-          if (!values.every(Number.isFinite)) {
-            return false;
-          }
-
-          const x = Math.round(rect.x);
-          const y = Math.round(rect.y);
-          const width = Math.round(rect.width);
-          const height = Math.round(rect.height);
-
-          // 範囲が正しくない場合は変更しない
-          if (
-            x < 0 ||
-            y < 0 ||
-            width < 32 ||
-            height < 32 ||
-            x + width > state.canvasWidth ||
-            y + height > state.canvasHeight
-          ) {
-            return false;
-          }
-
-          // 範囲が変わらなければ何もしない
-          if (
-            x === 0 &&
-            y === 0 &&
-            width === state.canvasWidth &&
-            height === state.canvasHeight
-          ) {
-            return true;
-          }
-
-          // すべての要素を同じ距離だけ移動
-          // 回転や拡大率、重なり順は変更しない
-          const elements = state.elements.map((el) => ({
-            ...el,
-            x: el.x - x,
-            y: el.y - y,
-          })) as CanvasEl[];
-
-          commit({
-            elements,
-            canvasPreset: 'custom',
-            canvasWidth: width,
-            canvasHeight: height,
-          });
-
-          set({ selectedId: null });
-
-          return true;
-        },
-
-        setTab: (t) =>
-          set({
-            tab: t,
-            tool:
-              t === 'pen'
-                ? get().tool === 'eraser'
-                  ? 'eraser'
-                  : 'pen'
-                : 'select',
-          }),
-
-        setTool: (t) =>
-          set({ tool: t }),
-
-        setPen: (p) =>
-          set({
-            pen: {
-              ...get().pen,
-              ...p,
-            },
-          }),
-
-        // 要素・背景・キャンバスサイズをまとめて戻す
-        undo: () => {
-          const state = get();
-
-          if (!state.past.length) return;
-
-          const previous =
-            state.past[state.past.length - 1];
-
-          set({
-            ...previous,
-            past: state.past.slice(0, -1),
-            future: [
-              snapshot(state),
-              ...state.future,
-            ].slice(0, 50),
-            selectedId: null,
-            savedAt: Date.now(),
-          });
-        },
-
-        // やり直す
-        redo: () => {
-          const state = get();
-
-          if (!state.future.length) return;
-
-          const next = state.future[0];
-
-          set({
-            ...next,
-            past: [
-              ...state.past,
-              snapshot(state),
-            ].slice(-50),
-            future: state.future.slice(1),
-            selectedId: null,
-            savedAt: Date.now(),
-          });
-        },
-
-        // 新しい作品を作る
-        clear: () => {
-          commit({
-            elements: [],
-            bgColor: '#fff6fb',
-            canvasPreset: 'square',
-            canvasWidth: 800,
-            canvasHeight: 800,
-          });
-
-          set({ selectedId: null });
-        },
-      };
-    },
-    {
-      name: 'jomon-pix-work',
-      storage: safeStorage,
-
-      partialize: (s) => ({
-        elements: s.elements,
-        bgColor: s.bgColor,
-        canvasPreset: s.canvasPreset,
-        canvasWidth: s.canvasWidth,
-        canvasHeight: s.canvasHeight,
-        savedAt: s.savedAt,
-      }),
-    },
-  ),
-);
+  };
+
+  // ペン・消しゴム・選択
+  const down = (
+    e: Konva.KonvaEventObject<
+      MouseEvent | TouchEvent
+    >,
+  ) => {
+    const st = sRef.current;
+
+    if (!st || gesture.current) return;
+
+    if (tool === 'pen') {
+      const p = st.getRelativePointerPosition();
+
+      if (p) {
+        setDraft([
+          p.x,
+          p.y,
+          p.x + 0.1,
+          p.y,
+        ]);
+      }
+    } else if (tool === 'eraser') {
+      erasing.current = true;
+      eraseAt();
+    } else if (
+      e.target === st ||
+      e.target.name() === 'bg'
+    ) {
+      select(null);
+    }
+  };
+
+  const moveH = () => {
+    if (gesture.current) return;
+
+    const st = sRef.current;
+    if (!st) return;
+
+    if (tool === 'pen' && draft) {
+      const p = st.getRelativePointerPosition();
+
+      if (p) {
+        setDraft((previous) =>
+          previous
+            ? [...previous, p.x, p.y]
+            : null,
+        );
+      }
+    } else if (
+      tool === 'eraser' &&
+      erasing.current
+    ) {
+      eraseAt();
+    }
+  };
+
+  const up = () => {
+    erasing.current = false;
+
+    if (gesture.current) {
+      setDraft(null);
+      return;
+    }
+
+    if (draft && draft.length > 2) {
+      add({
+        id: newId(),
+        type: 'line',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        opacity: 1,
+        points: draft,
+        color: pen.color,
+        width: pen.width,
+        penStyle: pen.style,
+      });
+    }
+
+    setDraft(null);
+  };
+
+  const onTouchStart = (
+    e: Konva.KonvaEventObject<TouchEvent>,
+  ) => {
+    if (e.evt.touches.length >= 2) {
+      if (e.evt.cancelable) {
+        e.evt.preventDefault();
+      }
+
+      if (!gesture.current) {
+        beginPinch(e.evt.touches);
+      }
+
+      return;
+    }
+
+    if (!gesture.current) {
+      down(e);
+    }
+  };
+
+  const onTouchMove = (
+    e: Konva.KonvaEventObject<TouchEvent>,
+  ) => {
+    if (e.evt.touches.length >= 2) {
+      if (e.evt.cancelable) {
+        e.evt.preventDefault();
+      }
+
+      if (!gesture.current) {
+        beginPinch(e.evt.touches);
+      } else {
+        movePinch(e.evt.touches);
+      }
+
+      return;
+    }
+
+    if (!gesture.current) {
+      moveH();
+    }
+  };
+
+  const onTouchEnd = (
+    e: Konva.KonvaEventObject<TouchEvent>,
+  ) => {
+    if (gesture.current) {
+      if (e.evt.touches.length < 2) {
+        gesture.current = null;
+        erasing.current = false;
+        setDraft(null);
+      }
+
+      return;
+    }
+
+    if (e.evt.touches.length === 0) {
+      up();
+    }
+  };
+
+  const onTouchCancel = () => {
+    gesture.current = null;
+    erasing.current = false;
+    setDraft(null);
+  };
+
+  const displayWidth = canvasWidth * scale;
+  const displayHeight = canvasHeight * scale;
+
+  const zoomButtonStyle = {
+    width: 34,
+    height: 34,
+    padding: 0,
+    border: '1px solid #f2d7e8',
+    borderRadius: 11,
+    background: 'rgba(255,255,255,0.95)',
+    color: '#3a2a36',
+    fontSize: 17,
+    fontWeight: 700,
+    boxShadow:
+      '0 2px 8px rgba(0,0,0,0.08)',
+    touchAction: 'manipulation' as const,
+  };
+
+  return (
+    <div
+      className="stage-wrap"
+      ref={wrap}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        className="stage-card"
+        style={{
+          width: displayWidth,
+          height: displayHeight,
+          flexShrink: 0,
+          transform:
+            `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+          transformOrigin: 'center center',
+        }}
+      >
+        <Stage
+          ref={sRef}
+          width={displayWidth}
+          height={displayHeight}
+          scaleX={scale}
+          scaleY={scale}
+          onMouseDown={down}
+          onMouseMove={moveH}
+          onMouseUp={up}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onTouchCancel={onTouchCancel}
+          style={{
+            touchAction: 'none',
+          }}
+        >
+          <Layer>
+            <Rect
+              name="bg"
+              width={canvasWidth}
+              height={canvasHeight}
+              fill={bgColor}
+            />
+
+            {elements.map((el) => (
+              <ElementNode
+                key={el.id}
+                el={el}
+              />
+            ))}
+
+            {draft && (
+              <Line
+                {...penProps({
+                  points: draft,
+                  color: pen.color,
+                  width: pen.width,
+                  penStyle: pen.style,
+                })}
+                listening={false}
+              />
+            )}
+
+            <Transformer
+              ref={trRef}
+              keepRatio
+              enabledAnchors={[
+                'top-left',
+                'top-right',
+                'bottom-left',
+                'bottom-right',
+              ]}
+              rotateEnabled
+              rotateAnchorOffset={ROTATE_OFFSET}
+              anchorSize={HANDLE_SIZE}
+              anchorCornerRadius={HANDLE_SIZE / 2}
+              anchorStroke="#ff4fa3"
+              anchorFill="#ffffff"
+              borderStroke="#ff4fa3"
+              borderDash={[6, 4]}
+              boundBoxFunc={(oldBox, newBox) =>
+                Math.abs(newBox.width) < 20 ||
+                Math.abs(newBox.height) < 20
+                  ? oldBox
+                  : newBox
+              }
+            />
+          </Layer>
+        </Stage>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          right: 12,
+          bottom: 12,
+          zIndex: 5,
+          display: 'flex',
+          gap: 5,
+          padding: 5,
+          borderRadius: 15,
+          background: 'rgba(255,246,251,0.9)',
+          boxShadow:
+            '0 3px 14px rgba(0,0,0,0.08)',
+        }}
+      >
+        <button
+          type="button"
+          style={zoomButtonStyle}
+          onClick={() => changeZoom(0.25)}
+          disabled={zoom >= MAX_ZOOM}
+          aria-label="拡大"
+        >
+          ＋
+        </button>
+
+        <button
+          type="button"
+          style={zoomButtonStyle}
+          onClick={() => changeZoom(-0.25)}
+          disabled={zoom <= MIN_ZOOM}
+          aria-label="縮小"
+        >
+          −
+        </button>
+
+        <button
+          type="button"
+          style={zoomButtonStyle}
+          onClick={fitCanvas}
+          aria-label="全体表示"
+        >
+          ⤢
+        </button>
+      </div>
+    </div>
+  );
+}
