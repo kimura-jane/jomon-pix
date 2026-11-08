@@ -13,7 +13,7 @@ const base = () => ({
   opacity: 1,
 });
 
-// 自動保存できるように画像を縮小してデータURLに変換
+// 写真を縮小して自動保存できるデータURLに変換
 function fileToDataURL(
   file: File,
   max = 1400,
@@ -33,14 +33,22 @@ function fileToDataURL(
           max / Math.max(img.width, img.height),
         );
 
-        const w = Math.round(img.width * r);
-        const h = Math.round(img.height * r);
+        const w = Math.max(
+          1,
+          Math.round(img.width * r),
+        );
 
-        const c = document.createElement('canvas');
-        c.width = w;
-        c.height = h;
+        const h = Math.max(
+          1,
+          Math.round(img.height * r),
+        );
 
-        const ctx = c.getContext('2d');
+        const canvas = document.createElement('canvas');
+
+        canvas.width = w;
+        canvas.height = h;
+
+        const ctx = canvas.getContext('2d');
 
         if (!ctx) {
           throw new Error('画像を処理できません');
@@ -48,12 +56,12 @@ function fileToDataURL(
 
         ctx.drawImage(img, 0, 0, w, h);
 
-        const png =
+        const usePng =
           file.type === 'image/png' ||
           file.type === 'image/webp';
 
-        const src = c.toDataURL(
-          png ? 'image/png' : 'image/jpeg',
+        const src = canvas.toDataURL(
+          usePng ? 'image/png' : 'image/jpeg',
           0.85,
         );
 
@@ -93,23 +101,56 @@ export async function addImageFromFile(file: File) {
   });
 }
 
-// 従来の絵文字スタンプを追加
+// キャンバスに合わせてスタンプの初期サイズを決定
+function getStickerPlacement() {
+  const editor = useEditor.getState();
+
+  const shorterSide = Math.min(
+    editor.canvasWidth,
+    editor.canvasHeight,
+  );
+
+  // 通常の800pxキャンバスでは336px
+  // 極端に小さい・大きいキャンバスにも対応
+  const size = Math.min(
+    520,
+    Math.max(
+      24,
+      Math.round(shorterSide * 0.42),
+    ),
+  );
+
+  return {
+    size,
+    x: Math.round(
+      (editor.canvasWidth - size) / 2,
+    ),
+    y: Math.round(
+      (editor.canvasHeight - size) / 2,
+    ),
+  };
+}
+
+// 既存の絵文字スタンプを追加
 export function addSticker(emoji: string) {
+  if (!emoji) return;
+
+  const placement = getStickerPlacement();
+
   useEditor.getState().add({
     ...base(),
-    x: 340,
-    y: 340,
+    ...placement,
     type: 'sticker',
     emoji,
-    size: 120,
   });
 }
 
-// 犬・埴輪・土偶などのイラストスタンプを追加
+// 犬・埴輪・土偶・顔デコなどの
+// イラストスタンプを追加
 export function addLibrarySticker(
   sticker: LibrarySticker,
 ) {
-  // 絵文字はこれまでどおり追加する
+  // 絵文字は従来方式で追加する
   if (sticker.kind === 'emoji') {
     if (sticker.emoji) {
       addSticker(sticker.emoji);
@@ -117,30 +158,18 @@ export function addLibrarySticker(
     return;
   }
 
-  // 画像データがない場合は追加しない
+  // SVGデータがない場合は何もしない
   if (!sticker.src) return;
 
-  const editor = useEditor.getState();
-  const size = 160;
+  const placement = getStickerPlacement();
 
-  // キャンバスの中央に配置
-  const x = Math.round(
-    (editor.canvasWidth - size) / 2,
-  );
-
-  const y = Math.round(
-    (editor.canvasHeight - size) / 2,
-  );
-
-  editor.add({
+  useEditor.getState().add({
     ...base(),
-    x,
-    y,
+    ...placement,
     type: 'sticker',
     emoji: '',
     src: sticker.src,
     label: sticker.label,
-    size,
   });
 }
 
