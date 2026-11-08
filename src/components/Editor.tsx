@@ -28,6 +28,11 @@ type Gesture = {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
+// 操作ハンドルは固定サイズにする。
+// Stageの縮小率で割ると巨大化するため禁止。
+const HANDLE_SIZE = 18;
+const ROTATE_OFFSET = 35;
+
 function limitZoom(value: number) {
   return Math.max(
     MIN_ZOOM,
@@ -83,7 +88,7 @@ export function Editor() {
     null,
   );
 
-  // ドラッグ中も2本指の動きを受け取る
+  // ドラッグ中も2本指操作を受け取る
   useEffect(() => {
     const previous = Konva.hitOnDragEnabled;
     Konva.hitOnDragEnabled = true;
@@ -93,7 +98,7 @@ export function Editor() {
     };
   }, []);
 
-  // キャンバスの基本表示サイズを計算
+  // キャンバスの基本表示サイズ
   useEffect(() => {
     const element = wrap.current;
     if (!element) return;
@@ -139,7 +144,7 @@ export function Editor() {
     gesture.current = null;
   }, [canvasWidth, canvasHeight]);
 
-  // 保存用のStage参照
+  // 保存処理で使うStage参照
   useEffect(() => {
     stageRef.current = sRef.current;
 
@@ -181,32 +186,7 @@ export function Editor() {
     canvasHeight,
   ]);
 
-  // 画面上で指でつかみやすい大きさに調整
-  // KonvaのStage拡大率とCSSズームの両方を考慮
-  const visibleScale = Math.max(
-    0.05,
-    scale * zoom,
-  );
-
-  // 画面上で約26pxの操作点を目標とする
-  const anchorSize = Math.max(
-    18,
-    Math.min(
-      170,
-      Math.round(26 / visibleScale),
-    ),
-  );
-
-  // 回転ハンドルと要素の間隔
-  const rotateAnchorOffset = Math.max(
-    34,
-    Math.min(
-      200,
-      Math.round(38 / visibleScale),
-    ),
-  );
-
-  // 拡大・縮小ボタン
+  // キャンバス表示倍率の変更
   const changeZoom = (amount: number) => {
     setZoom((current) =>
       limitZoom(
@@ -217,7 +197,7 @@ export function Editor() {
     );
   };
 
-  // 全体表示
+  // 全体表示に戻す
   const fitCanvas = () => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
@@ -287,7 +267,7 @@ export function Editor() {
     setOffset(nextOffset);
   };
 
-  // 消しゴム
+  // 消しゴム処理
   const eraseAt = () => {
     const st = sRef.current;
     const p = st?.getPointerPosition();
@@ -309,7 +289,7 @@ export function Editor() {
     }
   };
 
-  // ペン・消しゴム・選択操作
+  // ペン・消しゴム・選択
   const down = (
     e: Konva.KonvaEventObject<
       MouseEvent | TouchEvent
@@ -544,7 +524,6 @@ export function Editor() {
             <Transformer
               ref={trRef}
               keepRatio
-              // 四隅だけを使い、操作点の重なりを減らす
               enabledAnchors={[
                 'top-left',
                 'top-right',
@@ -552,11 +531,11 @@ export function Editor() {
                 'bottom-right',
               ]}
               rotateEnabled
-              rotateAnchorOffset={rotateAnchorOffset}
-              anchorSize={anchorSize}
-              anchorCornerRadius={anchorSize / 2}
+              rotateAnchorOffset={ROTATE_OFFSET}
+              anchorSize={HANDLE_SIZE}
+              anchorCornerRadius={HANDLE_SIZE / 2}
               anchorStroke="#ff4fa3"
-              anchorFill="#fff"
+              anchorFill="#ffffff"
               borderStroke="#ff4fa3"
               borderDash={[6, 4]}
               boundBoxFunc={(oldBox, newBox) =>
