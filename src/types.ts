@@ -1,9 +1,34 @@
-export type FilterPreset = 'none' | 'vivid' | 'mono' | 'sepia' | 'soft' | 'cool';
+
+export type FilterPreset =
+  | 'none'
+  | 'vivid'
+  | 'mono'
+  | 'sepia'
+  | 'soft'
+  | 'cool';
+
 export type Tool = 'select' | 'pen' | 'eraser';
-export type PenStyle = 'pen' | 'marker' | 'dashed' | 'neon' | 'dotted' | 'rainbow' | 'sparkle';
+
+export type PenStyle =
+  | 'pen'
+  | 'marker'
+  | 'dashed'
+  | 'neon'
+  | 'dotted'
+  | 'rainbow'
+  | 'sparkle';
+
 export type Tab =
-  | 'image' | 'text' | 'pen' | 'stamp' | 'glasses'
-  | 'mosaic' | 'beauty' | 'edit' | 'frame' | 'layer';
+  | 'image'
+  | 'text'
+  | 'pen'
+  | 'stamp'
+  | 'glasses'
+  | 'mosaic'
+  | 'beauty'
+  | 'edit'
+  | 'frame'
+  | 'layer';
 
 type Base = {
   id: string;
@@ -39,7 +64,15 @@ export type TextEl = Base & {
   align: 'left' | 'center' | 'right';
 };
 
-export type StickerEl = Base & { type: 'sticker'; emoji: string; size: number };
+// 絵文字とイラスト画像の両方に対応
+// 既存の絵文字スタンプもそのまま使える
+export type StickerEl = Base & {
+  type: 'sticker';
+  emoji: string;
+  size: number;
+  src?: string;
+  label?: string;
+};
 
 export type LineEl = Base & {
   type: 'line';
@@ -49,8 +82,15 @@ export type LineEl = Base & {
   penStyle: PenStyle;
 };
 
-export type CanvasEl = ImageEl | TextEl | StickerEl | LineEl;
+export type CanvasEl =
+  | ImageEl
+  | TextEl
+  | StickerEl
+  | LineEl;
 
 export type Patch = Partial<
-  Omit<ImageEl, 'type'> & Omit<TextEl, 'type'> & Omit<StickerEl, 'type'> & Omit<LineEl, 'type'>
+  Omit<ImageEl, 'type'> &
+  Omit<TextEl, 'type'> &
+  Omit<StickerEl, 'type'> &
+  Omit<LineEl, 'type'>
 >;
