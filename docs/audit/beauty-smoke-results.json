@@ -1,10 +1,11 @@
 {
   "test": "JOMON pix face-aware beauty",
-  "ts": "2026-11-14T12:48:53.541Z",
+  "ts": "2026-11-14T12:51:49.058Z",
   "checks": [
     "Beauty panel available with photo",
     "Local face landmarker recognized real portrait",
     "Verified canvas pixels changed, not just the slider state",
+    "Press-and-hold before/after comparison toggles original pixels",
     "Settings persist without replacing source image",
     "Jaw narrowing preview and persisted value",
     "Eye enlargement preview",
@@ -20,6 +21,10 @@
     "totalDifference": 511153,
     "width": 362,
     "height": 362
+  },
+  "compareDelta": {
+    "beforePixels": 0,
+    "afterPixels": 4938
   },
   "status": "success"
 }
