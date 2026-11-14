@@ -2465,7 +2465,6 @@ export function Panel() {
 
   return (
     <section className="panel">
-      <div className="grab" />
 
       {tab === 'image' && <ImageTab />}
 
