@@ -61,6 +61,19 @@ function isImageFrame(value: unknown): boolean {
     value.size <= 18;
 }
 
+const BEAUTY_SETTING_NAMES = [
+  'smooth', 'bright', 'warmth', 'slim', 'chin', 'eyes', 'lip', 'blush',
+] as const;
+
+function isBeautySettings(value: unknown): boolean {
+  return isRecord(value) &&
+    BEAUTY_SETTING_NAMES.every((name) =>
+      isFiniteNumber(value[name]) &&
+      value[name] >= 0 &&
+      value[name] <= 100
+    );
+}
+
 function isCanvasElement(value: unknown): value is CanvasEl {
   if (!isRecord(value)) return false;
 
@@ -91,7 +104,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         ['none', 'vivid', 'mono', 'sepia', 'soft', 'cool'].includes(
           String(value.filter),
         ) &&
-        (value.frame === undefined || isImageFrame(value.frame))
+        (value.frame === undefined || isImageFrame(value.frame)) &&
+        (value.beauty === undefined || isBeautySettings(value.beauty))
       );
 
     case 'text':
