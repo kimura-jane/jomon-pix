@@ -300,6 +300,24 @@ const workStorage: PersistStorage<PersistedWork> = {
     } catch (error) {
       storageReadFailed = true;
       markSaveFailed(error, true);
+      // When IndexedDB itself becomes unavailable, show a readable legacy
+      // recovery copy if one exists. Never auto-save that older copy over a
+      // possibly newer IndexedDB project.
+      try {
+        const recovery = localStorage.getItem(key);
+        if (recovery) {
+          const parsed = JSON.parse(recovery) as StoredWork;
+          if (parsed?.state && Array.isArray(parsed.state.elements)) {
+            useAutosaveStatus.setState({
+              status: 'failed',
+              errorMessage: '最新の作品を読み込めませんでした。以前のバックアップを表示中です。データ保護のため自動保存は停止しています。',
+            });
+            return parsed;
+          }
+        }
+      } catch {
+        // Original data stays untouched even if the recovery copy is corrupt.
+      }
       return null;
     }
   },
