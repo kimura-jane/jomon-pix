@@ -22,8 +22,8 @@ jobs:
           node-version: '22'
       - name: Install app and test-browser dependencies
         run: |
-          npm ci
-          npm install --no-save playwright@1.56.1
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
           npx playwright install chromium
       - name: Build production application
         run: npm run typecheck && npm run build
