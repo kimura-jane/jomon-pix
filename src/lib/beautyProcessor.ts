@@ -21,7 +21,7 @@ export function beautySignature(settings?: BeautySettings): string {
 }
 
 let landmarkerPromise: Promise<import('@mediapipe/tasks-vision').FaceLandmarker> | undefined;
-const faceCache = new WeakMap<HTMLImageElement, Landmark[] | null>();
+const faceCache = new WeakMap<HTMLImageElement, Landmark[][]>();
 
 async function getLandmarker() {
   if (!landmarkerPromise) {
@@ -50,7 +50,8 @@ async function getLandmarker() {
             delegate: 'CPU',
           },
           runningMode: 'IMAGE',
-          numFaces: 1,
+          // Group photos must apply beauty to every visible face, not just one.
+        numFaces: 4,
           outputFaceBlendshapes: false,
         });
       } catch (error) {
@@ -65,15 +66,15 @@ async function getLandmarker() {
   return landmarkerPromise;
 }
 
-async function facePoints(image: HTMLImageElement): Promise<Landmark[] | null> {
-  if (faceCache.has(image)) return faceCache.get(image) ?? null;
+async function facePoints(image: HTMLImageElement): Promise<Landmark[][]> {
+  const cached = faceCache.get(image);
+  if (cached) return cached;
   const landmarker = await getLandmarker();
-  const faces = landmarker.detect(image).faceLandmarks;
-  const points = faces[0]?.length >= 468
-    ? faces[0].map((p) => ({ x: p.x, y: p.y }))
-    : null;
-  faceCache.set(image, points);
-  return points;
+  const faces = landmarker.detect(image).faceLandmarks
+    .filter((points) => points.length >= 468)
+    .map((points) => points.map((p) => ({ x: p.x, y: p.y })));
+  faceCache.set(image, faces);
+  return faces;
 }
 
 function makeCanvas(w: number, h: number): HTMLCanvasElement {
@@ -233,9 +234,10 @@ function reshape(
       y: ps.reduce((sum, p) => sum + p.y, 0) / ps.length,
     };
   });
-  const slimAmount = faceWidth * 0.046 * (settings.slim / 100);
-  const jawAmount = faceWidth * 0.034 * (settings.chin / 100);
-  const eyeFactor = 0.12 * (settings.eyes / 100);
+  // Strong enough to be visible at iPhone canvas preview size, still bounded.
+  const slimAmount = faceWidth * 0.095 * (settings.slim / 100);
+  const jawAmount = faceWidth * 0.075 * (settings.chin / 100);
+  const eyeFactor = 0.36 * (settings.eyes / 100);
 
   const oval = OVAL.map((i) => point(face, i, w, h));
   const minX = Math.max(0, Math.floor(Math.min(...oval.map((p) => p.x)) - faceWidth * 0.36));
@@ -365,24 +367,47 @@ function makeup(canvas: HTMLCanvasElement, face: Landmark[], settings: BeautySet
   }
 }
 
+export type BeautyRender = {
+  canvas: HTMLCanvasElement;
+  faceCount: number;
+};
+
 export async function renderBeauty(
   source: HTMLImageElement,
   settings: BeautySettings,
-): Promise<HTMLCanvasElement | null> {
-  const face = await facePoints(source);
-  if (!face) return null;
+): Promise<BeautyRender | null> {
+  const faces = await facePoints(source);
+  if (!faces.length) return null;
 
-  const w = source.naturalWidth;
-  const h = source.naturalHeight;
-  if (w <= 0 || h <= 0) throw new Error('写真が読み込めませんでした。');
-  const width = Math.abs(face[454].x - face[234].x) * w;
-  const height = Math.abs(face[152].y - face[10].y) * h;
-  if (width < 36 || height < 36) return null;
+  const naturalW = source.naturalWidth;
+  const naturalH = source.naturalHeight;
+  if (naturalW <= 0 || naturalH <= 0) {
+    throw new Error('写真が読み込めませんでした。');
+  }
+  // iPhone Safari may terminate on several full-resolution 12MP ImageData
+  // buffers. The editor preview and PNG are already scaled to fit the
+  // stage; render a sufficient 1600px canvas and retain the original intact.
+  const ratio = Math.min(1, 1600 / Math.max(naturalW, naturalH));
+  const w = Math.max(1, Math.round(naturalW * ratio));
+  const h = Math.max(1, Math.round(naturalH * ratio));
+  const usableFaces = faces.filter((face) => {
+    const width = Math.abs(face[454].x - face[234].x) * w;
+    const height = Math.abs(face[152].y - face[10].y) * h;
+    return width >= 28 && height >= 28;
+  });
+  if (!usableFaces.length) return null;
 
   const canvas = makeCanvas(w, h);
-  ctx2d(canvas).drawImage(source, 0, 0);
-  reshape(canvas, face, settings, width, height);
-  skinCorrection(canvas, face, settings, width);
-  makeup(canvas, face, settings, width);
-  return canvas;
+  ctx2d(canvas).drawImage(source, 0, 0, w, h);
+
+  // Process up to four faces; group photos are not silently left unchanged.
+  for (const face of usableFaces) {
+    const width = Math.abs(face[454].x - face[234].x) * w;
+    const height = Math.abs(face[152].y - face[10].y) * h;
+    reshape(canvas, face, settings, width, height);
+    skinCorrection(canvas, face, settings, width);
+    makeup(canvas, face, settings, width);
+  }
+
+  return { canvas, faceCount: usableFaces.length };
 }
