@@ -52,10 +52,23 @@ system share sheet. To store a photo in Photos, choose **Save Image**. To store
 a PNG or edit-backup in Files, choose **Save to Files**. No remote upload is
 made by this export operation.
 
-The existing in-app auto-save uses local browser storage in the WKWebView;
-web and iOS app data are **separate** and do not synchronize. Use the
-**JSON backup / restore** buttons to move editable artwork between them.
-Do not delete the original browser's stored work until import is verified.
+The editor now autosaves editable projects in **IndexedDB** rather than
+localStorage's small per-origin quota. On first startup with this version,
+an existing localStorage project is copied to IndexedDB; the old copy is
+deliberately retained and is not deleted automatically. Browser and native
+app data remain **separate** and do not synchronize.
+
+**Before updating a native app showing "保存失敗":** while the current edit
+screen is still open, open **📁 > 作品をバックアップ** and save the JSON file to
+Files. Changes not previously written by the old app cannot be recovered
+from its localStorage after it closes. A PNG export is *not* an editable
+backup. After installing the updated build, use **作品を読み込む** if necessary,
+and verify the imported project before deleting any backups.
+
+IndexedDB has a much larger typical quota, but is still subject to device
+free-space limits or WebKit storage eviction. A save is reported as complete
+only after the underlying database transaction commits. Use the JSON
+backup / restore buttons to move editable artwork between web and iOS.
 
 ## Checks to perform on a physical iPhone
 
