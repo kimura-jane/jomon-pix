@@ -47,6 +47,17 @@ function isImageSource(value: unknown): value is string {
   );
 }
 
+function isImageFrame(value: unknown): boolean {
+  return isRecord(value) &&
+    ['none', 'simple', 'double', 'polaroid', 'film', 'album', 'neon', 'magazine']
+      .includes(String(value.style)) &&
+    typeof value.color === 'string' &&
+    /^#[0-9a-fA-F]{6}$/.test(value.color) &&
+    isFiniteNumber(value.size) &&
+    value.size >= 2 &&
+    value.size <= 18;
+}
+
 function isCanvasElement(value: unknown): value is CanvasEl {
   if (!isRecord(value)) return false;
 
@@ -76,7 +87,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         isFiniteNumber(value.height) && value.height > 0 &&
         ['none', 'vivid', 'mono', 'sepia', 'soft', 'cool'].includes(
           String(value.filter),
-        )
+        ) &&
+        (value.frame === undefined || isImageFrame(value.frame))
       );
 
     case 'text':
