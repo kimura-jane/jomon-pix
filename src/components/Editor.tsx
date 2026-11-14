@@ -184,9 +184,27 @@ function FloatingLayers({
   selectedId: string | null;
 }) {
   const [open, setOpen] = useState(true);
-  // ペンは写真の内部データ。旧形式の独立した線も一覧に載せない。
-  const ordered = [...elements].filter((el) => el.type !== 'line').reverse();
-  const selected = ordered.find((el) => el.id === selectedId);
+  // 写真と連動する文字・スタンプは、右の簡易一覧では親写真にまとめる。
+  // 単独レイヤーと、親画像が見つからない過去のデータは従来どおり表示。
+  const ordered = [...elements].filter((el) => {
+    if (el.type === 'line') return false;
+    if ((el.type === 'sticker' || el.type === 'text') && el.parentImageId) {
+      return !elements.some(
+        (photo) => photo.type === 'image' && photo.id === el.parentImageId,
+      );
+    }
+    return true;
+  }).reverse();
+
+  const selectedElement = elements.find((el) => el.id === selectedId);
+  const activeId =
+    selectedElement &&
+    (selectedElement.type === 'sticker' || selectedElement.type === 'text') &&
+    selectedElement.parentImageId &&
+    ordered.some((photo) => photo.id === selectedElement.parentImageId)
+      ? selectedElement.parentImageId
+      : selectedId;
+  const selected = ordered.find((el) => el.id === activeId);
 
   const choose = (el: CanvasEl) => {
     const state = useEditor.getState();
@@ -261,15 +279,24 @@ function FloatingLayers({
             }}
           >
             {ordered.map((el, index) => {
-              const active = el.id === selectedId;
+              const active = el.id === activeId;
+              const attachedCount = el.type === 'image'
+                ? elements.filter((child) =>
+                    (child.type === 'sticker' || child.type === 'text') &&
+                    child.parentImageId === el.id,
+                  ).length
+                : 0;
               const name = LAYER_LABEL[el.type];
+              const description = attachedCount > 0
+                ? `${name}（スタンプ・文字 ${attachedCount}個付き）`
+                : name;
               return (
                 <button
                   type="button"
                   role="listitem"
                   key={el.id}
                   onClick={() => choose(el)}
-                  aria-label={`${name}、${index + 1}番目（最前面から）、${el.hidden ? '非表示' : '表示中'}`}
+                  aria-label={`${description}、${index + 1}番目（最前面から）、${el.hidden ? '非表示' : '表示中'}`}
                   aria-pressed={active}
                   title={`${index === 0 ? '最前面' : `前から${index + 1}番目`}・${name}${el.locked ? '・ロック中' : ''}`}
                   style={{
@@ -297,7 +324,7 @@ function FloatingLayers({
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    {el.locked ? '🔒 ' : ''}{index + 1}. {name}
+                    {el.locked ? '🔒 ' : ''}{index + 1}. {name}{attachedCount > 0 ? ` +${attachedCount}` : ''}
                   </span>
                 </button>
               );
