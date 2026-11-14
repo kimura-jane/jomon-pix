@@ -30,9 +30,36 @@ page.on('request', (req) => {
     report.unexpectedPosts.push(req.url());
   }
 });
-const readState = () => page.evaluate(
-  () => JSON.parse(localStorage.getItem('jomon-pix-work')).state,
-);
+// The editor migrated to IndexedDB to support large photos. Wait for a
+// COMMITTED autosave and then read the project's persisted state, not the
+// obsolete localStorage path (which is now a recovery-only legacy copy).
+const readState = async () => {
+  await page.getByText('自動保存済み', { exact: false })
+    .waitFor({ timeout: 15000 });
+  return page.evaluate(async () => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('jomon-pix-projects-v1', 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      const stored = await new Promise((resolve, reject) => {
+        const transaction = db.transaction('work', 'readonly');
+        let value;
+        const request = transaction.objectStore('work').get('jomon-pix-work');
+        request.onsuccess = () => { value = request.result; };
+        transaction.oncomplete = () => resolve(value);
+        transaction.onerror = () => reject(transaction.error);
+      });
+      if (typeof stored !== 'string') {
+        throw new Error('No committed IndexedDB project was found');
+      }
+      return JSON.parse(stored).state;
+    } finally {
+      db.close();
+    }
+  });
+};
 const images = (s) => s.elements.filter((x) => x.type === 'image');
 const stickers = (s) => s.elements.filter((x) => x.type === 'sticker');
 try {
