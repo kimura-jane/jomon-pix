@@ -2,7 +2,7 @@ name: Verify large artwork autosave on iPhone-like browsers
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/opus-audit-20261115]
     paths:
       - 'src/store.ts'
       - 'src/App.tsx'
