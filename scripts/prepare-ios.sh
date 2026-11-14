@@ -32,6 +32,66 @@ with path.open('wb') as f:
     plistlib.dump(info, f)
 PY
 
+# Capacitor 7 supports iOS 15+, while the generated CocoaPods template
+# can still start at 14.0. Align BOTH the Pods and Xcode targets to iOS 15.
+# Also put the 1.0.0 version into the actual iOS project before signing.
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+podfile = Path('ios/App/Podfile')
+pods = podfile.read_text()
+pods, pod_count = re.subn(r"platform :ios, '[0-9.]+'", "platform :ios, '15.0'", pods)
+if pod_count != 1:
+    raise RuntimeError('Could not set iOS deployment target in Podfile')
+podfile.write_text(pods)
+
+project = Path('ios/App/App.xcodeproj/project.pbxproj')
+text = project.read_text()
+text, target_count = re.subn(
+    r'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;',
+    'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
+    text,
+)
+text, version_count = re.subn(
+    r'MARKETING_VERSION = [0-9.]+;',
+    'MARKETING_VERSION = 1.0.0;',
+    text,
+)
+if target_count < 2 or version_count < 2:
+    raise RuntimeError('Could not set iOS target or marketing version')
+
+# Simply writing an .xcprivacy file is not sufficient; it must be included
+# in the Xcode target resources so it is copied into the built .app bundle.
+build_id = 'F1A512EDFE00000000000001'
+file_id = 'F1A512EDFE00000000000002'
+if build_id not in text:
+    entries = [
+      (
+        '/* End PBXBuildFile section */',
+        '\t\t' + build_id + ' /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = ' +
+        file_id + ' /* PrivacyInfo.xcprivacy */; };\\n/* End PBXBuildFile section */',
+      ),
+      (
+        '/* End PBXFileReference section */',
+        '\t\t' + file_id + ' /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\\n/* End PBXFileReference section */',
+      ),
+      (
+        '504EC3131FED79650016851F /* Info.plist */,',
+        '504EC3131FED79650016851F /* Info.plist */,\\n\t\t\t\t' + file_id + ' /* PrivacyInfo.xcprivacy */,',
+      ),
+      (
+        '504EC30D1FED79650016851F /* Main.storyboard in Resources */,',
+        '504EC30D1FED79650016851F /* Main.storyboard in Resources */,\\n\t\t\t\t' + build_id + ' /* PrivacyInfo.xcprivacy in Resources */,',
+      ),
+    ]
+    for old, new in entries:
+        if text.count(old) != 1:
+            raise RuntimeError('Cannot attach privacy manifest to Xcode project: ' + old)
+        text = text.replace(old, new)
+project.write_text(text)
+PY
+
 python3 scripts/generate-ios-icon.py
 
 # Apple requires a privacy manifest for native file timestamp access.
