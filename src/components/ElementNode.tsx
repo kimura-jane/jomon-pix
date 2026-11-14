@@ -69,12 +69,13 @@ const PRESETS: Record<
   },
 };
 
-// スタンプには自動タブ切り替えを設定しない
+// 選択した装飾の設定パネルを自動表示する
 const TAB_OF: Partial<
   Record<CanvasEl['type'], Tab>
 > = {
   image: 'edit',
   text: 'text',
+  sticker: 'stamp',
   line: 'pen',
 };
 
@@ -90,9 +91,12 @@ function useCommon(el: CanvasEl) {
   const canMove =
     tool === 'select' && !el.locked;
 
-  // スタンプをタップしても
-  // 現在開いているタブを維持する
-  const selectElement = () => {
+  // 親写真のGroupへタップが伝わると、選択が写真で上書きされてしまう。
+  // 子スタンプ・文字だけを確実に選ぶため、クリックをここで止める。
+  const selectElement = (
+    event: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+  ) => {
+    event.cancelBubble = true;
     if (tool !== 'select') return;
 
     select(el.id);
@@ -122,6 +126,9 @@ function useCommon(el: CanvasEl) {
     onDragEnd: (
       e: Konva.KonvaEventObject<DragEvent>,
     ) => {
+      // ネストした子のDragEndを親写真で処理しない。
+      if (e.target.id() !== el.id) return;
+      e.cancelBubble = true;
       update(el.id, {
         x: e.target.x(),
         y: e.target.y(),
@@ -131,7 +138,10 @@ function useCommon(el: CanvasEl) {
     onTransformEnd: (
       e: Konva.KonvaEventObject<Event>,
     ) => {
+      // 子の拡大・回転で親写真の座標が書き換わるのを防ぐ。
       const node = e.target;
+      if (node.id() !== el.id) return;
+      e.cancelBubble = true;
 
       update(el.id, {
         x: node.x(),
