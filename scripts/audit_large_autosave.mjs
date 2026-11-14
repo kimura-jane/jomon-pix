@@ -39,8 +39,20 @@ const photoInDB = (raw) => {
   assert(Array.isArray(data.state.elements));
   return data.state.elements.find((element) => element.type === 'image');
 };
-const waitForSaved = async (page) =>
-  page.getByText('自動保存済み', { exact: false }).waitFor({ timeout: 45000 });
+// Wait for a committed IndexedDB value, not a translated UI badge.
+const waitForSaved = async (page, condition) => {
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    try {
+      const raw = await readIndexedDB(page);
+      if (typeof raw === 'string' && condition(raw)) return raw;
+    } catch {
+      // Storage may still be initializing.
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new Error('Timed out waiting for the expected committed autosave');
+};
 
 try {
   // A realistic noisy PNG that exceeds localStorage's ~5MiB ceiling.
@@ -74,8 +86,8 @@ try {
   const buffer = Buffer.from(photo.split(',')[1], 'base64');
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles({ name: 'large-test.png', mimeType: 'image/png', buffer });
-  await waitForSaved(page);
-  const raw = await readIndexedDB(page);
+  const raw = await waitForSaved(page,
+    (value) => (photoInDB(value)?.src.length ?? 0) > 5 * 1024 * 1024);
   const storedPhoto = photoInDB(raw);
   assert(storedPhoto.src.length > 5 * 1024 * 1024);
   assert.equal(await page.evaluate(() => localStorage.getItem('jomon-pix-work')), null,
@@ -84,8 +96,8 @@ try {
   const firstId = storedPhoto.id;
 
   await page.reload({ waitUntil: 'networkidle' });
-  await waitForSaved(page);
-  const afterReload = photoInDB(await readIndexedDB(page));
+  const afterReload = photoInDB(await waitForSaved(page,
+    (value) => photoInDB(value)?.id === firstId));
   assert.equal(afterReload.id, firstId);
   assert.equal(afterReload.src.length, storedPhoto.src.length);
   assert(await page.locator('img').count() >= 0);
@@ -116,8 +128,8 @@ try {
   });
   await legacyPage.evaluate((saved) => localStorage.setItem('jomon-pix-work', saved), legacyJSON);
   await legacyPage.reload({ waitUntil: 'networkidle' });
-  await waitForSaved(legacyPage);
-  const migrated = await readIndexedDB(legacyPage);
+  const migrated = await waitForSaved(legacyPage,
+    (value) => value === legacyJSON);
   assert.equal(migrated, legacyJSON, 'Legacy work must be migrated byte-for-byte');
   assert.equal(await legacyPage.evaluate(() => localStorage.getItem('jomon-pix-work')), legacyJSON,
     'Never delete legacy recovery copy');
