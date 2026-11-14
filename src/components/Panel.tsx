@@ -349,10 +349,6 @@ function ImageTab() {
         ✨ 新しく作る
       </button>
 
-      <p className="hint-s">
-        作品は自動で保存されます。
-        {!isNativeApp() && ' コラージュと作品一覧は準備中だよ'}
-      </p>
     </>
   );
 }
@@ -1187,9 +1183,6 @@ function StampTab({
               );
             })}
           </div>
-          <p className="hint-s" style={{ margin: '7px 0 0' }}>
-            写真に重なっていても、ここから選択してサイズを調整できます。
-          </p>
         </div>
       )}
 
@@ -1485,9 +1478,6 @@ function StampTab({
           </div>
           {autoFace ? (
             <>
-              <p className="hint-s" style={{ margin: '8px 0' }}>
-                1回タップで1個だけ。2人以上写っていても、選んだ1人にだけ自動配置します。
-              </p>
               {availablePhotos.length > 1 && (
                 <>
                   <p className="hint-s" style={{ margin: '5px 0' }}>
@@ -1550,16 +1540,8 @@ function StampTab({
                   )}
                 </div>
               )}
-              <p className="hint-s" style={{ margin: '4px 0 0' }}>
-                下の顔デコから1種類を選んでください。押すたびに1個だけ追加します。
-                追加後は移動・大きさ・回転を調整できます。
-              </p>
             </>
-          ) : (
-            <p className="hint-s" style={{ margin: '8px 0 0' }}>
-              下のスタンプを好きな場所に貼れます。顔認識できない写真にも使えます。
-            </p>
-          )}
+          ) : null}
           {autoBusy && (
             <p className="hint-s" role="status" style={{ margin: '8px 0 0' }}>
               顔認識を実行中…
@@ -1583,17 +1565,6 @@ function StampTab({
 
       {group && (
         <>
-          {(sub === '顔デコ' || sub === 'サングラス' || sub === '犬') && (
-            <p className="hint-s">
-              {sub === '犬'
-                ? 'TAF DOGのNFT原画から犬だけを切り抜いた20匹。背景なしで貼れます。'
-                : sub === 'サングラス'
-                  ? '26種類から選べます。写真の顔に重ねて位置・大きさ・角度を調整できます。'
-                  : autoFace
-                    ? '顔デコは顔認識で自動配置できます。配置後に指で位置・大きさ・角度を調整できます。'
-                    : '手動で写真の顔に重ねて、位置や大きさを調整できます。'}
-            </p>
-          )}
 
           <div
             className="grid"
@@ -2150,22 +2121,16 @@ function BorderFrameTab() {
 
   return (
     <>
-      <h3 style={{ margin: '0 0 6px' }}>写真フレーム</h3>
-      <p className="hint-s">
-        仕上がり見本から選べます。写真に直接付き、
-        写真と一緒に移動・拡大・回転します。元の写真データは変更しません。
-      </p>
       {photos.length === 0 && (
         <p className="hint-s" role="status">
-          見本は写真を追加する前でも確認できます。
-          フレームを付ける場合は、先に「画像」から写真を追加してください。
+          先に写真を追加してください。
         </p>
       )}
 
       {photos.length > 1 && (
         <>
           <p className="hint-s" style={{ fontWeight: 700, marginTop: 10 }}>
-            フレームを付ける写真を選択
+            写真を選択
           </p>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 0 10px' }}>
             {photos.map((item, index) => (
@@ -2226,16 +2191,12 @@ function BorderFrameTab() {
           >
             <FrameReferenceImage group="border" id={item.id} label={item.label} />
             <div style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</div>
-            <div style={{ fontSize: 10, opacity: 0.75, marginTop: 3 }}>{item.subtitle}</div>
           </button>
         ))}
       </div>
 
       {photo && style !== 'none' && (
         <>
-          <p className="hint-s" style={{ marginTop: 14, fontWeight: 700 }}>
-            フレームの太さ：{size}%
-          </p>
           <HistorySlider
             label={`フレームの太さ ${size}%`}
             min={2}
@@ -2325,11 +2286,6 @@ function SceneFrameTab() {
 
   return (
     <>
-      <h3 style={{ margin: '0 0 5px' }}>背景を選ぶ</h3>
-      <p className="hint-s">
-        観光地・プリクラ風の背景を参考画像で比較できます。
-        実際には写真の後ろに表示されます。
-      </p>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
         gap: 10, marginTop: 10,
@@ -2348,15 +2304,10 @@ function SceneFrameTab() {
               }}>
               <FrameReferenceImage group="scene" id={item.id} label={item.label} />
               <div style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>{item.label}</div>
-              <div style={{ fontSize: 10, opacity: 0.75 }}>{item.detail}</div>
             </button>
           );
         })}
       </div>
-      <p className="hint-s" style={{ marginTop: 12 }}>
-        背景が写真で隠れる場合は、写真の位置やサイズを調整するか、
-        被写体だけ切り抜くと背景がよく見えます。
-      </p>
       {images.length > 0 && (
         <div style={{
           padding: 10, border: '1px solid #e9d9e7',
@@ -2365,18 +2316,14 @@ function SceneFrameTab() {
         }}>
           {images.length > 1 && (
             <p className="hint-s" style={{ margin: 0 }}>
-              被写体を切り抜きたい写真を先にキャンバスで選んでください。
+              切り抜く写真を選択
             </p>
           )}
           <button type="button" className="chip"
             disabled={!photo || photo.locked || busy}
             onClick={() => { void separatePerson(); }}>
-            {busy ? '背景を切り抜き中…' : '選択した写真の背景を消して人物を残す'}
+            {busy ? '切り抜き中…' : '写真の背景を消す'}
           </button>
-          <p className="hint-s" style={{ margin: 0 }}>
-            写真の背景削除は選択した写真だけに適用します。
-            元の写真には「戻す」で復元できます。
-          </p>
         </div>
       )}
     </>
@@ -2388,11 +2335,6 @@ function SocialFrameTab() {
   const editor = useEditor();
   return (
     <>
-      <h3 style={{ margin: '0 0 5px' }}>配信・SNSテンプレ</h3>
-      <p className="hint-s">
-        参考画像で仕上がりを比較してから選べます。
-        実際の写真に架空の配信・投稿画面を重ねるオリジナル演出です。
-      </p>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
         gap: 10, marginTop: 10,
@@ -2416,7 +2358,6 @@ function SocialFrameTab() {
                 display: 'block', marginBottom: 5,
                 fontSize: 12, fontWeight: 800,
               }}>{item.label}</span>
-              <span style={{ fontSize: 10, opacity: 0.77 }}>{item.detail}</span>
             </button>
           );
         })}
@@ -2425,16 +2366,11 @@ function SocialFrameTab() {
         marginTop: 12, padding: 12, borderRadius: 12,
         border: '1px solid #e3d6e5', background: '#fff',
       }}>
-        <p className="hint-s" style={{ marginTop: 0 }}>
-          縦動画・ライブ配信風なら縦9:16のキャンバスがおすすめ。
-        </p>
         <button className="chip" type="button"
           onClick={() => editor.setCanvasPreset('9:16')}>
-          キャンバスを縦9:16にする
+          縦9:16に変更
         </button>
-        <p className="hint-s" style={{ marginBottom: 0 }}>
-          表示されるコメントや視聴者数は見本です。実際の配信には接続しません。
-        </p>
+        <p className="hint-s" style={{ marginBottom: 0 }}>※配信・投稿機能ではありません</p>
       </div>
     </>
   );
@@ -2445,10 +2381,6 @@ function FrameTab() {
   return (
     <>
       <Seg items={['背景', '配信・SNS', '枠']} value={section} onChange={setSection} />
-      <p className="hint-s" style={{ marginTop: 2 }}>
-        全22種類に仕上がり見本を表示。見本はサンプル写真です。
-        タップすると自分の作品に適用できます。
-      </p>
       {section === '背景' && <SceneFrameTab />}
       {section === '配信・SNS' && <SocialFrameTab />}
       {section === '枠' && <BorderFrameTab />}
