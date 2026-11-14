@@ -1,0 +1,80 @@
+# JOMON pix — iPhone first (Capacitor 7 + Vite + React).
+# Manual workflows only. NO automatic TestFlight or App Store submission.
+# Bundle ID com.jomonpix.app must be registered in Apple Developer first.
+workflows:
+  ios-simulator-check:
+    name: "JOMON pix — iOS compile check (no signing)"
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      node: 22
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install app dependencies
+        script: npm install --no-audit --no-fund
+      - name: TypeScript check
+        script: npm run typecheck
+      - name: Prepare local iOS app and icon
+        script: bash scripts/prepare-ios.sh
+      - name: Install iOS pods
+        script: |
+          cd ios/App
+          pod install
+      - name: Build for iOS Simulator without Apple signing
+        script: |
+          xcodebuild \
+            -workspace "$CM_BUILD_DIR/ios/App/App.xcworkspace" \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+    artifacts:
+      - "$HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/*.app"
+      - "/tmp/xcodebuild_logs/*.log"
+
+  ios-ipa:
+    name: "JOMON pix — signed iOS IPA (manual)"
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    # IMPORTANT: Set this to the App Store Connect integration name
+    # available in YOUR Codemagic Team settings (default here: Codemagic).
+    integrations:
+      app_store_connect: Codemagic
+    environment:
+      node: 22
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.jomonpix.app
+    scripts:
+      - name: Install app dependencies
+        script: npm install --no-audit --no-fund
+      - name: TypeScript check
+        script: npm run typecheck
+      - name: Prepare local iOS app and icon
+        script: bash scripts/prepare-ios.sh
+      - name: Install iOS pods
+        script: |
+          cd ios/App
+          pod install
+      - name: Apply Apple signing profiles from Codemagic
+        script: xcode-project use-profiles
+      - name: Use a unique build number
+        script: |
+          cd ios/App
+          agvtool new-version -all "$CM_BUILD_NUMBER"
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/ios/App/App.xcworkspace" \
+            --scheme App
+    artifacts:
+      - "ios/App/build/ios/ipa/*.ipa"
+      - "/tmp/xcodebuild_logs/*.log"
+      - "$HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM"
+    # Deliberately no publishing block: a signed IPA is generated only.
+    # TestFlight uploading and App Store submission are not enabled.
