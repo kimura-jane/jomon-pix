@@ -907,6 +907,9 @@ function resizeSticker(
 function StampTab() {
   const [sub, setSub] = useState('顔デコ');
   const s = useEditor();
+  const placedStickers = s.elements.filter(
+    (item): item is StickerEl => item.type === 'sticker',
+  );
 
   const selected = s.elements.find(
     (item) =>
@@ -1002,6 +1005,91 @@ function StampTab() {
 
   return (
     <>
+      {placedStickers.length > 0 && (
+        <div
+          style={{
+            background: '#fff9fd',
+            border: '1px solid #f4d3e5',
+            borderRadius: 14,
+            padding: 10,
+            marginBottom: 12,
+          }}
+        >
+          <div className="label" style={{ margin: '0 0 8px' }}>
+            配置済みスタンプを選択
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'nowrap',
+              overflowX: 'auto',
+              gap: 8,
+              padding: '3px 2px',
+              scrollbarWidth: 'thin',
+            }}
+          >
+            {[...placedStickers].reverse().map((sticker, index) => {
+              const selected = sticker.id === s.selectedId;
+              const parent = s.elements.find(
+                (item) => item.type === 'image' && item.id === sticker.parentImageId,
+              );
+              const hidden = !!sticker.hidden || !!parent?.hidden;
+
+              return (
+                <button
+                  key={sticker.id}
+                  type="button"
+                  aria-label={`配置済みスタンプ${index + 1}を選択`}
+                  aria-pressed={selected}
+                  onClick={() => s.select(sticker.id)}
+                  style={{
+                    flex: '0 0 auto',
+                    display: 'grid',
+                    justifyItems: 'center',
+                    gap: 3,
+                    width: 64,
+                    minHeight: 72,
+                    border: selected
+                      ? '2px solid #ff4fa3'
+                      : '2px solid #f2d7e8',
+                    borderRadius: 12,
+                    padding: 5,
+                    background: selected ? '#fff0f7' : '#fff',
+                    opacity: hidden ? 0.5 : 1,
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  {sticker.src ? (
+                    <img
+                      src={sticker.src}
+                      alt=""
+                      draggable={false}
+                      loading="lazy"
+                      style={{
+                        width: 44,
+                        height: 44,
+                        objectFit: 'contain',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 30, lineHeight: '44px' }}>
+                      {sticker.emoji}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 10 }}>
+                    {selected ? '✓ ' : ''}{index + 1}{sticker.locked ? ' 🔒' : ''}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="hint-s" style={{ margin: '7px 0 0' }}>
+            写真に重なっていても、ここから選択してサイズを調整できます。
+          </p>
+        </div>
+      )}
+
       {selectedSticker && (
         <div
           style={{
