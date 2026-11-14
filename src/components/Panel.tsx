@@ -245,11 +245,6 @@ function PhotoAttachmentControls({
       <div className="label" style={{ margin: '0 0 6px' }}>
         写真と一緒に動かす
       </div>
-      <p className="hint-s" style={{ margin: '0 0 8px' }}>
-        {el.parentImageId
-          ? 'この装飾は写真に紐づいています。写真を動かすと一緒に動きます。'
-          : '写真を選ぶと、今の位置をできるだけ保って紐づけます。'}
-      </p>
       <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
         {photos.map((photo, index) => (
           <button
@@ -672,7 +667,7 @@ function PenTab() {
       <div className="label">ペンを描く写真</div>
       {photos.length === 0 ? (
         <p className="hint-s">
-          先に画像タブで写真を追加してください。ペンは写真に直接紐づきます。
+          先に写真を追加してください。
         </p>
       ) : (
         <>
@@ -724,9 +719,6 @@ function PenTab() {
               </button>
             ))}
           </div>
-          <p className="hint-s">
-            ピンク枠の写真に描きます。描いた線は写真と一緒に移動・拡大・回転します。
-          </p>
         </>
       )}
       <Seg
@@ -745,11 +737,7 @@ function PenTab() {
         }
       />
 
-      {tool === 'eraser' ? (
-        <p className="hint-s">
-          選択した写真に描いた線をなぞると、1本ずつ消せます。
-        </p>
-      ) : (
+      {tool !== 'eraser' && (
         <>
           {(
             [
@@ -822,10 +810,6 @@ function PenTab() {
             }
           />
 
-          <p className="hint-s">
-            透明度はこれから描く線に適用されます。
-            0%で透明、100%で不透明になります。
-          </p>
         </>
       )}
     </>
@@ -974,12 +958,12 @@ function StampTab({
     const current = useEditor.getState();
     const photo = findAttachmentPhoto(current.elements, current.selectedId);
     if (!photo) {
-      setAutoMessage('先に写真を追加してください。複数枚ある場合は対象の写真を選んでください。');
+      setAutoMessage('写真を選択してください。');
       return;
     }
     if (!faceInfo || faceInfo.photoId !== photo.id ||
         faceInfo.src !== photo.src || faceInfo.count < 1) {
-      setAutoMessage('顔の認識が完了していません。顔を認識できない場合は手動配置を使ってください。');
+      setAutoMessage('顔を認識できません。手動配置をお試しください。');
       return;
     }
 
@@ -999,7 +983,7 @@ function StampTab({
       }
       latest.add(result.sticker);
       setAutoMessage(
-        `左から${result.faceIndex + 1}人目に「${sticker.label}」を1個配置しました。移動・サイズ・回転を調整できます。`,
+        '',
       );
     } catch (error) {
       setAutoMessage(
@@ -1416,15 +1400,6 @@ function StampTab({
 
           <PhotoAttachmentControls el={selectedSticker} />
 
-          <p
-            className="hint-s"
-            style={{
-              marginBottom: 0,
-            }}
-          >
-            スタンプを指で移動できます。
-            四隅を使って拡大・縮小・回転もできます。
-          </p>
         </div>
       )}
 
@@ -1451,9 +1426,6 @@ function StampTab({
           marginTop: 10,
           marginBottom: 12,
         }}>
-          <strong style={{ display: 'block', marginBottom: 7, fontSize: 14 }}>
-            顔デコを自動で付ける
-          </strong>
           <div className="row" style={{ gap: 7 }}>
             <button
               type="button"
@@ -1481,7 +1453,7 @@ function StampTab({
               {availablePhotos.length > 1 && (
                 <>
                   <p className="hint-s" style={{ margin: '5px 0' }}>
-                    顔デコを付ける写真を選択
+                    写真を選択
                   </p>
                   <div style={{
                     display: 'flex', gap: 8, overflowX: 'auto',
@@ -1517,11 +1489,9 @@ function StampTab({
               {!faceBusy && faceInfo && faceInfo.photoId === activePhotoId &&
                 faceInfo.src === activePhotoSrc && faceInfo.count > 0 && (
                 <div style={{ marginBottom: 9 }}>
-                  <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>
-                    {faceInfo.count === 1
-                      ? '顔を1人認識しました'
-                      : `${faceInfo.count}人の顔を認識しました。付ける相手を選んでください。`}
-                  </p>
+                  {faceInfo.count > 1 && (
+                    <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>顔を選択</p>
+                  )}
                   {faceInfo.count > 1 && (
                     <div className="row" role="group" aria-label="スタンプを付ける顔を選ぶ"
                       style={{ flexWrap: 'wrap', gap: 7 }}>
@@ -1729,11 +1699,7 @@ function EditTab({
 
       {sub === '配置' && (
         <>
-          {off && (
-            <p className="hint-s">
-              キャンバスの物をタップして選んでね
-            </p>
-          )}
+          {off && <p className="hint-s">編集するものを選択</p>}
 
           <div className="row">
             <button
@@ -1902,9 +1868,6 @@ function EditTab({
                 : '✂️ 背景を消す'}
             </button>
 
-            <p className="hint-s">
-              写真の切り抜き範囲を調整できます。
-            </p>
           </>
         ) : (
           <p className="hint-s">
@@ -1968,16 +1931,8 @@ function EditTab({
             )}
           </div>
 
-          <p className="hint-s">
-            現在のサイズ：
-            {s.canvasWidth} ×
-            {s.canvasHeight}
-          </p>
+          <p className="hint-s">{s.canvasWidth} × {s.canvasHeight} px</p>
 
-          <p className="hint-s">
-            「写真に合わせる」は、選択中の写真、
-            または最初の写真の縦横比を使います。
-          </p>
 
           <button
             className="big-btn light"
@@ -1985,7 +1940,7 @@ function EditTab({
               setCanvasCropOpen(true)
             }
           >
-            ✂ キャンバス全体をトリミング
+            ✂ キャンバスを切り抜く
           </button>
 
           <div className="label">
@@ -1998,11 +1953,6 @@ function EditTab({
             onPick={s.setBg}
           />
 
-          <p className="hint-s">
-            サイズを変更しても写真や文字は消えません。
-            キャンバスからはみ出した部分は
-            保存画像には入りません。
-          </p>
         </>
       )}
 
@@ -2160,10 +2110,10 @@ function BorderFrameTab() {
       )}
 
       {photos.length > 1 && !photo && (
-        <p className="hint-s">上の一覧から写真を選んでください。</p>
+        <p className="hint-s">写真を選択</p>
       )}
       {photo?.locked && (
-        <p className="hint-s">写真がロックされています。「加工 → 配置」で解除してください。</p>
+        <p className="hint-s">写真のロックを解除してください。</p>
       )}
 
       <div style={{
@@ -2198,7 +2148,7 @@ function BorderFrameTab() {
       {photo && style !== 'none' && (
         <>
           <HistorySlider
-            label={`フレームの太さ ${size}%`}
+            label={`太さ ${size}%`}
             min={2}
             max={18}
             step={1}
@@ -2370,7 +2320,7 @@ function SocialFrameTab() {
           onClick={() => editor.setCanvasPreset('9:16')}>
           縦9:16に変更
         </button>
-        <p className="hint-s" style={{ marginBottom: 0 }}>※配信・投稿機能ではありません</p>
+        <p className="hint-s" style={{ marginBottom: 0 }}>※配信画面風の画像加工です</p>
       </div>
     </>
   );
