@@ -70,19 +70,19 @@ if build_id not in text:
       (
         '/* End PBXBuildFile section */',
         '\t\t' + build_id + ' /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = ' +
-        file_id + ' /* PrivacyInfo.xcprivacy */; };\\n/* End PBXBuildFile section */',
+        file_id + ' /* PrivacyInfo.xcprivacy */; };\n/* End PBXBuildFile section */',
       ),
       (
         '/* End PBXFileReference section */',
-        '\t\t' + file_id + ' /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\\n/* End PBXFileReference section */',
+        '\t\t' + file_id + ' /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\n/* End PBXFileReference section */',
       ),
       (
         '504EC3131FED79650016851F /* Info.plist */,',
-        '504EC3131FED79650016851F /* Info.plist */,\\n\t\t\t\t' + file_id + ' /* PrivacyInfo.xcprivacy */,',
+        '504EC3131FED79650016851F /* Info.plist */,\n\t\t\t\t' + file_id + ' /* PrivacyInfo.xcprivacy */,',
       ),
       (
         '504EC30D1FED79650016851F /* Main.storyboard in Resources */,',
-        '504EC30D1FED79650016851F /* Main.storyboard in Resources */,\\n\t\t\t\t' + build_id + ' /* PrivacyInfo.xcprivacy in Resources */,',
+        '504EC30D1FED79650016851F /* Main.storyboard in Resources */,\n\t\t\t\t' + build_id + ' /* PrivacyInfo.xcprivacy in Resources */,',
       ),
     ]
     for old, new in entries:
