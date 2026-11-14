@@ -90,7 +90,7 @@ function allImagesReady(stage: Konva.Stage): boolean {
     } else if (
       // The existing photo/sticker consistency check remains unchanged.
       !isHTMLImage ||
-      (el.src.startsWith('data:') && image.src !== el.src)
+      (!!el.src && el.src.startsWith('data:') && image.src !== el.src)
     ) {
       return false;
     }
