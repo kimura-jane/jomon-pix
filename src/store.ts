@@ -204,7 +204,8 @@ async function writeToDatabase(key: string, value: string): Promise<void> {
   });
 }
 
-type StoredWork = StorageValue<S>;
+type PersistedWork = Snapshot & { savedAt: number };
+type StoredWork = StorageValue<PersistedWork>;
 let pendingWork: { key: string; value: StoredWork; revision: number } | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let writeChain: Promise<void> = Promise.resolve();
@@ -263,7 +264,7 @@ export async function flushAutosave(): Promise<boolean> {
   return !storageReadFailed && useAutosaveStatus.getState().status === 'saved';
 }
 
-const workStorage: PersistStorage<S> = {
+const workStorage: PersistStorage<PersistedWork> = {
   getItem: async (key) => {
     try {
       const current = await readFromDatabase(key);
