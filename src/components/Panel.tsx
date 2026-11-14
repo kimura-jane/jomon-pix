@@ -75,7 +75,7 @@ const CANVAS_PRESETS: {
   { id: 'square', label: '□ 正方形' },
   { id: '4:5', label: '▯ 4:5' },
   { id: '9:16', label: '▯ 9:16' },
-  { id: 'photo', label: '写真に合わせる' },
+  { id: '16:9', label: '▭ 16:9' },
 ];
 
 const EXTRA_EMOJI = [
@@ -1516,6 +1516,9 @@ function StampTab({
               {!faceBusy && faceInfo && faceInfo.photoId === activePhotoId &&
                 faceInfo.src === activePhotoSrc && faceInfo.count > 0 && (
                 <div style={{ marginBottom: 9 }}>
+                  <p role="status" className="hint-s" style={{ margin: '6px 0', fontWeight: 700 }}>
+                    顔を{faceInfo.count}人認識しました
+                  </p>
                   {faceInfo.count > 1 && (
                     <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>顔を選択</p>
                   )}
