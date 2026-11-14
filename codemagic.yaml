@@ -8,11 +8,11 @@ workflows:
     max_build_duration: 60
     environment:
       node: "22"
-      xcode: latest
+      xcode: '26.6'
       cocoapods: default
     scripts:
       - name: Install app dependencies
-        script: npm install --no-audit --no-fund
+        script: npm ci --no-audit --no-fund
       - name: TypeScript check
         script: npm run typecheck
       - name: Prepare local iOS app and icon
@@ -45,14 +45,14 @@ workflows:
       app_store_connect: Codemagic
     environment:
       node: "22"
-      xcode: latest
+      xcode: '26.6'
       cocoapods: default
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.jomonpix.app
     scripts:
       - name: Install app dependencies
-        script: npm install --no-audit --no-fund
+        script: npm ci --no-audit --no-fund
       - name: TypeScript check
         script: npm run typecheck
       - name: Prepare local iOS app and icon
