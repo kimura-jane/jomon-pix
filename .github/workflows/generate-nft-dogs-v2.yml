@@ -1,0 +1,52 @@
+name: Generate verified TAF DOG v2 stickers
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'scripts/generate_nft_dogs_v2.py'
+      - '.github/workflows/generate-nft-dogs-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: generate-nft-dogs-v2
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out only JOMON pix
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned generation dependencies
+        run: |
+          python -m pip install "rembg[cpu]>=2.0.65,<2.1" "Pillow>=10,<12"
+      - name: Compile generator
+        run: python -m py_compile scripts/generate_nft_dogs_v2.py
+      - name: Produce 20 quality-screened assets
+        run: python scripts/generate_nft_dogs_v2.py
+      - name: Check exactly 20 versioned WebP files
+        run: |
+          test "$(find public/stickers/taf-dog/v2 -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 20
+      - name: Commit v2 images to JOMON pix only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/stickers/taf-dog/v2/ docs/audit/preview-final-v2.jpg docs/audit/final-v2-metrics.json
+          if git diff --cached --quiet; then
+            echo "No updates needed."
+          else
+            git commit -m "Add quality-screened TAF DOG v2 transparent assets"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
