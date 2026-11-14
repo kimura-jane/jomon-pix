@@ -72,6 +72,9 @@ try {
   report.checks.push('One undo removes the complete set; redo restores all');
 
   const lastSticker = stickerElements(await readState()).at(-1);
+  // Undo/redo intentionally clears selection, so reselect an existing
+  // sticker before testing its manual resizing controls.
+  await page.getByRole('button', { name: '配置済みスタンプ1を選択' }).click();
   await page.getByRole('slider', { name: 'スタンプの大きさ' }).focus();
   await page.keyboard.press('End');
   const changed = stickerElements(await readState()).find(
