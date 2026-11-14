@@ -22,6 +22,7 @@ import { removeBg } from '../lib/removeBg';
 import { PhotoCropModal } from './PhotoCropModal';
 import { CanvasCropModal } from './CanvasCropModal';
 import { HistorySlider } from './HistorySlider';
+import { MosaicPanel } from './MosaicPanel';
 import {
   FONTS,
   FONT_GROUPS,
@@ -1745,11 +1746,7 @@ export function Panel() {
         </>
       )}
 
-      {tab === 'mosaic' && (
-        <Soon em="▦">
-          タイル・ぼかし・顔を自動でかくす
-        </Soon>
-      )}
+      {tab === 'mosaic' && <MosaicPanel />}
 
       {tab === 'beauty' && (
         <Soon em="💄">
