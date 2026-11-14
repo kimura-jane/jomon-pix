@@ -3,6 +3,7 @@ import type { ImageEl, BeautySettings } from '../types';
 import { BEAUTY_FIELDS, DEFAULT_BEAUTY } from '../lib/beautyProcessor';
 import { useBeautyStatus } from '../lib/beautyStatus';
 import { HistorySlider } from './HistorySlider';
+import { getPhotoLabel } from '../lib/photoAttachments';
 
 type Control = {
   key: keyof BeautySettings;
@@ -82,7 +83,7 @@ export function BeautyPanel() {
                     borderRadius: 6, display: 'block',
                   }} />
                 <span style={{ fontSize: 11 }}>
-                  写真{i + 1}{item.locked ? ' 🔒' : ''}
+                  {getPhotoLabel(editor.elements, item.id)}{item.locked ? ' 🔒' : ''}
                 </span>
               </button>
             ))}
