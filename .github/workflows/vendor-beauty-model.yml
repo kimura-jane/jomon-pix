@@ -1,0 +1,60 @@
+name: Vendor device-local beauty face model
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vendor-beauty-model.yml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vendor-beauty-model
+  cancel-in-progress: false
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned MediaPipe npm package
+        run: npm install --no-audit --no-fund
+      - name: Copy runtime and face landmark model to local app assets
+        run: |
+          set -euo pipefail
+          mkdir -p public/mediapipe
+          cp node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_* public/mediapipe/
+          curl -fSL --retry 3 --connect-timeout 20 --max-time 180 \
+            'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task' \
+            -o public/mediapipe/face_landmarker.task
+          python - <<'PY'
+          from pathlib import Path
+          root = Path('public/mediapipe')
+          model = root / 'face_landmarker.task'
+          if model.stat().st_size < 1000000: raise RuntimeError('Face model is too small')
+          wasm = list(root.glob('*.wasm'))
+          js = list(root.glob('*.js'))
+          if not wasm or not js: raise RuntimeError('Missing MediaPipe wasm or JS runtime')
+          print('Face model:', model.stat().st_size, 'bytes')
+          print('Wasm:', [(x.name, x.stat().st_size) for x in wasm])
+          print('JS:', [(x.name, x.stat().st_size) for x in js])
+          PY
+      - name: Commit local model and wasm only to jomon-pix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/mediapipe/
+          if ! git diff --cached --quiet; then
+            git commit -m "Bundle face landmark model for local-only beauty processing"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
