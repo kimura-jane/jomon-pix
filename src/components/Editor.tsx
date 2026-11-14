@@ -321,10 +321,12 @@ function FloatingLayers({
 
   return (
     <div
+      ref={panelRef}
       style={{
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: position?.y ?? 8,
+        left: position?.x,
+        right: position ? undefined : 8,
         zIndex: 8,
         width: 72,
         maxHeight: 'calc(100% - 72px)',
@@ -360,6 +362,29 @@ function FloatingLayers({
       >
         {open ? '重なり順 ▴' : 'レイヤー ▾'}
       </button>
+
+      <button
+        type="button"
+        aria-label="重なり順パネルを移動"
+        title="ドラッグして移動"
+        onPointerDown={startLayerDrag}
+        onPointerMove={moveLayerDrag}
+        onPointerUp={stopLayerDrag}
+        onPointerCancel={stopLayerDrag}
+        style={{
+          border: 0,
+          borderRadius: 8,
+          minHeight: 22,
+          padding: 0,
+          background: '#fff0f7',
+          color: '#c13781',
+          fontSize: 17,
+          lineHeight: '22px',
+          cursor: 'grab',
+          touchAction: 'none',
+          userSelect: 'none',
+        }}
+      >⠿</button>
 
       {open && (
         <>
