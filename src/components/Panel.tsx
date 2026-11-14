@@ -14,6 +14,7 @@ import {
 } from '../lib/stickers';
 import { FACE_STICKERS } from '../lib/stickerPacks';
 import { findAttachmentPhoto } from '../lib/photoAttachments';
+import { isNativeApp } from '../lib/nativeFileShare';
 import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
 import {
   REAL_HANIWA_STICKERS,
@@ -350,7 +351,7 @@ function ImageTab() {
 
       <p className="hint-s">
         作品は自動で保存されます。
-        コラージュと作品一覧は準備中だよ
+        {!isNativeApp() && ' コラージュと作品一覧は準備中だよ'}
       </p>
     </>
   );
@@ -377,11 +378,13 @@ function TextTab({
 
   return (
     <>
-      <Seg
-        items={['文字', '吹き出し']}
-        value={sub}
-        onChange={setSub}
-      />
+      {!isNativeApp() && (
+        <Seg
+          items={['文字', '吹き出し']}
+          value={sub}
+          onChange={setSub}
+        />
+      )}
 
       {sub === '吹き出し' ? (
         <Soon em="💬">
@@ -1440,7 +1443,7 @@ function StampTab({
           '埴輪',
           '土偶',
           '絵文字',
-          'マイスタンプ',
+          ...(!isNativeApp() ? ['マイスタンプ'] : []),
         ]}
         value={sub}
         onChange={setSub}
