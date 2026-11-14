@@ -21,7 +21,9 @@ const context = await browser.newContext({
 const page = await context.newPage();
 page.on('pageerror', (error) => results.errors.push(error.message));
 page.on('console', (message) => {
-  if (message.type() === 'error') results.errors.push('console: ' + message.text());
+  if (message.type() === 'error' && !message.text().startsWith('INFO: Created TensorFlow Lite')) {
+    results.errors.push('console: ' + message.text());
+  }
 });
 page.on('requestfailed', (request) => {
   results.networkFailures.push({ url: request.url(), failure: request.failure() });
@@ -48,10 +50,14 @@ try {
   results.steps.push('slider input');
   const start = Date.now();
   await page.waitForFunction(() => {
-    const message = document.querySelector('[role="status"]')?.textContent ?? '';
-    return message.includes('顔の加工を表示') || message.includes('顔認識を利用') || message.includes('顔を検出できません');
+    const statuses = Array.from(document.querySelectorAll('[role="status"]'));
+    return statuses.some((item) => {
+      const message = item.textContent ?? '';
+      return message.includes('顔の加工を表示') || message.includes('顔認識を利用') || message.includes('顔を検出できません');
+    });
   }, { timeout: 60000 });
-  const faceResult = await page.locator('[role="status"]').first().innerText();
+  const faceResult = (await page.locator('[role="status"]').allTextContents())
+    .find((item) => item.includes('顔の加工を表示') || item.includes('顔認識を利用') || item.includes('顔を検出できません')) ?? '';
   results.faceResult = faceResult;
   assert(faceResult.includes('顔の加工を表示'), 'Face processing failed on WebKit: ' + faceResult);
   results.firstPreviewMs = Date.now() - start;
