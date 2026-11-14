@@ -185,6 +185,104 @@ function FloatingLayers({
   selectedId: string | null;
 }) {
   const [open, setOpen] = useState(true);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    id: number; clientX: number; clientY: number; x: number; y: number;
+  } | null>(null);
+  const [position, setPosition] = useState<Point | null>(null);
+  const positionRef = useRef<Point | null>(null);
+
+  const clampLayerPosition = (x: number, y: number): Point => {
+    const panel = panelRef.current;
+    const parent = panel?.parentElement;
+    if (!panel || !parent) return { x, y };
+    return {
+      x: Math.max(0, Math.min(x, parent.clientWidth - panel.offsetWidth)),
+      y: Math.max(0, Math.min(y, parent.clientHeight - panel.offsetHeight)),
+    };
+  };
+
+  const saveLayerPosition = (point: Point) => {
+    const panel = panelRef.current;
+    const parent = panel?.parentElement;
+    if (!panel || !parent) return;
+    const w = Math.max(1, parent.clientWidth - panel.offsetWidth);
+    const h = Math.max(1, parent.clientHeight - panel.offsetHeight);
+    try {
+      localStorage.setItem('jomon-pix-floating-layers-v1', JSON.stringify({
+        x: Math.max(0, Math.min(1, point.x / w)),
+        y: Math.max(0, Math.min(1, point.y / h)),
+      }));
+    } catch { /* Storage is optional; dragging still works. */ }
+  };
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    const parent = panel?.parentElement;
+    if (!panel || !parent) return;
+    try {
+      const data = JSON.parse(localStorage.getItem('jomon-pix-floating-layers-v1') ?? 'null');
+      if (data && typeof data.x === 'number' && typeof data.y === 'number' &&
+          Number.isFinite(data.x) && Number.isFinite(data.y) &&
+          data.x >= 0 && data.x <= 1 && data.y >= 0 && data.y <= 1) {
+        const restored = clampLayerPosition(
+          data.x * Math.max(0, parent.clientWidth - panel.offsetWidth),
+          data.y * Math.max(0, parent.clientHeight - panel.offsetHeight),
+        );
+        positionRef.current = restored;
+        setPosition(restored);
+      }
+    } catch { /* Invalid stored position: use top right. */ }
+    const observer = new ResizeObserver(() => {
+      setPosition((current) => {
+        if (!current) return current;
+        const next = clampLayerPosition(current.x, current.y);
+        positionRef.current = next;
+        return next.x === current.x && next.y === current.y ? current : next;
+      });
+    });
+    observer.observe(parent);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [elements.length > 0]);
+
+  const startLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const panel = panelRef.current;
+    const parent = panel?.parentElement;
+    if (!panel || !parent) return;
+    const rect = panel.getBoundingClientRect();
+    const container = parent.getBoundingClientRect();
+    const origin = clampLayerPosition(rect.left - container.left, rect.top - container.top);
+    dragRef.current = {
+      id: event.pointerId, clientX: event.clientX, clientY: event.clientY,
+      x: origin.x, y: origin.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const moveLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    if (!drag || event.pointerId !== drag.id) return;
+    const next = clampLayerPosition(
+      drag.x + event.clientX - drag.clientX,
+      drag.y + event.clientY - drag.clientY,
+    );
+    positionRef.current = next;
+    setPosition(next);
+    event.preventDefault();
+  };
+
+  const stopLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragRef.current?.id !== event.pointerId) return;
+    dragRef.current = null;
+    if (positionRef.current) saveLayerPosition(positionRef.current);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   // 写真と連動する文字・スタンプは、右の簡易一覧では親写真にまとめる。
   // 単独レイヤーと、親画像が見つからない過去のデータは従来どおり表示。
   const ordered = [...elements].filter((el) => {
