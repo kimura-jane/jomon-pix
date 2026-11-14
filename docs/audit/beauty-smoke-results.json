@@ -1,0 +1,17 @@
+{
+  "test": "JOMON pix face-aware beauty",
+  "ts": "2026-11-14T12:18:57.310Z",
+  "checks": [
+    "Beauty panel available with photo",
+    "Local face landmarker recognized real portrait",
+    "Skin smoothing rendered on the canvas",
+    "Settings persist without replacing source image",
+    "Jaw narrowing preview and persisted value",
+    "Makeup preview",
+    "PNG export with face effects",
+    "Non-destructive beauty reset"
+  ],
+  "errors": [],
+  "outboundPostUrls": [],
+  "status": "success"
+}
