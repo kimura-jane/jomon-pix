@@ -2,6 +2,7 @@
 import type Konva from 'konva';
 import { useEditor } from '../store';
 import { sceneSrc } from './scenePresets';
+import { beautySignature } from './beautyProcessor';
 
 export const CANVAS_W = 800;
 export const CANVAS_H = 800;
@@ -67,26 +68,29 @@ function allImagesReady(stage: Konva.Stage): boolean {
     }
 
     const image = (imageNode as Konva.Image).image();
+    const isHTMLImage = image instanceof HTMLImageElement;
+    const isCanvas = image instanceof HTMLCanvasElement;
 
-    if (!(image instanceof HTMLImageElement)) {
-      return false;
-    }
-
-    if (
+    if (!isHTMLImage && !isCanvas) return false;
+    if (isHTMLImage && (
       !image.complete ||
       image.naturalWidth <= 0 ||
       image.naturalHeight <= 0
-    ) {
-      return false;
-    }
+    )) return false;
+    if (isCanvas && (image.width <= 0 || image.height <= 0)) return false;
 
-    // dataURLの写真・スタンプでは、
-    // 編集データと読み込まれた画像が
-    // 同じものかどうかも検査する。
-    if (
-      el.src &&
-      el.src.startsWith('data:') &&
-      image.src !== el.src
+    const beautyKey = el.type === 'image' ? beautySignature(el.beauty) : 'none';
+    if (beautyKey !== 'none') {
+      // Reject a stale/pending beauty bitmap even when its old photo
+      // is already loaded. No unprocessed PNG can escape while sliders move.
+      if (
+        imageNode.getAttr('beautySignature') !== beautyKey ||
+        imageNode.getAttr('beautySource') !== el.src
+      ) return false;
+    } else if (
+      // The existing photo/sticker consistency check remains unchanged.
+      !isHTMLImage ||
+      (el.src.startsWith('data:') && image.src !== el.src)
     ) {
       return false;
     }
