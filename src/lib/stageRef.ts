@@ -21,6 +21,13 @@ function allImagesReady(stage: Konva.Stage): boolean {
 
   return elements.every((el) => {
     if (el.hidden) return true;
+    // 親写真を非表示にした場合、内側のスタンプ画像も描画されない。
+    if ((el.type === 'sticker' || el.type === 'text') && el.parentImageId) {
+      const photo = elements.find(
+        (item) => item.id === el.parentImageId && item.type === 'image',
+      );
+      if (photo?.hidden) return true;
+    }
 
     const isImage =
       el.type === 'image' ||
