@@ -51,6 +51,24 @@ export type ImageStroke = {
   opacity: number;
 };
 
+export type FrameStyle =
+  | 'none'
+  | 'simple'
+  | 'double'
+  | 'polaroid'
+  | 'film'
+  | 'album'
+  | 'neon'
+  | 'magazine';
+
+export type ImageFrame = {
+  style: FrameStyle;
+  // CSS hex color of the decorative frame.
+  color: string;
+  // Thickness as a percentage of the photo's shorter side (2-18).
+  size: number;
+};
+
 export type ImageEl = Base & {
   type: 'image';
   // 写真内の座標で保存。画像の移動・変形に追従する。
@@ -59,6 +77,7 @@ export type ImageEl = Base & {
   width: number;
   height: number;
   filter: FilterPreset;
+  frame?: ImageFrame;
 };
 
 export type TextEl = Base & {
