@@ -368,6 +368,40 @@ function snapshot(state: Snapshot): Snapshot {
   };
 }
 
+// Bound the memory consumed by distinct embedded image data across undo/redo.
+// Lightweight operations retain up to 50 steps, while repeated photo edits
+// cannot keep 50 full-size data URLs alive in the iPhone WebView.
+const HISTORY_LIMIT = 50;
+const HISTORY_INLINE_DATA_LIMIT = 24 * 1024 * 1024;
+
+function trimHistory(states: Snapshot[], future = false): Snapshot[] {
+  const newestFirst = future ? states : [...states].reverse();
+  const kept: Snapshot[] = [];
+  const seen = new Set<string>();
+  let inlineSize = 0;
+
+  for (const state of newestFirst) {
+    if (kept.length >= HISTORY_LIMIT) break;
+    let extra = 0;
+    const added: string[] = [];
+    for (const element of state.elements) {
+      if ((element.type !== 'image' && element.type !== 'sticker') ||
+          !element.src?.startsWith('data:image/') || seen.has(element.src)) continue;
+      // Only count each image once, even if shared across history snapshots.
+      if (!added.includes(element.src)) {
+        added.push(element.src);
+        extra += element.src.length;
+      }
+    }
+    if (kept.length > 0 && inlineSize + extra > HISTORY_INLINE_DATA_LIMIT) break;
+    for (const src of added) seen.add(src);
+    inlineSize += extra;
+    kept.push(state);
+  }
+
+  return future ? kept : kept.reverse();
+}
+
 type HistoryGroup = {
   id: string;
   before: Snapshot;
@@ -385,7 +419,7 @@ export const useEditor = create<S>()(
         if (!group || !group.changed) return;
 
         set((state) => ({
-          past: [...state.past, group.before].slice(-50),
+          past: trimHistory([...state.past, group.before]),
           future: [],
           savedAt: Date.now(),
         }));
@@ -407,7 +441,7 @@ export const useEditor = create<S>()(
 
           return {
             ...changes,
-            past: [...state.past, snapshot(state)].slice(-50),
+            past: trimHistory([...state.past, snapshot(state)]),
             future: [],
             savedAt: Date.now(),
           };
@@ -768,7 +802,7 @@ export const useEditor = create<S>()(
           set({
             ...previous,
             past: state.past.slice(0, -1),
-            future: [snapshot(state), ...state.future].slice(0, 50),
+            future: trimHistory([snapshot(state), ...state.future], true),
             selectedId: null,
             savedAt: Date.now(),
           });
@@ -782,7 +816,7 @@ export const useEditor = create<S>()(
           const next = state.future[0];
           set({
             ...next,
-            past: [...state.past, snapshot(state)].slice(-50),
+            past: trimHistory([...state.past, snapshot(state)]),
             future: state.future.slice(1),
             selectedId: null,
             savedAt: Date.now(),
