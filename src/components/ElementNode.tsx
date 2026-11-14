@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import {
   Image as KImage,
+  Group,
   Text,
   Line,
 } from 'react-konva';
@@ -13,6 +14,7 @@ import type {
   CanvasEl,
   FilterPreset,
   ImageEl,
+  ImageStroke,
   StickerEl,
   Tab,
 } from '../types';
@@ -145,8 +147,10 @@ function useCommon(el: CanvasEl) {
 // 写真
 function ImageNode({
   el,
+  draft,
 }: {
   el: ImageEl;
+  draft?: ImageStroke;
 }) {
   const [img] = useImage(el.src, 'anonymous');
   const ref = useRef<Konva.Image>(null);
@@ -176,15 +180,41 @@ function ImageNode({
   ]);
 
   return (
-    <KImage
-      ref={ref}
-      image={img}
-      width={el.width}
-      height={el.height}
-      filters={preset.filters}
-      {...preset.props}
+    <Group
       {...common}
-    />
+      clipX={0}
+      clipY={0}
+      clipWidth={el.width}
+      clipHeight={el.height}
+    >
+      <KImage
+        ref={ref}
+        image={img}
+        width={el.width}
+        height={el.height}
+        filters={preset.filters}
+        {...preset.props}
+      />
+      {(el.drawings ?? []).map((stroke) => (
+        <Line
+          key={stroke.id}
+          {...penProps(stroke)}
+          opacity={
+            stroke.opacity * (stroke.penStyle === 'marker' ? 0.45 : 1)
+          }
+          listening={false}
+        />
+      ))}
+      {draft && (
+        <Line
+          {...penProps(draft)}
+          opacity={
+            draft.opacity * (draft.penStyle === 'marker' ? 0.45 : 1)
+          }
+          listening={false}
+        />
+      )}
+    </Group>
   );
 }
 
@@ -211,8 +241,10 @@ function StickerImageNode({
 
 export function ElementNode({
   el,
+  draft,
 }: {
   el: CanvasEl;
+  draft?: ImageStroke;
 }) {
   const common = useCommon(el);
   const textRef = useRef<Konva.Text>(null);
@@ -241,7 +273,7 @@ export function ElementNode({
 
   // 写真
   if (el.type === 'image') {
-    return <ImageNode el={el} />;
+    return <ImageNode el={el} draft={draft} />;
   }
 
   // スタンプ
