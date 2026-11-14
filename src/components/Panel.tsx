@@ -21,6 +21,7 @@ import {
 import { removeBg } from '../lib/removeBg';
 import { PhotoCropModal } from './PhotoCropModal';
 import { CanvasCropModal } from './CanvasCropModal';
+import { HistorySlider } from './HistorySlider';
 import {
   FONTS,
   FONT_GROUPS,
@@ -281,7 +282,7 @@ function TextTab({
   const update = useEditor((s) => s.update);
 
   const up = (patch: Partial<TextEl>) => {
-    if (el) {
+    if (el && !el.locked) {
       update(el.id, patch);
     }
   };
@@ -314,6 +315,7 @@ function TextTab({
               className="input"
               rows={2}
               value={el.text}
+              disabled={!!el.locked}
               onChange={(event) =>
                 up({
                   text: event.target.value,
@@ -331,6 +333,7 @@ function TextTab({
               <button
                 key={preset.label}
                 className="chip"
+                disabled={!!el?.locked}
                 style={{
                   fontFamily:
                     preset.style.fontFamily,
@@ -371,6 +374,7 @@ function TextTab({
                         ? 'on'
                         : ''
                     }`}
+                    disabled={!!el.locked}
                     style={{
                       fontFamily: font.family,
                     }}
@@ -411,6 +415,19 @@ function TextTab({
                 }
               />
 
+              <HistorySlider
+                label={`ふちどりの太さ ${el.strokeWidth}px`}
+                min={0}
+                max={30}
+                step={1}
+                value={el.strokeWidth}
+                elementId={el.id}
+                disabled={!!el.locked || !el.stroke}
+                onChange={(strokeWidth) =>
+                  up({ strokeWidth })
+                }
+              />
+
               <div className="label">
                 光る
               </div>
@@ -439,6 +456,7 @@ function TextTab({
                   className={`chip ${
                     !el.vertical ? 'on' : ''
                   }`}
+                  disabled={!!el.locked}
                   onClick={() =>
                     up({ vertical: false })
                   }
@@ -450,6 +468,7 @@ function TextTab({
                   className={`chip ${
                     el.vertical ? 'on' : ''
                   }`}
+                  disabled={!!el.locked}
                   onClick={() =>
                     up({ vertical: true })
                   }
@@ -471,6 +490,7 @@ function TextTab({
                         ? 'on'
                         : ''
                     }`}
+                    disabled={!!el.locked}
                     onClick={() =>
                       up({ align })
                     }
@@ -484,23 +504,40 @@ function TextTab({
                 ))}
               </div>
 
-              <Slider
-                label="大きさ"
+              <HistorySlider
+                label={`大きさ ${el.fontSize}px`}
                 min={16}
                 max={200}
                 value={el.fontSize}
+                elementId={el.id}
+                disabled={!!el.locked}
                 onChange={(fontSize) =>
                   up({ fontSize })
                 }
               />
 
-              <Slider
-                label="字間"
+              <HistorySlider
+                label={`字間 ${el.letterSpacing}`}
                 min={-5}
                 max={40}
                 value={el.letterSpacing}
+                elementId={el.id}
+                disabled={!!el.locked}
                 onChange={(letterSpacing) =>
                   up({ letterSpacing })
+                }
+              />
+
+              <HistorySlider
+                label={`透明度 ${Math.round(el.opacity * 100)}%`}
+                min={0}
+                max={100}
+                step={5}
+                value={Math.round(el.opacity * 100)}
+                elementId={el.id}
+                disabled={!!el.locked}
+                onChange={(value) =>
+                  up({ opacity: value / 100 })
                 }
               />
 
@@ -1342,17 +1379,16 @@ function EditTab({
           </div>
 
           {el && (
-            <Slider
-              label="透明度"
-              min={0.1}
-              max={1}
-              step={0.05}
-              value={el.opacity}
-              onChange={(opacity) =>
-                s.update(
-                  el.id,
-                  { opacity },
-                )
+            <HistorySlider
+              label={`透明度 ${Math.round(el.opacity * 100)}%`}
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(el.opacity * 100)}
+              elementId={el.id}
+              disabled={!!el.locked}
+              onChange={(value) =>
+                s.update(el.id, { opacity: value / 100 })
               }
             />
           )}
