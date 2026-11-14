@@ -63,6 +63,8 @@ export type ImageEl = Base & {
 
 export type TextEl = Base & {
   type: 'text';
+  // 紐づけ先の写真。座標は写真内のローカル座標。
+  parentImageId?: string;
   text: string;
   fontFamily: string;
   fontSize: number;
@@ -79,6 +81,7 @@ export type TextEl = Base & {
 // 既存の絵文字スタンプもそのまま使える
 export type StickerEl = Base & {
   type: 'sticker';
+  parentImageId?: string;
   emoji: string;
   size: number;
   src?: string;
