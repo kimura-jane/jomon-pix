@@ -1,0 +1,50 @@
+name: Test canvas ratios and draggable layers in Chromium and WebKit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/Panel.tsx'
+      - 'src/components/Editor.tsx'
+      - 'src/store.ts'
+      - 'src/components/TopBar.tsx'
+      - 'scripts/audit_canvas_layer_drag.mjs'
+      - '.github/workflows/audit-canvas-layer-drag.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canvas-layer-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies and browsers
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Typecheck and build
+        run: npm run typecheck && npm run build
+      - name: Verify ratio controls and floating panel in both browsers
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/jomon-canvas-test.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_canvas_layer_drag.mjs chromium
+          node scripts/audit_canvas_layer_drag.mjs webkit
+      - name: Save regression reports without auto-committing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canvas-layer-drag-qa
+          path: docs/audit/canvas-layer-drag-*.json
+          if-no-files-found: warn
