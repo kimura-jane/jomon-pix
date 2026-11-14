@@ -958,7 +958,12 @@ function StampTab({
     const current = useEditor.getState();
     const photo = findAttachmentPhoto(current.elements, current.selectedId);
     if (!photo) {
-      setAutoMessage('写真を選択してください。');
+      const hasPhoto = current.elements.some((item) => item.type === 'image');
+      setAutoMessage(
+        hasPhoto
+          ? '写真のロック・非表示を解除してください。'
+          : '先に写真を追加してください。',
+      );
       return;
     }
     if (!faceInfo || faceInfo.photoId !== photo.id ||
