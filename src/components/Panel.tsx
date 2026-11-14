@@ -34,7 +34,7 @@ import {
   TEXT_PRESETS,
 } from '../lib/fonts';
 import { PENS } from '../lib/pens';
-import { SCENE_PRESETS, SOCIAL_PRESETS, sceneSrc } from '../lib/scenePresets';
+import { SCENE_PRESETS, SOCIAL_PRESETS } from '../lib/scenePresets';
 import type {
   CanvasEl,
   FilterPreset,
@@ -2093,6 +2093,32 @@ const FRAME_COLORS = [
   '#ffffff', '#21212c', '#e7bf6e', '#ff6faf',
   '#a778e4', '#56c8ed', '#70cf9f', '#ff7655',
 ];
+  
+type FramePreviewGroup = 'scene' | 'social' | 'border';
+
+// Every thumbnail is captured from JOMON pix's REAL Konva renderer with
+// the same original illustrated portrait. No external image is downloaded.
+function FrameReferenceImage({
+  group,
+  id,
+  label,
+}: {
+  group: FramePreviewGroup;
+  id: string;
+  label: string;
+}) {
+  return (
+    <img
+      className="frame-reference"
+      src={`${import.meta.env.BASE_URL}frame-previews/${group}-${id}.png`}
+      alt={`${label}の仕上がり参考画像`}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+    />
+  );
+}
+
 
 function BorderFrameTab() {
   const s = useEditor();
@@ -2108,15 +2134,6 @@ function BorderFrameTab() {
   const photo =
     photos.find((el) => el.id === photoId) ??
     (photos.length === 1 ? photos[0] : undefined);
-
-  if (!photos.length) {
-    return (
-      <div className="soon">
-        <div style={{ fontSize: 36 }}>🖼</div>
-        <p>先に「画像」から写真を追加してください。</p>
-      </div>
-    );
-  }
 
   const style = photo?.frame?.style ?? 'none';
   const size = photo?.frame?.size ?? 7;
@@ -2135,9 +2152,15 @@ function BorderFrameTab() {
     <>
       <h3 style={{ margin: '0 0 6px' }}>写真フレーム</h3>
       <p className="hint-s">
-        写真に直接付き、写真と一緒に移動・拡大・回転します。
-        元の写真データは変更しません。
+        仕上がり見本から選べます。写真に直接付き、
+        写真と一緒に移動・拡大・回転します。元の写真データは変更しません。
       </p>
+      {photos.length === 0 && (
+        <p className="hint-s" role="status">
+          見本は写真を追加する前でも確認できます。
+          フレームを付ける場合は、先に「画像」から写真を追加してください。
+        </p>
+      )}
 
       {photos.length > 1 && (
         <>
@@ -2193,16 +2216,15 @@ function BorderFrameTab() {
             onClick={() => apply(item.id)}
             style={{
               textAlign: 'left',
-              padding: '11px 12px',
+              padding: 7,
               borderRadius: 13,
               border: style === item.id ? '2px solid #ec59b4' : '1px solid #e6d8e4',
               background: style === item.id ? '#fff0f9' : '#fff',
               color: '#40343f',
-              opacity: locked ? 0.5 : 1,
               cursor: locked ? 'not-allowed' : 'pointer',
-              minHeight: 64,
             }}
           >
+            <FrameReferenceImage group="border" id={item.id} label={item.label} />
             <div style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</div>
             <div style={{ fontSize: 10, opacity: 0.75, marginTop: 3 }}>{item.subtitle}</div>
           </button>
@@ -2305,7 +2327,8 @@ function SceneFrameTab() {
     <>
       <h3 style={{ margin: '0 0 5px' }}>背景を選ぶ</h3>
       <p className="hint-s">
-        観光地・プリクラ風のオリジナル背景。写真の後ろに表示されます。
+        観光地・プリクラ風の背景を参考画像で比較できます。
+        実際には写真の後ろに表示されます。
       </p>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -2313,7 +2336,6 @@ function SceneFrameTab() {
       }}>
         {SCENE_PRESETS.map((item) => {
           const chosen = editor.sceneBackground === item.id;
-          const src = sceneSrc(item.id);
           return (
             <button key={item.id} type="button"
               aria-pressed={chosen}
@@ -2324,20 +2346,7 @@ function SceneFrameTab() {
                 borderRadius: 14, background: chosen ? '#fff0fa' : '#ffffff',
                 color: '#413341', cursor: 'pointer',
               }}>
-              {src ? (
-                <img src={src} alt="" loading="lazy" draggable={false}
-                  style={{
-                    width: '100%', height: 112, objectFit: 'cover',
-                    borderRadius: 9, display: 'block', background: '#eee',
-                  }} />
-              ) : (
-                <div style={{
-                  height: 112, borderRadius: 9,
-                  border: '2px dashed #dfcfe0', display: 'grid',
-                  placeItems: 'center', color: '#98889a', fontSize: 25,
-                  background: '#faf8fb',
-                }}>×</div>
-              )}
+              <FrameReferenceImage group="scene" id={item.id} label={item.label} />
               <div style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>{item.label}</div>
               <div style={{ fontSize: 10, opacity: 0.75 }}>{item.detail}</div>
             </button>
@@ -2381,8 +2390,8 @@ function SocialFrameTab() {
     <>
       <h3 style={{ margin: '0 0 5px' }}>配信・SNSテンプレ</h3>
       <p className="hint-s">
-        写真の上に架空の配信画面・投稿画面を重ねます。
-        公式アプリの画面ではなく、JOMON pixのオリジナル演出です。
+        参考画像で仕上がりを比較してから選べます。
+        実際の写真に架空の配信・投稿画面を重ねるオリジナル演出です。
       </p>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -2395,13 +2404,14 @@ function SocialFrameTab() {
               aria-pressed={selected}
               onClick={() => editor.setSocialTemplate(item.id)}
               style={{
-                padding: 10, minHeight: 88, textAlign: 'left',
+                padding: 7, textAlign: 'left',
                 border: selected ? '2px solid #ed64b8' : '1px solid #e7d9e7',
                 borderRadius: 14,
                 color: selected ? '#7d205b' : '#403742',
                 background: selected ? '#fff0fa' : '#ffffff',
                 cursor: 'pointer',
               }}>
+              <FrameReferenceImage group="social" id={item.id} label={item.label} />
               <span style={{
                 display: 'block', marginBottom: 5,
                 fontSize: 12, fontWeight: 800,
@@ -2435,6 +2445,10 @@ function FrameTab() {
   return (
     <>
       <Seg items={['背景', '配信・SNS', '枠']} value={section} onChange={setSection} />
+      <p className="hint-s" style={{ marginTop: 2 }}>
+        全22種類に仕上がり見本を表示。見本はサンプル写真です。
+        タップすると自分の作品に適用できます。
+      </p>
       {section === '背景' && <SceneFrameTab />}
       {section === '配信・SNS' && <SocialFrameTab />}
       {section === '枠' && <BorderFrameTab />}
