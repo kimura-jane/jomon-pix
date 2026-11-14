@@ -13,7 +13,7 @@ import {
   type LibrarySticker,
 } from '../lib/stickers';
 import { FACE_STICKERS } from '../lib/stickerPacks';
-import { findAttachmentPhoto } from '../lib/photoAttachments';
+import { findAttachmentPhoto, getPhotoLabel } from '../lib/photoAttachments';
 import { isNativeApp } from '../lib/nativeFileShare';
 import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
 import {
@@ -243,7 +243,7 @@ function PhotoAttachmentControls({
       }}
     >
       <div className="label" style={{ margin: '0 0 6px' }}>
-        写真と一緒に動かす
+        一緒に動かす写真を選ぶ
       </div>
       <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
         {photos.map((photo, index) => (
@@ -252,7 +252,7 @@ function PhotoAttachmentControls({
             key={photo.id}
             disabled={!!el.locked}
             onClick={() => s.attachToImage(el.id, photo.id)}
-            aria-label={`写真${index + 1}に紐づける`}
+            aria-label={`${getPhotoLabel(s.elements, photo.id)}に紐づける`}
             aria-pressed={el.parentImageId === photo.id}
             style={{
               flex: '0 0 auto',
@@ -274,7 +274,7 @@ function PhotoAttachmentControls({
               style={{ width: 46, height: 46, objectFit: 'contain' }}
             />
             <span style={{ fontSize: 10 }}>
-              {el.parentImageId === photo.id ? '✓ ' : ''}写真{index + 1}
+              {el.parentImageId === photo.id ? '✓ ' : ''}{getPhotoLabel(s.elements, photo.id)}
             </span>
           </button>
         ))}
@@ -286,7 +286,7 @@ function PhotoAttachmentControls({
             onClick={() => s.detachFromImage(el.id)}
             style={{ flexShrink: 0, fontSize: 11 }}
           >
-            紐づけ解除
+            くっつけない
           </button>
         )}
       </div>
@@ -679,13 +679,13 @@ function PenTab() {
               padding: '4px 2px 8px',
             }}
           >
-            {[...photos].reverse().map((photo, index) => (
+            {photos.map((photo, index) => (
               <button
                 key={photo.id}
                 type="button"
                 onClick={() => select(photo.id)}
-                title={'写真' + (index + 1) + 'を描画対象にする'}
-                aria-label={'写真' + (index + 1) + 'を描画対象にする'}
+                title={getPhotoLabel(elements, photo.id) + 'を描画対象にする'}
+                aria-label={getPhotoLabel(elements, photo.id) + 'を描画対象にする'}
                 aria-pressed={photo.id === (selectedPhoto ?? fallbackPhoto)?.id}
                 style={{
                   flex: '0 0 auto',
@@ -715,7 +715,7 @@ function PenTab() {
                     borderRadius: 7,
                   }}
                 />
-                <span style={{ fontSize: 10 }}>写真{index + 1}</span>
+                <span style={{ fontSize: 10 }}>{getPhotoLabel(elements, photo.id)}</span>
               </button>
             ))}
           </div>
@@ -911,7 +911,23 @@ function StampTab({
     (item): item is ImageEl =>
       item.type === 'image' && !item.hidden && !item.locked,
   );
-  const activePhoto = findAttachmentPhoto(s.elements, s.selectedId);
+  const activePhoto = findAttachmentPhoto(s.elements, s.selectedId, true);
+  const hasAnyPhoto = s.elements.some((item) => item.type === 'image');
+  const selectedElement = s.elements.find((item) => item.id === s.selectedId);
+  const selectedPhotoId =
+    selectedElement?.type === 'image' ? selectedElement.id :
+    selectedElement?.type === 'sticker' || selectedElement?.type === 'text'
+      ? selectedElement.parentImageId : undefined;
+  const selectedTarget = s.elements.find(
+    (item) => item.type === 'image' && item.id === selectedPhotoId,
+  );
+  const needsUnlock = !!selectedTarget &&
+    (selectedTarget.hidden || selectedTarget.locked);
+  const autoGuide = !hasAnyPhoto
+    ? '先に写真を追加してください。'
+    : needsUnlock || availablePhotos.length === 0
+      ? '写真のロック・非表示を解除してください。'
+      : '';
   const activePhotoId = activePhoto?.id;
   const activePhotoSrc = activePhoto?.src;
 
@@ -920,6 +936,7 @@ function StampTab({
   useEffect(() => {
     let cancelled = false;
     setFaceInfo(null);
+    setAutoMessage('');
     setSelectedFaceIndex(0);
     if (!autoFace || sub !== '顔デコ' || !activePhotoId || !activePhotoSrc) {
       setFaceBusy(false);
@@ -956,7 +973,7 @@ function StampTab({
   const autoAdd = async (sticker: LibrarySticker) => {
     if (autoGuard.current || faceBusy) return;
     const current = useEditor.getState();
-    const photo = findAttachmentPhoto(current.elements, current.selectedId);
+    const photo = findAttachmentPhoto(current.elements, current.selectedId, true);
     if (!photo) {
       const hasPhoto = current.elements.some((item) => item.type === 'image');
       setAutoMessage(
@@ -1468,7 +1485,7 @@ function StampTab({
                       const selectedPhoto = findAttachmentPhoto(s.elements, s.selectedId);
                       return (
                         <button type="button" key={photo.id}
-                          aria-label={`写真${i + 1}を顔デコ対象にする`}
+                          aria-label={`${getPhotoLabel(s.elements, photo.id)}を顔デコ対象にする`}
                           aria-pressed={selectedPhoto?.id === photo.id}
                           onClick={() => { s.select(photo.id); setAutoMessage(''); }}
                           style={{
@@ -1481,12 +1498,17 @@ function StampTab({
                           }}>
                           <img src={photo.src} alt="" draggable={false}
                             style={{ width: 65, height: 54, objectFit: 'cover', borderRadius: 7 }} />
-                          <span style={{ display: 'block', fontSize: 11 }}>写真{i + 1}</span>
+                          <span style={{ display: 'block', fontSize: 11 }}>{getPhotoLabel(s.elements, photo.id)}</span>
                         </button>
                       );
                     })}
                   </div>
                 </>
+              )}
+              {autoGuide && (
+                <p role="status" className="hint-s" style={{ margin: '8px 0 0' }}>
+                  {autoGuide}
+                </p>
               )}
               {faceBusy && (
                 <p role="status" className="hint-s">顔の位置を確認中…</p>
@@ -2103,10 +2125,10 @@ function BorderFrameTab() {
                   color: '#3a303c',
                 }}
               >
-                <img src={item.src} alt={`写真${index + 1}`}
+                <img src={item.src} alt={getPhotoLabel(s.elements, item.id)}
                   style={{ width: '100%', height: 54, objectFit: 'cover', borderRadius: 7 }} />
                 <span style={{ fontSize: 11 }}>
-                  写真{index + 1}{item.locked ? ' 🔒' : ''}
+                  {getPhotoLabel(s.elements, item.id)}{item.locked ? ' 🔒' : ''}
                 </span>
               </button>
             ))}
