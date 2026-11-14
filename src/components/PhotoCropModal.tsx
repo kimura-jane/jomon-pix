@@ -161,12 +161,24 @@ export function PhotoCropModal({ el, onClose }: Props) {
       const x = el.x + localX * cos - localY * sin;
       const y = el.y + localX * sin + localY * cos;
 
+      // 写真に付いたペンも、トリミング後のローカル座標へ移す。
+      // 移動・拡大・回転した後でも画像との位置関係を維持する。
+      const offsetX = el.width * fractionX;
+      const offsetY = el.height * fractionY;
+      const drawings = (el.drawings ?? []).map((stroke) => ({
+        ...stroke,
+        points: stroke.points.map((value, index) =>
+          value - (index % 2 === 0 ? offsetX : offsetY),
+        ),
+      }));
+
       useEditor.getState().update(el.id, {
         src,
         width: el.width * sw / originalW,
         height: el.height * sh / originalH,
         x,
         y,
+        drawings,
       });
 
       onClose();
