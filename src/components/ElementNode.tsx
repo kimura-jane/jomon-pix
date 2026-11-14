@@ -10,6 +10,7 @@ import {
 import useImage from 'use-image';
 import { useEditor } from '../store';
 import { penProps } from '../lib/pens';
+import { PhotoFrame } from './PhotoFrame';
 import type {
   CanvasEl,
   FilterPreset,
@@ -228,6 +229,7 @@ function ImageNode({
           />
         )}
       </Group>
+      <PhotoFrame width={el.width} height={el.height} frame={el.frame} />
       {attached.map((child) => (
         <ElementNode key={child.id} el={child} />
       ))}
