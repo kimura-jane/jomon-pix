@@ -31,15 +31,32 @@ async function getLandmarker() {
       // are hosted under the same GitHub Pages application origin.
       const root = `${import.meta.env.BASE_URL}mediapipe`;
       const vision = await FilesetResolver.forVisionTasks(root);
-      return FaceLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: `${root}/face_landmarker.task`,
-          delegate: 'CPU',
-        },
-        runningMode: 'IMAGE',
-        numFaces: 1,
-        outputFaceBlendshapes: false,
-      });
+
+      // Explicitly bind a dedicated WebGL canvas. Safari / WKWebView may fail
+      // to create MediaPipe's implicit GL context even with the CPU delegate.
+      // A real canvas owned by the document avoids GLctx.activeTexture errors.
+      const glCanvas = document.createElement('canvas');
+      glCanvas.width = 2;
+      glCanvas.height = 2;
+      glCanvas.setAttribute('aria-hidden', 'true');
+      glCanvas.style.cssText =
+        'position:fixed;left:-100px;top:-100px;width:2px;height:2px;pointer-events:none;opacity:0';
+      document.body.appendChild(glCanvas);
+      try {
+        return await FaceLandmarker.createFromOptions(vision, {
+          canvas: glCanvas,
+          baseOptions: {
+            modelAssetPath: `${root}/face_landmarker.task`,
+            delegate: 'CPU',
+          },
+          runningMode: 'IMAGE',
+          numFaces: 1,
+          outputFaceBlendshapes: false,
+        });
+      } catch (error) {
+        glCanvas.remove();
+        throw error;
+      }
     })().catch((error) => {
       landmarkerPromise = undefined; // allow retry after transient load error
       throw error;
