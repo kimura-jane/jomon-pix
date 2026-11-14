@@ -1,6 +1,6 @@
 {
   "target": "WebKit iPhone-like browser (NOT physical iPhone)",
-  "date": "2026-11-14T12:41:33.949Z",
+  "date": "2026-11-14T12:49:41.443Z",
   "steps": [
     "slider input",
     "local FaceLandmarker initialized on WebKit",
@@ -12,6 +12,6 @@
   "badResponses": [],
   "transmittedPhotos": false,
   "faceResult": "顔の加工を表示しています。（1人の顔を検出）",
-  "firstPreviewMs": 926,
+  "firstPreviewMs": 938,
   "status": "success"
 }
