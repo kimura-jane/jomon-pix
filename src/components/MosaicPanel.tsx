@@ -371,15 +371,13 @@ function MosaicDialog({
             </button>
           ))}
         </div>
-        <p className="hint-s" style={{ margin: 0 }}>
-          {mode === 'rectangle'
-            ? '写真の上で指を滑らせて四角い範囲を指定'
-            : mode === 'brush'
-              ? '指で隠したい場所をなぞる。何度でも追加できます'
-              : mode === 'all'
-                ? '選択した写真全体を加工します。上のスタンプや文字はそのままです'
-                : 'AIが人物などの被写体を検出し、被写体を残して背景だけ加工します。判定結果は「適用」後に確認できます。初回はモデルのダウンロードが必要です'}
-        </p>
+        {mode !== 'all' && (
+          <p className="hint-s" style={{ margin: 0 }}>
+            {mode === 'rectangle' ? 'ドラッグで範囲指定'
+              : mode === 'brush' ? '指で塗る'
+              : '初回はAIモデルを取得します'}
+          </p>
+        )}
 
         <div
           ref={spaceRef}
@@ -551,9 +549,6 @@ function MosaicDialog({
           </button>
         </div>
 
-        <p className="hint-s" style={{ margin: 0 }}>
-          適用後は「戻す」で元に戻せます。背景だけモザイクはAIモデルを端末に読み込み、写真をブラウザ内で処理します。判定結果は写真によって異なります。
-        </p>
       </div>
     </div>,
     document.body,
@@ -595,20 +590,13 @@ export function MosaicPanel() {
       </div>
       {photos.length === 0 ? (
         <p className="hint-s">
-          加工できる写真がありません。画像タブから写真を追加してください。
+          先に写真を追加してください。
         </p>
       ) : (
         <>
-          <p className="hint-s">
-            {mode === 'all'
-              ? '選択した写真全体にモザイクをかけます。スタンプや文字は加工しません。'
-              : mode === 'background'
-                ? 'AIで人物などの被写体を検出し、その写真の背景だけにモザイクをかけます。'
-                : '選択した写真の指定部分だけを加工します。'}
-          </p>
           {photos.length > 1 && (
             <>
-              <div className="label">加工する画像を選択</div>
+              <div className="label">写真を選択</div>
               <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
                 {[...photos].reverse().map((photo, index) => (
                   <button
@@ -645,14 +633,11 @@ export function MosaicPanel() {
             onClick={() => setOpen(true)}
           >
             {mode === 'all'
-              ? '▦ 画像全体を加工'
+              ? '▦ 全体にモザイク'
               : mode === 'background'
                 ? '▦ 背景だけモザイク'
-                : '▦ モザイクを指定する'}
+                : '▦ 範囲を指定'}
           </button>
-          <p className="hint-s">
-            元の写真は「戻す」で復元できます。加工するのは写真レイヤーだけです。
-          </p>
         </>
       )}
       {open && target && (
