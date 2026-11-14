@@ -1,0 +1,56 @@
+name: Test all 22 JOMON pix frame previews
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/Panel.tsx'
+      - 'src/App.css'
+      - 'scripts/audit_frame_previews.mjs'
+      - '.github/workflows/audit-frame-previews.yml'
+      - 'public/frame-previews/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  preview-browser-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test environment
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Verify TypeScript and production bundle
+        run: |
+          npm run typecheck
+          npm run build
+      - name: Check all frames on Chromium and iOS-like WebKit
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/frame-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_frame_previews.mjs chromium
+          node scripts/audit_frame_previews.mjs webkit
+      - name: Commit QA reports only to jomon-pix
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/frame-previews-*.json docs/audit/frame-previews-*.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Verify all 22 frame previews on Chromium and WebKit"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
