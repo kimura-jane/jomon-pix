@@ -28,10 +28,16 @@ identifier in both capacitor.config.ts and codemagic.yaml before signing.
    Its integration name must match `Codemagic` in codemagic.yaml or edit that
    one line. Configure an Apple Distribution certificate and App Store
    provisioning profile for **com.jomonpix.app** in Codemagic.
-5. Run **ios-ipa** manually. This produces a signed .ipa artifact and does
-   **not** automatically upload it to TestFlight or App Store.
-6. Upload/submit to TestFlight separately only after inspecting the app,
-   screenshots and privacy information.
+5. Run **ios-ipa** manually (Codemagic shows this as
+   **JOMON pix — signed IPA + TestFlight upload (manual)**). It creates a
+   signed IPA and **uploads it to App Store Connect** automatically using the
+   configured Apple integration. Apple processes the build before it appears
+   in TestFlight. Starting this workflow is still a manual action.
+6. In **App Store Connect > TestFlight**, open the newly processed build and
+   add it to the existing internal testing group **Jomon**. There is no
+   automatic external beta-review submission and no App Store review.
+   The very first build may require filling Apple's compliance and TestFlight
+   testing details before a tester can install it.
 
 Codemagic regenerates or syncs the iOS platform with
 `bash scripts/prepare-ios.sh` using the native Vite build:
