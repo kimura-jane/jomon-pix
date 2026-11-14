@@ -10,7 +10,6 @@ const TABS: { id: Tab; ic: string; label: string }[] = [
   { id: 'text', ic: '🔤', label: '文字' },
   { id: 'pen', ic: '✏️', label: 'ペン' },
   { id: 'stamp', ic: '🐶', label: 'スタンプ' },
-  { id: 'glasses', ic: '🕶', label: 'サングラス' },
   { id: 'mosaic', ic: '▦', label: 'モザイク' },
   { id: 'beauty', ic: '💄', label: 'ビューティー' },
   { id: 'edit', ic: '🎨', label: '加工' },
