@@ -1,0 +1,44 @@
+name: Evaluate museum haniwa and dogu cutouts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/evaluate_museum_cutouts.py
+      - .github/workflows/evaluate-museum-cutouts.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: museum-sticker-cutouts
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install segmentation tools
+        run: python -m pip install "rembg[cpu]>=2.0.65,<2.1" "Pillow>=10,<12" "requests>=2,<3"
+      - name: Create isolated museum cutout previews
+        run: python scripts/evaluate_museum_cutouts.py
+      - name: Commit only audit images to JOMON pix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/realistic-candidates/ docs/audit/realistic-*cutouts.jpg docs/audit/realistic-candidate-metrics.json
+          if git diff --cached --quiet; then
+            echo "No changes to audit"
+          else
+            git commit -m "Add real museum photograph background-removal previews"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
