@@ -1,0 +1,48 @@
+name: Smoke test scene and social templates in Chromium
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/audit_scene_ui.mjs
+      - .github/workflows/audit-scene-ui.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app and test-browser dependencies
+        run: |
+          npm ci
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+      - name: Build production application
+        run: npm run typecheck && npm run build
+      - name: Start Vite preview and run visual smoke tests
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/jomon-vite-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null && break
+            sleep 2
+          done
+          node scripts/audit_scene_ui.mjs
+      - name: Commit UI audit screenshots to JOMON pix only
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/scene-ui-*.png docs/audit/scene-ui-smoke.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Capture scene background and social template browser QA screenshots"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
