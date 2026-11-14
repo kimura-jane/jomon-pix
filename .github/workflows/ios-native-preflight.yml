@@ -12,6 +12,9 @@ on:
       - src/components/TopBar.tsx
       - src/lib/nativeFileShare.ts
       - .github/workflows/ios-native-preflight.yml
+      - scripts/set_ios_build_number.py
+      - scripts/verify_ios_ipa_version.py
+      - scripts/test_ios_build_version.py
   workflow_dispatch:
 
 permissions:
@@ -39,6 +42,8 @@ jobs:
           npm run build
       - name: Generate Capacitor Xcode project and native web bundle
         run: bash scripts/prepare-ios.sh
+      - name: Regression test numeric build version and IPA Info.plist
+        run: python3 scripts/test_ios_build_version.py
       - name: Validate native bundle, icon and iOS project
         run: |
           test -f ios/App/App.xcodeproj/project.pbxproj
