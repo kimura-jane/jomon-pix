@@ -48,7 +48,7 @@ export function PhotoFrame({ width: w, height: h, frame }: Props) {
   const y = t / 2;
   const innerW = Math.max(0, w - t);
   const innerH = Math.max(0, h - t);
-  const filmHoles = Math.max(2, Math.floor(w / (t * 1.9)));
+  const filmHoles = Math.max(2, Math.min(64, Math.floor(w / (t * 1.9))));
 
   return (
     <Group listening={false}>
