@@ -1139,9 +1139,11 @@ function StampTab({
       {selectedSticker && (
         <div
           style={{
-            position: 'sticky',
+            // The sticky sticker editor must not cover the auto face-deco
+            // picker when the long panel scrolls on iPhone.
+            position: sub === '顔デコ' ? 'relative' : 'sticky',
             top: 0,
-            zIndex: 10,
+            zIndex: sub === '顔デコ' ? 1 : 10,
             background: '#fff9fd',
             border: '1px solid #f4c7df',
             borderRadius: 16,
