@@ -176,7 +176,7 @@ function parseBackup(raw: string): Artwork {
   }
 
   const artwork = parsed.artwork;
-  const presets = ['square', '4:5', '9:16', 'photo', 'custom'];
+  const presets = ['square', '4:5', '9:16', '16:9', 'photo', 'custom'];
 
   if (
     !Array.isArray(artwork.elements) ||
