@@ -11,6 +11,7 @@ import useImage from 'use-image';
 import { useEditor } from '../store';
 import { penProps } from '../lib/pens';
 import { PhotoFrame } from './PhotoFrame';
+import { useBeautyPreview } from './useBeautyPreview';
 import type {
   CanvasEl,
   FilterPreset,
@@ -106,7 +107,7 @@ function useCommon(el: CanvasEl) {
     const nextTab = TAB_OF[el.type];
 
     // フレーム編集中に別の写真をタップしてもフレームタブを閉じない。
-    if (nextTab && !(tab === 'frame' && el.type === 'image')) {
+    if (nextTab && !(['frame', 'beauty'].includes(tab) && el.type === 'image')) {
       setTab(nextTab);
     }
   };
@@ -168,6 +169,7 @@ function ImageNode({
   attached: CanvasEl[];
 }) {
   const [img] = useImage(el.src, 'anonymous');
+  const beautyPreview = useBeautyPreview(el.id, el.src, img, el.beauty);
   const ref = useRef<Konva.Image>(null);
 
   const common = useCommon(el);
@@ -176,7 +178,7 @@ function ImageNode({
   useEffect(() => {
     const node = ref.current;
 
-    if (!node || !img) return;
+    if (!node || !beautyPreview.image) return;
 
     if (el.filter === 'none') {
       node.clearCache();
@@ -188,7 +190,7 @@ function ImageNode({
 
     node.getLayer()?.batchDraw();
   }, [
-    img,
+    beautyPreview.image,
     el.filter,
     el.width,
     el.height,
@@ -205,7 +207,9 @@ function ImageNode({
       >
         <KImage
           ref={ref}
-          image={img}
+          image={beautyPreview.image}
+          beautySignature={beautyPreview.signature}
+          beautySource={el.src}
           width={el.width}
           height={el.height}
           filters={preset.filters}
