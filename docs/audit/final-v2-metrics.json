@@ -173,7 +173,7 @@
     "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
     "model": "u2net",
     "threshold": 70,
-    "bytes": 47958
+    "bytes": 46376
   },
   "taf_dog_17.webp": {
     "fully_opaque_fraction": 0.3332,
@@ -206,7 +206,7 @@
     "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
     "model": "u2net",
     "threshold": 70,
-    "bytes": 41676
+    "bytes": 41714
   },
   "taf_dog_20.webp": {
     "fully_opaque_fraction": 0.3547,
