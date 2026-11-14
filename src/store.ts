@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CanvasEl, Patch, PenStyle, Tab, Tool } from './types';
 import { isPhotoAttachment, toCanvasWorld, toPhotoLocal } from './lib/photoAttachments';
+import type { SceneId, SocialId } from './lib/scenePresets';
 
 export const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -36,6 +37,8 @@ type Dir = 'front' | 'back' | 'up' | 'down';
 type Snapshot = {
   elements: CanvasEl[];
   bgColor: string;
+  sceneBackground: SceneId;
+  socialTemplate: SocialId;
   canvasPreset: CanvasPreset;
   canvasWidth: number;
   canvasHeight: number;
@@ -60,6 +63,8 @@ type S = Snapshot & {
   select: (id: string | null) => void;
 
   setBg: (color: string) => void;
+  setSceneBackground: (scene: SceneId) => void;
+  setSocialTemplate: (template: SocialId) => void;
   setCanvasPreset: (preset: CanvasPreset) => boolean;
   cropCanvas: (rect: CanvasCrop) => boolean;
 
@@ -167,6 +172,8 @@ function snapshot(state: Snapshot): Snapshot {
   return {
     elements: state.elements,
     bgColor: state.bgColor,
+    sceneBackground: state.sceneBackground,
+    socialTemplate: state.socialTemplate,
     canvasPreset: state.canvasPreset,
     canvasWidth: state.canvasWidth,
     canvasHeight: state.canvasHeight,
@@ -223,6 +230,8 @@ export const useEditor = create<S>()(
         elements: [],
         selectedId: null,
         bgColor: '#fff6fb',
+        sceneBackground: 'none',
+        socialTemplate: 'none',
         canvasPreset: 'square',
         canvasWidth: 800,
         canvasHeight: 800,
@@ -427,6 +436,16 @@ export const useEditor = create<S>()(
           commit({ bgColor: color });
         },
 
+        setSceneBackground: (scene) => {
+          if (get().sceneBackground === scene) return;
+          commit({ sceneBackground: scene });
+        },
+
+        setSocialTemplate: (template) => {
+          if (get().socialTemplate === template) return;
+          commit({ socialTemplate: template });
+        },
+
         setCanvasPreset: (preset) => {
           if (preset === 'custom') return false;
 
@@ -577,6 +596,8 @@ export const useEditor = create<S>()(
           commit({
             elements: [],
             bgColor: '#fff6fb',
+            sceneBackground: 'none',
+            socialTemplate: 'none',
             canvasPreset: 'square',
             canvasWidth: 800,
             canvasHeight: 800,
@@ -591,6 +612,8 @@ export const useEditor = create<S>()(
       partialize: (state) => ({
         elements: state.elements,
         bgColor: state.bgColor,
+        sceneBackground: state.sceneBackground,
+        socialTemplate: state.socialTemplate,
         canvasPreset: state.canvasPreset,
         canvasWidth: state.canvasWidth,
         canvasHeight: state.canvasHeight,
