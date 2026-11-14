@@ -527,6 +527,10 @@ function PenTab() {
     setPen,
   } = useEditor();
 
+  const opacityPercent = Math.round(
+    (pen.opacity ?? 1) * 100,
+  );
+
   return (
     <>
       <Seg
@@ -600,7 +604,7 @@ function PenTab() {
           />
 
           <Slider
-            label="太さ"
+            label={`太さ ${pen.width}px`}
             min={2}
             max={40}
             value={pen.width}
@@ -608,6 +612,24 @@ function PenTab() {
               setPen({ width })
             }
           />
+
+          <Slider
+            label={`透明度 ${opacityPercent}%`}
+            min={0}
+            max={100}
+            step={5}
+            value={opacityPercent}
+            onChange={(value) =>
+              setPen({
+                opacity: value / 100,
+              })
+            }
+          />
+
+          <p className="hint-s">
+            透明度はこれから描く線に適用されます。
+            0%で透明、100%で不透明になります。
+          </p>
         </>
       )}
     </>
