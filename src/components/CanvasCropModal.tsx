@@ -271,11 +271,6 @@ export function CanvasCropModal({ onClose }: Props) {
       >
         <h3>キャンバスをトリミング</h3>
 
-        <p className="hint">
-          写真・文字・スタンプを含む作品全体を
-          切り抜きます
-        </p>
-
         <div
           style={{
             display: 'flex',
@@ -340,7 +335,7 @@ export function CanvasCropModal({ onClose }: Props) {
         </button>
 
         <div className="label">
-          切り抜く比率
+          比率
         </div>
 
         <div className="row">
@@ -366,7 +361,7 @@ export function CanvasCropModal({ onClose }: Props) {
         </div>
 
         <div className="label">
-          切り抜く位置を調整
+          範囲
         </div>
 
         {LABELS.map(({ id, label }) => {
@@ -430,13 +425,8 @@ export function CanvasCropModal({ onClose }: Props) {
         })}
 
         <p className="hint">
-          切り抜き後のサイズ：
+          切り抜き後：
           {crop.width} × {crop.height}
-        </p>
-
-        <p className="hint">
-          ピンクの枠の外側は表示されなくなります。
-          「戻す」で元の作品に戻せます。
         </p>
 
         <button
@@ -446,7 +436,7 @@ export function CanvasCropModal({ onClose }: Props) {
         >
           {busy
             ? '処理中…'
-            : 'この範囲で切り抜く'}
+            : '切り抜く'}
         </button>
 
         <button
