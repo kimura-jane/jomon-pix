@@ -30,6 +30,7 @@ import {
   TEXT_PRESETS,
 } from '../lib/fonts';
 import { PENS } from '../lib/pens';
+import { SCENE_PRESETS, SOCIAL_PRESETS, sceneSrc } from '../lib/scenePresets';
 import type {
   CanvasEl,
   FilterPreset,
@@ -1852,7 +1853,7 @@ const FRAME_COLORS = [
   '#a778e4', '#56c8ed', '#70cf9f', '#ff7655',
 ];
 
-function FrameTab() {
+function BorderFrameTab() {
   const s = useEditor();
   const photos = s.elements.filter(
     (el): el is ImageEl => el.type === 'image' && !el.hidden,
@@ -2021,6 +2022,181 @@ function FrameTab() {
           </button>
         </>
       )}
+    </>
+  );
+}
+
+// 観光地・プリクラ風のオリジナル背景。
+function SceneFrameTab() {
+  const editor = useEditor();
+  const [busy, setBusy] = useState(false);
+  const images = editor.elements.filter(
+    (item): item is ImageEl => item.type === 'image' && !item.hidden,
+  );
+  const selected = editor.elements.find((item) => item.id === editor.selectedId);
+  const candidateId = selected?.type === 'image'
+    ? selected.id
+    : (selected?.type === 'sticker' || selected?.type === 'text')
+      ? selected.parentImageId
+      : undefined;
+  const photo = images.find((item) => item.id === candidateId)
+    ?? (images.length === 1 ? images[0] : undefined);
+
+  const separatePerson = async () => {
+    if (!photo || photo.locked || busy) return;
+    const originalSource = photo.src;
+    setBusy(true);
+    try {
+      const transparentSource = await removeBg(originalSource);
+      const latest = useEditor.getState().elements.find((item) => item.id === photo.id);
+      if (latest?.type !== 'image' || latest.src !== originalSource) {
+        throw new Error('写真が変更されました。切り抜きは適用していません。');
+      }
+      useEditor.getState().update(photo.id, { src: transparentSource });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '写真の背景を削除できませんでした。');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <h3 style={{ margin: '0 0 5px' }}>背景を選ぶ</h3>
+      <p className="hint-s">
+        観光地・プリクラ風のオリジナル背景。写真の後ろに表示されます。
+      </p>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: 10, marginTop: 10,
+      }}>
+        {SCENE_PRESETS.map((item) => {
+          const chosen = editor.sceneBackground === item.id;
+          const src = sceneSrc(item.id);
+          return (
+            <button key={item.id} type="button"
+              aria-pressed={chosen}
+              onClick={() => editor.setSceneBackground(item.id)}
+              style={{
+                padding: 7, textAlign: 'left',
+                border: chosen ? '2px solid #ed64b8' : '1px solid #e7d9e7',
+                borderRadius: 14, background: chosen ? '#fff0fa' : '#ffffff',
+                color: '#413341', cursor: 'pointer',
+              }}>
+              {src ? (
+                <img src={src} alt="" loading="lazy" draggable={false}
+                  style={{
+                    width: '100%', height: 112, objectFit: 'cover',
+                    borderRadius: 9, display: 'block', background: '#eee',
+                  }} />
+              ) : (
+                <div style={{
+                  height: 112, borderRadius: 9,
+                  border: '2px dashed #dfcfe0', display: 'grid',
+                  placeItems: 'center', color: '#98889a', fontSize: 25,
+                  background: '#faf8fb',
+                }}>×</div>
+              )}
+              <div style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>{item.label}</div>
+              <div style={{ fontSize: 10, opacity: 0.75 }}>{item.detail}</div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="hint-s" style={{ marginTop: 12 }}>
+        背景が写真で隠れる場合は、写真の位置やサイズを調整するか、
+        被写体だけ切り抜くと背景がよく見えます。
+      </p>
+      {images.length > 0 && (
+        <div style={{
+          padding: 10, border: '1px solid #e9d9e7',
+          borderRadius: 12, background: '#fff',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          {images.length > 1 && (
+            <p className="hint-s" style={{ margin: 0 }}>
+              被写体を切り抜きたい写真を先にキャンバスで選んでください。
+            </p>
+          )}
+          <button type="button" className="chip"
+            disabled={!photo || photo.locked || busy}
+            onClick={() => { void separatePerson(); }}>
+            {busy ? '背景を切り抜き中…' : '選択した写真の背景を消して人物を残す'}
+          </button>
+          <p className="hint-s" style={{ margin: 0 }}>
+            写真の背景削除は選択した写真だけに適用します。
+            元の写真には「戻す」で復元できます。
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
+// 枠とは独立した、写真の上に重なるSNS・配信風の演出。
+function SocialFrameTab() {
+  const editor = useEditor();
+  return (
+    <>
+      <h3 style={{ margin: '0 0 5px' }}>配信・SNSテンプレ</h3>
+      <p className="hint-s">
+        写真の上に架空の配信画面・投稿画面を重ねます。
+        公式アプリの画面ではなく、JOMON pixのオリジナル演出です。
+      </p>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: 10, marginTop: 10,
+      }}>
+        {SOCIAL_PRESETS.map((item) => {
+          const selected = editor.socialTemplate === item.id;
+          return (
+            <button type="button" key={item.id}
+              aria-pressed={selected}
+              onClick={() => editor.setSocialTemplate(item.id)}
+              style={{
+                padding: 10, minHeight: 88, textAlign: 'left',
+                border: selected ? '2px solid #ed64b8' : '1px solid #e7d9e7',
+                borderRadius: 14,
+                color: selected ? '#7d205b' : '#403742',
+                background: selected ? '#fff0fa' : '#ffffff',
+                cursor: 'pointer',
+              }}>
+              <span style={{
+                display: 'block', marginBottom: 5,
+                fontSize: 12, fontWeight: 800,
+              }}>{item.label}</span>
+              <span style={{ fontSize: 10, opacity: 0.77 }}>{item.detail}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{
+        marginTop: 12, padding: 12, borderRadius: 12,
+        border: '1px solid #e3d6e5', background: '#fff',
+      }}>
+        <p className="hint-s" style={{ marginTop: 0 }}>
+          縦動画・ライブ配信風なら縦9:16のキャンバスがおすすめ。
+        </p>
+        <button className="chip" type="button"
+          onClick={() => editor.setCanvasPreset('9:16')}>
+          キャンバスを縦9:16にする
+        </button>
+        <p className="hint-s" style={{ marginBottom: 0 }}>
+          表示されるコメントや視聴者数は見本です。実際の配信には接続しません。
+        </p>
+      </div>
+    </>
+  );
+}
+
+function FrameTab() {
+  const [section, setSection] = useState('背景');
+  return (
+    <>
+      <Seg items={['背景', '配信・SNS', '枠']} value={section} onChange={setSection} />
+      {section === '背景' && <SceneFrameTab />}
+      {section === '配信・SNS' && <SocialFrameTab />}
+      {section === '枠' && <BorderFrameTab />}
     </>
   );
 }
