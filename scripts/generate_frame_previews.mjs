@@ -127,7 +127,7 @@ try {
 
   for (const { group, id, filename } of items) {
     await page.evaluate(async (params) => {
-      const { useEditor } = await import('/src/store.ts');
+      const { useEditor } = await import('/jomon-pix/src/store.ts');
       const p = {
         id: 'frame-preview-photo', type: 'image',
         x: params.group === 'scene' ? 46 : 0,
@@ -153,7 +153,7 @@ try {
 
     // Verify actual editor image assets completed before taking screenshots.
     await page.waitForFunction(async (params) => {
-      const { stageRef } = await import('/src/lib/stageRef.ts');
+      const { stageRef } = await import('/jomon-pix/src/lib/stageRef.ts');
       const stage = stageRef.current;
       if (!stage) return false;
       const image = stage.findOne('#frame-preview-photo')?.findOne('Image')?.image();
