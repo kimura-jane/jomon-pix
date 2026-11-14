@@ -46,7 +46,25 @@ try {
   await page.waitForTimeout(200);
   await page.screenshot({ path: out + '/scene-ui-social.png', fullPage: true });
 
-  const screenshots = ['fuji', 'live', 'shorts', 'video', 'social'];
+  // Confirm canvas presentation choices survive autosave and are included
+  // in PNG export (the transformer/handles must not appear in export).
+  const persisted = await page.evaluate(() => {
+    const json = localStorage.getItem('jomon-pix-work');
+    return json ? JSON.parse(json).state : null;
+  });
+  assert.equal(persisted?.sceneBackground, 'dreamy');
+  assert.equal(persisted?.socialTemplate, 'social');
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('heading', { name: 'できあがり！' })
+    .waitFor({ timeout: 20000 });
+  await page.locator('img[alt="完成画像"]').waitFor();
+  await page.waitForFunction(() => {
+    const preview = document.querySelector('img[alt="完成画像"]');
+    return preview instanceof HTMLImageElement && preview.naturalWidth > 0;
+  }, { timeout: 10000 });
+  await page.screenshot({ path: out + '/scene-ui-export.png', fullPage: true });
+
+  const screenshots = ['fuji', 'live', 'shorts', 'video', 'social', 'export'];
   for (const key of screenshots) {
     const file = out + '/scene-ui-' + key + '.png';
     assert(fs.statSync(file).size > 5000, 'screenshot is too small: ' + file);
