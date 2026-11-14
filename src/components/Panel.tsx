@@ -24,6 +24,7 @@ import { PhotoCropModal } from './PhotoCropModal';
 import { CanvasCropModal } from './CanvasCropModal';
 import { HistorySlider } from './HistorySlider';
 import { MosaicPanel } from './MosaicPanel';
+import { BeautyPanel } from './BeautyPanel';
 import {
   FONTS,
   FONT_GROUPS,
@@ -2350,11 +2351,7 @@ export function Panel() {
 
       {tab === 'mosaic' && <MosaicPanel />}
 
-      {tab === 'beauty' && (
-        <Soon em="💄">
-          肌・メイク・小顔・あごシャープ
-        </Soon>
-      )}
+      {tab === 'beauty' && <BeautyPanel />}
 
       {tab === 'edit' && (
         <EditTab
