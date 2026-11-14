@@ -378,6 +378,11 @@ function MosaicDialog({
               : '初回はAIモデルを取得します'}
           </p>
         )}
+        {mode === 'background' && (
+          <p className="hint-s" style={{ margin: 0 }}>
+            ※AIの判定には誤差があります。加工後に確認してください。
+          </p>
+        )}
 
         <div
           ref={spaceRef}
