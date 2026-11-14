@@ -33,6 +33,7 @@ import { PENS } from '../lib/pens';
 import type {
   CanvasEl,
   FilterPreset,
+  FrameStyle,
   ImageEl,
   StickerEl,
   TextEl,
@@ -1834,6 +1835,196 @@ function layerName(el: CanvasEl) {
   return '写真';
 }
 
+// 写真に直接追従するフレーム。独立したレイヤーは増やさない。
+const FRAME_STYLES: { id: FrameStyle; label: string; subtitle: string }[] = [
+  { id: 'none', label: 'なし', subtitle: 'フレームを外す' },
+  { id: 'simple', label: 'シンプル', subtitle: 'すっきりした縁取り' },
+  { id: 'double', label: '二重フレーム', subtitle: '上品な二重線' },
+  { id: 'polaroid', label: 'ポラロイド', subtitle: '写真プリント風' },
+  { id: 'film', label: 'フィルム', subtitle: '35mmフィルム風' },
+  { id: 'album', label: '卒アル風', subtitle: '角留めの記念写真風' },
+  { id: 'neon', label: 'ネオン', subtitle: '光るフレーム' },
+  { id: 'magazine', label: '雑誌風', subtitle: '表紙風の文字付き' },
+];
+
+const FRAME_COLORS = [
+  '#ffffff', '#21212c', '#e7bf6e', '#ff6faf',
+  '#a778e4', '#56c8ed', '#70cf9f', '#ff7655',
+];
+
+function FrameTab() {
+  const s = useEditor();
+  const photos = s.elements.filter(
+    (el): el is ImageEl => el.type === 'image' && !el.hidden,
+  );
+  const selected = s.elements.find((el) => el.id === s.selectedId);
+  const photoId =
+    selected?.type === 'image' ? selected.id :
+    (selected?.type === 'text' || selected?.type === 'sticker')
+      ? selected.parentImageId
+      : undefined;
+  const photo =
+    photos.find((el) => el.id === photoId) ??
+    (photos.length === 1 ? photos[0] : undefined);
+
+  if (!photos.length) {
+    return (
+      <div className="soon">
+        <div style={{ fontSize: 36 }}>🖼</div>
+        <p>先に「画像」から写真を追加してください。</p>
+      </div>
+    );
+  }
+
+  const style = photo?.frame?.style ?? 'none';
+  const size = photo?.frame?.size ?? 7;
+  const color = photo?.frame?.color ?? '#ffffff';
+  const locked = !photo || !!photo.locked;
+  const apply = (next: FrameStyle) => {
+    if (!photo || photo.locked) return;
+    s.update(photo.id, {
+      frame: next === 'none'
+        ? undefined
+        : { style: next, size, color },
+    });
+  };
+
+  return (
+    <>
+      <h3 style={{ margin: '0 0 6px' }}>写真フレーム</h3>
+      <p className="hint-s">
+        写真に直接付き、写真と一緒に移動・拡大・回転します。
+        元の写真データは変更しません。
+      </p>
+
+      {photos.length > 1 && (
+        <>
+          <p className="hint-s" style={{ fontWeight: 700, marginTop: 10 }}>
+            フレームを付ける写真を選択
+          </p>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 0 10px' }}>
+            {photos.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => s.select(item.id)}
+                aria-pressed={photo?.id === item.id}
+                style={{
+                  flex: '0 0 82px',
+                  padding: 5,
+                  borderRadius: 12,
+                  border: photo?.id === item.id ? '2px solid #ed66b6' : '1px solid #e6d9e4',
+                  background: '#fff',
+                  color: '#3a303c',
+                }}
+              >
+                <img src={item.src} alt={`写真${index + 1}`}
+                  style={{ width: '100%', height: 54, objectFit: 'cover', borderRadius: 7 }} />
+                <span style={{ fontSize: 11 }}>
+                  写真{index + 1}{item.locked ? ' 🔒' : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {photos.length > 1 && !photo && (
+        <p className="hint-s">上の一覧から写真を選んでください。</p>
+      )}
+      {photo?.locked && (
+        <p className="hint-s">写真がロックされています。「加工 → 配置」で解除してください。</p>
+      )}
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: 9,
+        marginTop: 9,
+      }}>
+        {FRAME_STYLES.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            disabled={locked}
+            aria-pressed={style === item.id}
+            onClick={() => apply(item.id)}
+            style={{
+              textAlign: 'left',
+              padding: '11px 12px',
+              borderRadius: 13,
+              border: style === item.id ? '2px solid #ec59b4' : '1px solid #e6d8e4',
+              background: style === item.id ? '#fff0f9' : '#fff',
+              color: '#40343f',
+              opacity: locked ? 0.5 : 1,
+              cursor: locked ? 'not-allowed' : 'pointer',
+              minHeight: 64,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</div>
+            <div style={{ fontSize: 10, opacity: 0.75, marginTop: 3 }}>{item.subtitle}</div>
+          </button>
+        ))}
+      </div>
+
+      {photo && style !== 'none' && (
+        <>
+          <p className="hint-s" style={{ marginTop: 14, fontWeight: 700 }}>
+            フレームの太さ：{size}%
+          </p>
+          <HistorySlider
+            label={`フレームの太さ ${size}%`}
+            min={2}
+            max={18}
+            step={1}
+            value={size}
+            elementId={photo.id}
+            disabled={!!photo.locked}
+            onChange={(next) => s.update(photo.id, {
+              frame: { style, color, size: next },
+            })}
+          />
+
+          {style !== 'film' && style !== 'polaroid' && (
+            <>
+              <p className="hint-s" style={{ marginTop: 12, fontWeight: 700 }}>
+                フレームの色
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '6px 0' }}>
+                {FRAME_COLORS.map((swatch) => (
+                  <button key={swatch} type="button"
+                    title={swatch}
+                    aria-label={`フレームの色 ${swatch}`}
+                    aria-pressed={color === swatch}
+                    disabled={!!photo.locked}
+                    onClick={() => s.update(photo.id, {
+                      frame: { style, size, color: swatch },
+                    })}
+                    style={{
+                      width: 34, height: 34, borderRadius: '50%',
+                      background: swatch,
+                      border: color === swatch ? '3px solid #e9479e' : '2px solid #c9c4cd',
+                      outline: color === swatch ? '2px solid white' : 'none',
+                      boxShadow: '0 0 0 1px #d6d1d8',
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          <button type="button" className="chip"
+            disabled={!!photo.locked}
+            style={{ marginTop: 10 }}
+            onClick={() => apply('none')}>
+            フレームを外す
+          </button>
+        </>
+      )}
+    </>
+  );
+}
+
 // レイヤータブ
 function LayerTab() {
   const {
@@ -1996,11 +2187,7 @@ export function Panel() {
         />
       )}
 
-      {tab === 'frame' && (
-        <Soon em="🖼">
-          雑誌風・卒アル風・ポラロイド・夜景
-        </Soon>
-      )}
+      {tab === 'frame' && <FrameTab />}
 
       {tab === 'layer' && <LayerTab />}
     </section>
