@@ -1,0 +1,45 @@
+name: Audit TAF DOG replacement candidates
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'scripts/audit_replacement_candidates.py'
+      - '.github/workflows/audit-replacement-candidates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audit-tafdog-replacements
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout only JOMON pix
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install segmentation dependencies
+        run: python -m pip install "rembg[cpu]>=2.0.65,<2.1" "Pillow>=10,<12"
+      - name: Audit read-only gazo candidates
+        run: python scripts/audit_replacement_candidates.py
+      - name: Commit audit previews only to JOMON pix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/replacement-candidates-preview.jpg docs/audit/replacement-candidates/
+          if git diff --cached --quiet; then
+            echo "No changed audit images"
+          else
+            git commit -m "Audit TAF DOG replacement candidates"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
