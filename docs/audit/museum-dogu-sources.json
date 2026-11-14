@@ -1,0 +1,77 @@
+{
+  "records": [
+    {
+      "museum": "The Met",
+      "id": 53625,
+      "title": "Dogū (Clay Figurine)",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/53625",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DT10152.jpg",
+      "license": "CC0"
+    },
+    {
+      "museum": "The Met",
+      "id": 45532,
+      "title": "Copy of a Dogū (Clay Figurine)",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/45532",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP-44079-001.jpg",
+      "license": "CC0"
+    },
+    {
+      "museum": "The Met",
+      "id": 45519,
+      "title": "Head of a Clay Figure (Dogū)",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/45519",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323768.jpg",
+      "license": "CC0"
+    },
+    {
+      "museum": "The Met",
+      "id": 44824,
+      "title": "Dogū (Clay Figurine)",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/44824",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP246469.jpg",
+      "license": "CC0"
+    },
+    {
+      "museum": "The Met",
+      "id": 45533,
+      "title": "Head of a Clay Figure (Dogū)",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/45533",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323769.jpg",
+      "license": "CC0"
+    },
+    {
+      "museum": "The Met",
+      "id": 45530,
+      "title": "Head of a Clay Figure (Dogū)",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/45530",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323751.jpg",
+      "license": "CC0"
+    },
+    {
+      "museum": "The Met",
+      "id": 45531,
+      "title": "Head of a Clay Figure (Dogū)",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/45531",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323765.jpg",
+      "license": "CC0"
+    },
+    {
+      "museum": "The Met",
+      "id": 44822,
+      "title": "Standing Female Clay Figure",
+      "date": "",
+      "source_url": "https://www.metmuseum.org/art/collection/search/44822",
+      "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DT10517.jpg",
+      "license": "CC0"
+    }
+  ],
+  "errors": []
+}
