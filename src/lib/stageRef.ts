@@ -33,7 +33,7 @@ function allImagesReady(stage: Konva.Stage): boolean {
     // 写真は「画像＋ペン描画」のGroupとして管理する。
     // スタンプは従来どおりImageノード。
     const imageNode = node?.getClassName() === 'Group'
-      ? node.findOne('Image')
+      ? (node as Konva.Group).findOne('Image')
       : node;
 
     if (!imageNode || imageNode.getClassName() !== 'Image') {
