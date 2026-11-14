@@ -32,6 +32,7 @@ import { PENS } from '../lib/pens';
 import type {
   CanvasEl,
   FilterPreset,
+  ImageEl,
   StickerEl,
   TextEl,
 } from '../types';
@@ -569,7 +570,8 @@ function PenTab() {
   } = useEditor();
 
   const photos = elements.filter(
-    (el) => el.type === 'image' && !el.hidden && !el.locked,
+    (el): el is ImageEl =>
+      el.type === 'image' && !el.hidden && !el.locked,
   );
   const selectedPhoto = photos.find((el) => el.id === selectedId);
   const fallbackPhoto = photos[photos.length - 1];
