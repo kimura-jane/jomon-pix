@@ -5,6 +5,7 @@ import { useAutosaveStatus, useEditor, type CanvasPreset } from '../store';
 import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
 import type { CanvasEl, Tab } from '../types';
+import { SCENE_IDS, SOCIAL_IDS, type SceneId, type SocialId } from '../lib/scenePresets';
 
 const TABS: { id: Tab; ic: string; label: string }[] = [
   { id: 'text', ic: '🔤', label: '文字' },
@@ -20,6 +21,8 @@ const TABS: { id: Tab; ic: string; label: string }[] = [
 type Artwork = {
   elements: CanvasEl[];
   bgColor: string;
+  sceneBackground: SceneId;
+  socialTemplate: SocialId;
   canvasPreset: CanvasPreset;
   canvasWidth: number;
   canvasHeight: number;
@@ -150,6 +153,8 @@ function parseBackup(raw: string): Artwork {
     artwork.elements.length > 2000 ||
     !artwork.elements.every(isCanvasElement) ||
     typeof artwork.bgColor !== 'string' ||
+    (artwork.sceneBackground !== undefined && !SCENE_IDS.includes(artwork.sceneBackground as SceneId)) ||
+    (artwork.socialTemplate !== undefined && !SOCIAL_IDS.includes(artwork.socialTemplate as SocialId)) ||
     !presets.includes(String(artwork.canvasPreset)) ||
     !isFiniteNumber(artwork.canvasWidth) ||
     !isFiniteNumber(artwork.canvasHeight) ||
@@ -165,7 +170,18 @@ function parseBackup(raw: string): Artwork {
     throw new Error('作品データに重複した要素IDがあります。');
   }
 
-  return artwork as Artwork;
+  // Backups created before scenes/templates existed default to no decoration.
+  // Explicitly restore defaults so opening an old backup cannot inherit
+  // a newer project's background or social overlay.
+  return {
+    elements: artwork.elements as CanvasEl[],
+    bgColor: artwork.bgColor as string,
+    sceneBackground: (artwork.sceneBackground ?? 'none') as SceneId,
+    socialTemplate: (artwork.socialTemplate ?? 'none') as SocialId,
+    canvasPreset: artwork.canvasPreset as CanvasPreset,
+    canvasWidth: artwork.canvasWidth as number,
+    canvasHeight: artwork.canvasHeight as number,
+  };
 }
 
 function createBackupFile(): File {
@@ -177,6 +193,8 @@ function createBackupFile(): File {
     artwork: {
       elements: state.elements,
       bgColor: state.bgColor,
+      sceneBackground: state.sceneBackground,
+      socialTemplate: state.socialTemplate,
       canvasPreset: state.canvasPreset,
       canvasWidth: state.canvasWidth,
       canvasHeight: state.canvasHeight,
@@ -298,6 +316,8 @@ export function TopBar() {
         useEditor.setState({
           elements: previous.elements,
           bgColor: previous.bgColor,
+          sceneBackground: previous.sceneBackground,
+          socialTemplate: previous.socialTemplate,
           canvasPreset: previous.canvasPreset,
           canvasWidth: previous.canvasWidth,
           canvasHeight: previous.canvasHeight,
