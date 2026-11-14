@@ -86,6 +86,7 @@ function useCommon(el: CanvasEl) {
     select,
     update,
     tool,
+    tab,
     setTab,
   } = useEditor();
 
@@ -104,7 +105,8 @@ function useCommon(el: CanvasEl) {
 
     const nextTab = TAB_OF[el.type];
 
-    if (nextTab) {
+    // フレーム編集中に別の写真をタップしてもフレームタブを閉じない。
+    if (nextTab && !(tab === 'frame' && el.type === 'image')) {
       setTab(nextTab);
     }
   };
