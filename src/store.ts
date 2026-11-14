@@ -27,6 +27,7 @@ type Pen = {
   style: PenStyle;
   color: string;
   width: number;
+  opacity: number;
 };
 
 type Dir = 'front' | 'back' | 'up' | 'down';
@@ -224,7 +225,12 @@ export const useEditor = create<S>()(
         canvasHeight: 800,
         tab: 'image',
         tool: 'select',
-        pen: { style: 'pen', color: '#ff4fa3', width: 6 },
+        pen: {
+          style: 'pen',
+          color: '#ff4fa3',
+          width: 6,
+          opacity: 1,
+        },
         past: [],
         future: [],
         savedAt: 0,
