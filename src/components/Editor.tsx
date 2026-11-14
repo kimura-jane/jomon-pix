@@ -124,7 +124,7 @@ function LayerPreview({ el }: { el: CanvasEl }) {
       ) : (
         <span
           style={{
-            color: el.color,
+            color: el.type === 'line' ? el.color : '#3a2a36',
             opacity: el.opacity,
             fontSize: 32,
             lineHeight: 1,
