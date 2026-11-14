@@ -12,11 +12,11 @@ import {
   STICKER_CATEGORIES,
   type LibrarySticker,
 } from '../lib/stickers';
+import { FACE_STICKERS } from '../lib/stickerPacks';
 import {
-  FACE_STICKERS,
-  VARIETY_HANIWA_STICKERS,
-  VARIETY_DOGU_STICKERS,
-} from '../lib/stickerPacks';
+  REAL_HANIWA_STICKERS,
+  REAL_DOGU_STICKERS,
+} from '../lib/museumStickers';
 import { SUNGLASSES_STICKERS } from '../lib/glassesStickers';
 import { TAF_DOG_STICKERS } from '../lib/nftDogs';
 import { removeBg } from '../lib/removeBg';
@@ -95,20 +95,17 @@ const STAMP_GROUPS: {
       return { label: category.label, items: TAF_DOG_STICKERS };
     }
 
-    const additional =
-      category.label === '埴輪'
-        ? VARIETY_HANIWA_STICKERS
-        : category.label === '土偶'
-          ? VARIETY_DOGU_STICKERS
-          : [];
+    if (category.label === '埴輪') {
+      // 実物の古墳時代の埴輪写真のみを表示。旧SVGは保存済み作品用に保持。
+      return { label: category.label, items: REAL_HANIWA_STICKERS };
+    }
 
-    return {
-      label: category.label,
-      items: [
-        ...additional,
-        ...category.items,
-      ],
-    };
+    if (category.label === '土偶') {
+      // 実物の縄文土偶写真（復元品1点を含む）のみを表示。
+      return { label: category.label, items: REAL_DOGU_STICKERS };
+    }
+
+    return { label: category.label, items: category.items };
   }),
 ];
 
