@@ -5,19 +5,58 @@ import {
   Stage,
   Layer,
   Rect,
-  Line,
   Transformer,
 } from 'react-konva';
 import { useEditor, newId } from '../store';
 import { ElementNode } from './ElementNode';
-import { penProps } from '../lib/pens';
 import { stageRef } from '../lib/stageRef';
-import type { CanvasEl } from '../types';
+import type { CanvasEl, ImageEl, ImageStroke } from '../types';
 
 type Point = {
   x: number;
   y: number;
 };
+
+type DraftStroke = {
+  imageId: string;
+  stroke: ImageStroke;
+};
+
+function pointToSegmentDistance(
+  p: Point,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  const t = lenSq > 0
+    ? Math.max(0, Math.min(1, ((p.x - ax) * dx + (p.y - ay) * dy) / lenSq))
+    : 0;
+  return Math.hypot(p.x - (ax + dx * t), p.y - (ay + dy * t));
+}
+
+function touchesStroke(p: Point, stroke: ImageStroke): boolean {
+  const points = stroke.points;
+  if (points.length < 2) return false;
+
+  const realWidth = stroke.width *
+    (stroke.penStyle === 'marker' ? 3 :
+      stroke.penStyle === 'sparkle' ? 1.4 : 1);
+  const radius = realWidth / 2 + 9;
+  for (let i = 2; i < points.length; i += 2) {
+    if (pointToSegmentDistance(
+      p,
+      points[i - 2],
+      points[i - 1],
+      points[i],
+      points[i + 1],
+    ) <= radius) return true;
+  }
+  return Math.hypot(p.x - points[0], p.y - points[1]) <= radius;
+}
 
 type Gesture = {
   distance: number;
@@ -145,8 +184,9 @@ function FloatingLayers({
   selectedId: string | null;
 }) {
   const [open, setOpen] = useState(true);
-  const selected = elements.find((el) => el.id === selectedId);
-  const ordered = [...elements].reverse();
+  // ペンは写真の内部データ。旧形式の独立した線も一覧に載せない。
+  const ordered = [...elements].filter((el) => el.type !== 'line').reverse();
+  const selected = ordered.find((el) => el.id === selectedId);
 
   const choose = (el: CanvasEl) => {
     const state = useEditor.getState();
@@ -160,7 +200,7 @@ function FloatingLayers({
     state.select(el.id);
   };
 
-  if (!elements.length) return null;
+  if (!ordered.length) return null;
 
   return (
     <div
@@ -318,7 +358,6 @@ export function Editor() {
     tool,
     pen,
     select,
-    add,
     remove,
   } = useEditor();
 
@@ -336,7 +375,7 @@ export function Editor() {
     y: 0,
   });
 
-  const [draft, setDraft] = useState<number[] | null>(
+  const [draft, setDraft] = useState<DraftStroke | null>(
     null,
   );
 
@@ -519,54 +558,108 @@ export function Editor() {
     setOffset(nextOffset);
   };
 
-  // 消しゴム処理
-  const eraseAt = () => {
-    const st = sRef.current;
-    const p = st?.getPointerPosition();
-
-    if (!st || !p) return;
-
-    const shape = st.getIntersection(p);
-    const id = shape?.id();
-
-    const el = elements.find(
-      (item) => item.id === id,
-    );
-
-    if (
-      el?.type === 'line' &&
-      !el.locked
-    ) {
-      remove(el.id);
+  // ペンをキャンバスではなく画像のローカル座標へ変換する。
+  // 回転・反転・拡大縮小された写真にも正しく描けるようにする。
+  const localPoint = (image: ImageEl): Point | null => {
+    const stage = sRef.current;
+    const node = stage?.findOne('#' + image.id);
+    const point = node?.getRelativePointerPosition();
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+      return null;
     }
+    return point;
   };
 
-  // ペン・消しゴム・選択
+  const editableImages = () => {
+    const state = useEditor.getState();
+    return state.elements.filter(
+      (el): el is ImageEl =>
+        el.type === 'image' && !el.hidden && !el.locked,
+    );
+  };
+
+  const insidePhoto = (image: ImageEl, point: Point) =>
+    point.x >= 0 &&
+    point.y >= 0 &&
+    point.x <= image.width &&
+    point.y <= image.height;
+
+  // 選択中の写真を優先。未選択ならタッチ位置にある最前面の写真。
+  const imageAtPointer = () => {
+    const images = editableImages();
+    const selected = images.find(
+      (image) => image.id === useEditor.getState().selectedId,
+    );
+    const candidates = selected ? [selected] : [...images].reverse();
+    for (const image of candidates) {
+      const point = localPoint(image);
+      if (point && insidePhoto(image, point)) return { image, point };
+    }
+    return null;
+  };
+
+  // 消しゴムは選択した写真内の線を1本単位で消す。
+  // 旧形式の独立した線も引き続き消せる。
+  const eraseAt = () => {
+    const target = imageAtPointer();
+    if (target) {
+      const { image, point } = target;
+      const drawings = image.drawings ?? [];
+      for (let i = drawings.length - 1; i >= 0; i--) {
+        if (touchesStroke(point, drawings[i])) {
+          useEditor.getState().update(image.id, {
+            drawings: drawings.filter((_, index) => index !== i),
+          });
+          return;
+        }
+      }
+    }
+
+    const stage = sRef.current;
+    const pointer = stage?.getPointerPosition();
+    if (!stage || !pointer) return;
+
+    const shape = stage.getIntersection(pointer);
+    const id = shape?.id();
+    const line = useEditor.getState().elements.find(
+      (item) => item.id === id && item.type === 'line',
+    );
+    if (line && !line.locked) remove(line.id);
+  };
+
   const down = (
     e: Konva.KonvaEventObject<
       MouseEvent | TouchEvent
     >,
   ) => {
-    const st = sRef.current;
-
-    if (!st || gesture.current) return;
+    const stage = sRef.current;
+    if (!stage || gesture.current) return;
 
     if (tool === 'pen') {
-      const p = st.getRelativePointerPosition();
+      const target = imageAtPointer();
+      if (!target) return;
+      const { image, point } = target;
 
-      if (p) {
-        setDraft([
-          p.x,
-          p.y,
-          p.x + 0.1,
-          p.y,
-        ]);
+      // 画像を選択してから描くので、どの写真に付くか明確になる。
+      if (useEditor.getState().selectedId !== image.id) {
+        select(image.id);
       }
+      setDraft({
+        imageId: image.id,
+        stroke: {
+          id: newId(),
+          points: [point.x, point.y, point.x + 0.1, point.y],
+          color: pen.color,
+          width: pen.width,
+          penStyle: pen.style,
+          opacity: pen.opacity,
+        },
+      });
     } else if (tool === 'eraser') {
       erasing.current = true;
       eraseAt();
     } else if (
-      e.target === st ||
+      e.target === stage ||
       e.target.name() === 'bg'
     ) {
       select(null);
@@ -575,57 +668,53 @@ export function Editor() {
 
   const moveH = () => {
     if (gesture.current) return;
-
-    const st = sRef.current;
-    if (!st) return;
-
     if (tool === 'pen' && draft) {
-      const p = st.getRelativePointerPosition();
-
-      if (p) {
-        setDraft((previous) =>
-          previous
-            ? [...previous, p.x, p.y]
-            : null,
-        );
-      }
-    } else if (
-      tool === 'eraser' &&
-      erasing.current
-    ) {
+      const image = useEditor.getState().elements.find(
+        (item): item is ImageEl =>
+          item.id === draft.imageId && item.type === 'image',
+      );
+      if (!image) return;
+      const point = localPoint(image);
+      if (!point) return;
+      // 写真から指が出ても境界で止める。
+      const x = Math.max(0, Math.min(image.width, point.x));
+      const y = Math.max(0, Math.min(image.height, point.y));
+      setDraft((previous) =>
+        previous && previous.imageId === image.id
+          ? {
+              ...previous,
+              stroke: {
+                ...previous.stroke,
+                points: [...previous.stroke.points, x, y],
+              },
+            }
+          : previous,
+      );
+    } else if (tool === 'eraser' && erasing.current) {
       eraseAt();
     }
   };
 
   const up = () => {
     erasing.current = false;
-
     if (gesture.current) {
       setDraft(null);
       return;
     }
 
-    if (draft && draft.length > 2) {
-      add({
-        id: newId(),
-        type: 'line',
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        // 描き終わった線にも透明度を保持する
-        opacity: pen.opacity,
-        points: draft,
-        color: pen.color,
-        width: pen.width,
-        penStyle: pen.style,
-      });
+    if (draft && draft.stroke.points.length >= 4) {
+      const image = useEditor.getState().elements.find(
+        (item): item is ImageEl =>
+          item.id === draft.imageId && item.type === 'image',
+      );
+      if (image && !image.hidden && !image.locked) {
+        useEditor.getState().update(image.id, {
+          drawings: [...(image.drawings ?? []), draft.stroke],
+        });
+      }
     }
-
     setDraft(null);
   };
-
   const onTouchStart = (
     e: Konva.KonvaEventObject<TouchEvent>,
   ) => {
@@ -759,22 +848,10 @@ export function Editor() {
               <ElementNode
                 key={el.id}
                 el={el}
+                draft={el.type === 'image' && draft?.imageId === el.id
+                  ? draft.stroke : undefined}
               />
             ))}
-
-            {draft && (
-              <Line
-                {...penProps({
-                  points: draft,
-                  color: pen.color,
-                  width: pen.width,
-                  penStyle: pen.style,
-                })}
-                // 描画途中にも同じ透明度を反映する
-                opacity={pen.opacity}
-                listening={false}
-              />
-            )}
 
             <Transformer
               ref={trRef}
