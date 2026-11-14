@@ -18,6 +18,7 @@ import {
   VARIETY_HANIWA_STICKERS,
   VARIETY_DOGU_STICKERS,
 } from '../lib/stickerPacks';
+import { SUNGLASSES_STICKERS } from '../lib/glassesStickers';
 import { removeBg } from '../lib/removeBg';
 import { PhotoCropModal } from './PhotoCropModal';
 import { CanvasCropModal } from './CanvasCropModal';
@@ -80,8 +81,6 @@ const EXTRA_EMOJI = [
   '🐰', '🫶', '🥳', '😂', '😍', '🙈',
 ];
 
-const GLASSES = ['🕶', '😎', '🥽', '👓'];
-
 // 内蔵スタンプ全88種類
 const STAMP_GROUPS: {
   label: string;
@@ -90,6 +89,10 @@ const STAMP_GROUPS: {
   {
     label: '顔デコ',
     items: FACE_STICKERS,
+  },
+  {
+    label: 'サングラス',
+    items: SUNGLASSES_STICKERS,
   },
   ...STICKER_CATEGORIES.map((category) => {
     const additional =
@@ -904,8 +907,12 @@ function resizeSticker(
 }
 
 // スタンプタブ
-function StampTab() {
-  const [sub, setSub] = useState('顔デコ');
+function StampTab({
+  initialSub = '顔デコ',
+}: {
+  initialSub?: string;
+}) {
+  const [sub, setSub] = useState(initialSub);
   const s = useEditor();
   const placedStickers = s.elements.filter(
     (item): item is StickerEl => item.type === 'sticker',
@@ -1333,6 +1340,7 @@ function StampTab() {
       <Seg
         items={[
           '顔デコ',
+          'サングラス',
           '犬',
           '埴輪',
           '土偶',
@@ -1351,10 +1359,11 @@ function StampTab() {
 
       {group && (
         <>
-          {sub === '顔デコ' && (
+          {(sub === '顔デコ' || sub === 'サングラス') && (
             <p className="hint-s">
-              写真の顔に重ねて使えます。
-              位置と大きさを調整してね。
+              {sub === 'サングラス'
+                ? '26種類から選べます。写真の顔に重ねて位置・大きさ・角度を調整できます。'
+                : '写真の顔に重ねて使えます。位置と大きさを調整してね。'}
             </p>
           )}
 
@@ -1979,27 +1988,7 @@ export function Panel() {
 
       {tab === 'stamp' && <StampTab />}
 
-      {tab === 'glasses' && (
-        <>
-          <div className="grid">
-            {GLASSES.map((glasses) => (
-              <button
-                key={glasses}
-                className="cell"
-                onClick={() =>
-                  addSticker(glasses)
-                }
-              >
-                {glasses}
-              </button>
-            ))}
-          </div>
-
-          <Soon em="🕶">
-            形・色・レンズを自分でカスタマイズ＆顔に自動でかける
-          </Soon>
-        </>
-      )}
+      {tab === 'glasses' && <StampTab initialSub="サングラス" />}
 
       {tab === 'mosaic' && <MosaicPanel />}
 
