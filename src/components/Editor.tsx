@@ -12,6 +12,7 @@ import { useEditor, newId } from '../store';
 import { ElementNode } from './ElementNode';
 import { penProps } from '../lib/pens';
 import { stageRef } from '../lib/stageRef';
+import type { CanvasEl } from '../types';
 
 type Point = {
   x: number;
@@ -54,6 +55,257 @@ function touchInfo(touches: TouchList) {
     x: (a.clientX + b.clientX) / 2,
     y: (a.clientY + b.clientY) / 2,
   };
+}
+
+
+const LAYER_LABEL: Record<CanvasEl['type'], string> = {
+  image: '画像',
+  text: '文字',
+  sticker: 'スタンプ',
+  line: 'ペン',
+};
+
+// HTMLのプレビューだけに使う。キャンバスと画像の保存には含めない。
+function LayerPreview({ el }: { el: CanvasEl }) {
+  const src =
+    el.type === 'image' ? el.src :
+    el.type === 'sticker' ? el.src : undefined;
+
+  return (
+    <div
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 9,
+        display: 'grid',
+        placeItems: 'center',
+        overflow: 'hidden',
+        backgroundColor: '#f7eef4',
+        backgroundImage:
+          'linear-gradient(45deg,#f2e7f0 25%,transparent 25%),' +
+          'linear-gradient(-45deg,#f2e7f0 25%,transparent 25%),' +
+          'linear-gradient(45deg,transparent 75%,#f2e7f0 75%),' +
+          'linear-gradient(-45deg,transparent 75%,#f2e7f0 75%)',
+        backgroundSize: '12px 12px',
+        backgroundPosition: '0 0,0 6px,6px -6px,-6px 0',
+      }}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          draggable={false}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            pointerEvents: 'none',
+          }}
+        />
+      ) : el.type === 'text' ? (
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: el.fill,
+            maxWidth: '100%',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {el.text.slice(0, 4) || 'T'}
+        </span>
+      ) : el.type === 'sticker' ? (
+        <span style={{ fontSize: 28, lineHeight: 1 }}>
+          {el.emoji}
+        </span>
+      ) : (
+        <span
+          style={{
+            color: el.color,
+            opacity: el.opacity,
+            fontSize: 32,
+            lineHeight: 1,
+          }}
+        >
+          〜
+        </span>
+      )}
+    </div>
+  );
+}
+
+function FloatingLayers({
+  elements,
+  selectedId,
+}: {
+  elements: CanvasEl[];
+  selectedId: string | null;
+}) {
+  const [open, setOpen] = useState(true);
+  const selected = elements.find((el) => el.id === selectedId);
+  const ordered = [...elements].reverse();
+
+  const choose = (el: CanvasEl) => {
+    const state = useEditor.getState();
+    // ペンの線を選んでも描画モードへ戻さない。
+    const nextTab =
+      el.type === 'image' ? 'edit' :
+      el.type === 'text' ? 'text' :
+      el.type === 'sticker' ? 'stamp' : 'layer';
+
+    state.setTab(nextTab);
+    state.select(el.id);
+  };
+
+  if (!elements.length) return null;
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        zIndex: 8,
+        width: 72,
+        maxHeight: 'calc(100% - 72px)',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 5,
+        gap: 5,
+        borderRadius: 15,
+        background: 'rgba(255,255,255,0.94)',
+        boxShadow: '0 4px 18px rgba(80,45,70,0.18)',
+        WebkitBackdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(12px)',
+        pointerEvents: 'auto',
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く'}
+        aria-expanded={open}
+        title={open ? 'レイヤーを閉じる' : 'レイヤーを開く'}
+        style={{
+          border: 0,
+          borderRadius: 9,
+          minHeight: 28,
+          padding: '4px 2px',
+          background: '#fff0f7',
+          color: '#d63383',
+          fontSize: 10,
+          fontWeight: 700,
+          touchAction: 'manipulation',
+        }}
+      >
+        {open ? '重なり順 ▴' : 'レイヤー ▾'}
+      </button>
+
+      {open && (
+        <>
+          <div
+            role="list"
+            aria-label="レイヤー一覧（上ほど手前）"
+            style={{
+              overflowY: 'auto',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              padding: 2,
+              scrollbarWidth: 'thin',
+              overscrollBehavior: 'contain',
+            }}
+          >
+            {ordered.map((el, index) => {
+              const active = el.id === selectedId;
+              const name = LAYER_LABEL[el.type];
+              return (
+                <button
+                  type="button"
+                  role="listitem"
+                  key={el.id}
+                  onClick={() => choose(el)}
+                  aria-label={`${name}、${index + 1}番目（最前面から）、${el.hidden ? '非表示' : '表示中'}`}
+                  aria-pressed={active}
+                  title={`${index === 0 ? '最前面' : `前から${index + 1}番目`}・${name}${el.locked ? '・ロック中' : ''}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    width: '100%',
+                    border: active ? '2px solid #ff4fa3' : '2px solid transparent',
+                    borderRadius: 12,
+                    padding: '3px 1px',
+                    background: active ? '#fff0f7' : 'transparent',
+                    opacity: el.hidden ? 0.45 : 1,
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  <LayerPreview el={el} />
+                  <span
+                    style={{
+                      fontSize: 9,
+                      lineHeight: 1.2,
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {el.locked ? '🔒 ' : ''}{index + 1}. {name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 2,
+              borderTop: '1px solid #f2d7e8',
+              paddingTop: 4,
+            }}
+          >
+            {([
+              ['up', '↑', '手前へ移動'],
+              ['down', '↓', '奥へ移動'],
+            ] as const).map(([dir, icon, label]) => (
+              <button
+                type="button"
+                key={dir}
+                title={label}
+                aria-label={label}
+                disabled={!selected || !!selected.locked}
+                onClick={() => {
+                  if (selected && !selected.locked) {
+                    useEditor.getState().move(selected.id, dir);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  border: 0,
+                  borderRadius: 7,
+                  minHeight: 28,
+                  background: '#f7eef4',
+                  fontSize: 17,
+                  opacity: !selected || selected.locked ? 0.35 : 1,
+                  touchAction: 'manipulation',
+                }}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function Editor() {
@@ -551,6 +803,13 @@ export function Editor() {
           </Layer>
         </Stage>
       </div>
+
+      {tool === 'select' && (
+        <FloatingLayers
+          elements={elements}
+          selectedId={selectedId}
+        />
+      )}
 
       <div
         style={{
