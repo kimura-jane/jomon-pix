@@ -1,0 +1,13 @@
+{
+  "name": "Large photo autosave and legacy migration",
+  "browser": "webkit",
+  "checks": [
+    "Large image (6682798 chars) saved to IndexedDB",
+    "Large image survives browser/WebView reload without data loss",
+    "Legacy localStorage project copied intact to IndexedDB and recovery copy retained",
+    "IndexedDB unavailable: failure is visible, existing legacy data remains intact"
+  ],
+  "errors": [],
+  "time": "2026-11-14T16:57:15.789Z",
+  "status": "success"
+}
