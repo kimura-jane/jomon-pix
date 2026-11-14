@@ -131,6 +131,43 @@ def preview(stickers: list[tuple[str, Image.Image]]) -> None:
     )
 
 
+def remove_known_background_fragments(image: Image.Image, number: int) -> Image.Image:
+    """Exclude two visually confirmed background fragments from the v2 assets.
+
+    Both operations affect transparent alpha only; original canine RGB pixels
+    and the other 18 stickers are left unchanged.
+    """
+    if number not in (16, 19):
+        return image
+    rgba = np.asarray(image).copy()
+    yy, xx = np.ogrid[:SIZE, :SIZE]
+    red = rgba[:, :, 0].astype(np.float32)
+    green = rgba[:, :, 1].astype(np.float32)
+    blue = rgba[:, :, 2].astype(np.float32)
+    if number == 16:
+        # Olive-colored branches behind the dog's right ear.
+        branches = (
+            (xx >= 387) & (yy <= 241)
+            & (green >= red * 0.84)
+            & (green >= blue * 1.08)
+            & (red < 132)
+        )
+        rgba[:, :, 3][branches] = 0
+        # Everything beyond this boundary is background, not the ear/body.
+        rgba[90:237, 404:SIZE, 3] = 0
+    elif number == 19:
+        # Red neon bokeh above and outside the left ear. Preserve the warm
+        # original ear colour by requiring the strong red-only hue.
+        neon = (
+            (xx <= 128) & (yy <= 95)
+            & (red > 60)
+            & (red > green * 2.05)
+            & (red > blue * 1.7)
+        )
+        rgba[:, :, 3][neon] = 0
+    return Image.fromarray(rgba, "RGBA")
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     session = new_session(MODEL)
@@ -139,6 +176,7 @@ def main() -> None:
     for number in range(1, COUNT + 1):
         original = download(number)
         rendered, metrics = make_sticker(original, session)
+        rendered = remove_known_background_fragments(rendered, number)
         name = f"taf_dog_{number:02d}.webp"
         outpath = OUT / name
         rendered.save(outpath, format="WEBP", quality=94, method=6)
