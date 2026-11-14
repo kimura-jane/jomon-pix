@@ -6,12 +6,6 @@ import { detectFaceLandmarks, type Landmark } from './beautyProcessor';
 type Point = { x: number; y: number };
 type FaceSlot = 'ears' | 'head' | 'eyes' | 'nose' | 'whiskers' | 'cheeks' | 'mouth' | 'face';
 
-export const AUTO_FACE_SETS = [
-  { id: 'cat', label: 'ねこセット', names: ['face-cat-ears', 'face-whiskers', 'face-blush'] },
-  { id: 'dog', label: 'いぬセット', names: ['face-dog-ears', 'face-dog-nose', 'face-blush'] },
-  { id: 'rabbit', label: 'うさぎセット', names: ['face-rabbit-ears', 'face-blush'] },
-] as const;
-
 // The original SVG art uses a 200x200 viewBox. Position each art category so
 // its painted content—not the empty SVG margin—matches facial landmarks.
 function layoutFor(stickerId: string): { slot: FaceSlot; width: number; anchorY?: number } {
@@ -122,58 +116,69 @@ function imageFromSource(src: string): Promise<HTMLImageElement> {
   });
 }
 
+// Face candidates use the same left-to-right order as the photo. Each tap
+// chooses ONE of these faces; a detected group never duplicates a sticker.
+async function getFaceCandidates(photo: ImageEl): Promise<Landmark[][]> {
+  const img = await imageFromSource(photo.src);
+  const faces = await detectFaceLandmarks(img);
+  return faces
+    .filter((face) => face.length > 454 &&
+      makePosition(face, photo, {
+        id: 'face-cat-ears', label: 'reference', kind: 'svg',
+        src: 'data:image/svg+xml,reference',
+      }) !== null)
+    .sort((a, b) => a[1].x - b[1].x)
+    .slice(0, 4);
+}
+
+export async function countAutoFaceTargets(photo: ImageEl): Promise<number> {
+  return (await getFaceCandidates(photo)).length;
+}
+
 export type FaceDecoPlacementResult = {
-  stickers: StickerEl[];
+  sticker: StickerEl;
   faceCount: number;
+  faceIndex: number;
 };
 
 /**
- * One tap applies the requested decorations to ALL detected faces in the
- * selected photo (up to four); returns one editable sticker per feature/face.
- * All coordinates are already in parent-photo-local pixels. The original
- * photo remains untouched, and a later manual move/resize/rotate persists.
+ * Each click creates exactly ONE separately editable sticker on exactly ONE
+ * chosen face, even when the original photo contains several people.
+ * faceIndex is zero-based, ordered from left to right on the photo.
  */
-export async function createAutoFaceStickers(
+export async function createAutoFaceSticker(
   photo: ImageEl,
-  decorations: LibrarySticker[],
+  decoration: LibrarySticker,
+  faceIndex = 0,
 ): Promise<FaceDecoPlacementResult> {
-  if (!decorations.length || decorations.some((item) => !item.src)) {
+  if (!decoration.src) {
     throw new Error('配置する顔デコが見つかりません。');
   }
-  const img = await imageFromSource(photo.src);
-  const faces = await detectFaceLandmarks(img);
+  const faces = await getFaceCandidates(photo);
   if (!faces.length) {
     throw new Error('顔を検出できませんでした。正面に近い写真で試すか、手動配置を使ってください。');
   }
-
-  const stickers: StickerEl[] = [];
-  let faceCount = 0;
-  for (const face of faces.slice(0, 4)) {
-    const placements = decorations.map((sticker) => ({
-      sticker, placement: makePosition(face, photo, sticker),
-    }));
-    if (placements.some((item) => item.placement === null)) continue;
-    faceCount++;
-    for (const { sticker, placement } of placements) {
-      if (!placement || !sticker.src) continue;
-      stickers.push({
-        id: newId(),
-        type: 'sticker',
-        parentImageId: photo.id,
-        emoji: '',
-        src: sticker.src,
-        label: sticker.label,
-        ...placement,
-        scaleX: 1,
-        scaleY: 1,
-        opacity: 1,
-      });
-    }
+  if (!Number.isInteger(faceIndex) || faceIndex < 0 || faceIndex >= faces.length) {
+    throw new Error('顔の選択が変わりました。対象の顔をもう一度選んでください。');
   }
-
-  if (!stickers.length) {
-    throw new Error('顔の位置を正確に取得できませんでした。手動配置で調整してください。');
+  const placement = makePosition(faces[faceIndex], photo, decoration);
+  if (!placement) {
+    throw new Error('顔の位置を取得できませんでした。手動で配置してください。');
   }
-
-  return { stickers, faceCount };
+  return {
+    faceCount: faces.length,
+    faceIndex,
+    sticker: {
+      id: newId(),
+      type: 'sticker',
+      parentImageId: photo.id,
+      emoji: '',
+      src: decoration.src,
+      label: decoration.label,
+      ...placement,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+    },
+  };
 }
