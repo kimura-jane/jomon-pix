@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, type PersistStorage, type StorageValue } from 'zustand/middleware';
 import type { CanvasEl, Patch, PenStyle, Tab, Tool } from './types';
 import { isPhotoAttachment, toCanvasWorld, toPhotoLocal } from './lib/photoAttachments';
 import type { SceneId, SocialId } from './lib/scenePresets';
@@ -81,9 +81,10 @@ type S = Snapshot & {
   clear: () => void;
 };
 
-// 自動保存の結果は作品とは別に管理する。
-// このストア自体は永続化しないため、保存失敗時も再帰的に保存しない。
-export type AutosaveStatus = 'idle' | 'saved' | 'failed';
+// Heavy photos are stored in IndexedDB, not localStorage's small (~5 MiB)
+// quota. Keep existing JSON backups compatible and never delete a legacy
+// localStorage save during migration.
+export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 type AutosaveState = {
   status: AutosaveStatus;
@@ -97,7 +98,16 @@ export const useAutosaveStatus = create<AutosaveState>(() => ({
   errorMessage: null,
 }));
 
+function markSaving() {
+  if (storageReadFailed) return;
+  const current = useAutosaveStatus.getState();
+  if (current.status !== 'saving') {
+    useAutosaveStatus.setState({ status: 'saving', errorMessage: null });
+  }
+}
+
 function markSaved() {
+  if (storageReadFailed) return;
   useAutosaveStatus.setState({
     status: 'saved',
     lastSavedAt: Date.now(),
@@ -114,27 +124,178 @@ function markSaveFailed(error: unknown, reading: boolean) {
   const message = reading
     ? '保存済みの作品を読み込めませんでした。既存データを保護するため、自動保存を停止しています。'
     : isQuota
-      ? '保存容量が不足しています。変更内容を自動保存できませんでした。'
-      : '自動保存に失敗しました。変更内容がブラウザに保存されていない可能性があります。';
+      ? '端末の保存容量またはアプリの保存上限に達しました。変更内容を自動保存できませんでした。'
+      : '自動保存に失敗しました。変更内容が端末に保存されていない可能性があります。';
 
   const previous = useAutosaveStatus.getState();
   if (previous.status !== 'failed' || previous.errorMessage !== message) {
-    useAutosaveStatus.setState({
-      status: 'failed',
-      errorMessage: message,
-    });
+    useAutosaveStatus.setState({ status: 'failed', errorMessage: message });
     console.warn('[JOMON pix] ' + message, error);
   }
 }
 
-// 保存データを正常に読み込めないセッションでは上書きを禁止する。
-// 破損・読み取りエラー時に既存の作品を上書きしないための保護策。
+// An unreadable existing project must never be replaced by an empty project.
 let storageReadFailed = false;
+const DB_NAME = 'jomon-pix-projects-v1';
+const DB_STORE = 'work';
+const SAVE_DELAY_MS = 180;
 
-const safeStorage = createJSONStorage(() => ({
-  getItem: (key: string) => {
+// IndexedDB is supported both by Safari and by Capacitor's WKWebView.
+// Use a single database connection and resolve writes at transaction COMPLETE
+// (not request success) to avoid reporting a save before it commits.
+let databasePromise: Promise<IDBDatabase> | null = null;
+function openDatabase(): Promise<IDBDatabase> {
+  if (!databasePromise) {
+    databasePromise = new Promise((resolve, reject) => {
+      if (typeof indexedDB === 'undefined') {
+        reject(new Error('IndexedDB is unavailable on this device'));
+        return;
+      }
+      let request: IDBOpenDBRequest;
+      try {
+        request = indexedDB.open(DB_NAME, 1);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(DB_STORE)) {
+          db.createObjectStore(DB_STORE);
+        }
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        db.onversionchange = () => db.close();
+        resolve(db);
+      };
+      request.onerror = () => reject(request.error ?? new Error('IndexedDB open failed'));
+      request.onblocked = () => reject(new Error('IndexedDB was blocked by another tab'));
+    });
+  }
+  return databasePromise;
+}
+
+async function readFromDatabase(key: string): Promise<string | null> {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readonly');
+    const request = tx.objectStore(DB_STORE).get(key);
+    let result: unknown;
+    request.onsuccess = () => { result = request.result; };
+    tx.oncomplete = () => {
+      if (result === undefined) resolve(null);
+      else if (typeof result === 'string') resolve(result);
+      else reject(new Error('Saved project has an unexpected data type'));
+    };
+    tx.onerror = () => reject(tx.error ?? new Error('Cannot read saved project'));
+    tx.onabort = () => reject(tx.error ?? new Error('Reading saved project aborted'));
+  });
+}
+
+async function writeToDatabase(key: string, value: string): Promise<void> {
+  const db = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error('Cannot save project'));
+    tx.onabort = () => reject(tx.error ?? new Error('Saving project aborted'));
+  });
+}
+
+type StoredWork = StorageValue<S>;
+let pendingWork: { key: string; value: StoredWork; revision: number } | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let writeChain: Promise<void> = Promise.resolve();
+let currentRevision = 0;
+let lastPersistedWork: StoredWork['state'] | null = null;
+
+function sameSavedWork(a: StoredWork['state'], b: StoredWork['state']): boolean {
+  return a.elements === b.elements &&
+    a.bgColor === b.bgColor &&
+    a.sceneBackground === b.sceneBackground &&
+    a.socialTemplate === b.socialTemplate &&
+    a.canvasPreset === b.canvasPreset &&
+    a.canvasWidth === b.canvasWidth &&
+    a.canvasHeight === b.canvasHeight &&
+    a.savedAt === b.savedAt;
+}
+
+function queueDatabaseWrite(): Promise<void> {
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  const pending = pendingWork;
+  if (!pending || storageReadFailed) return writeChain;
+  pendingWork = null;
+  // Serial writes prevent an older slider/drag update from overwriting a newer
+  // edit when asynchronous IndexedDB transactions complete out of order.
+  writeChain = writeChain.then(async () => {
+    if (storageReadFailed) return;
     try {
-      return localStorage.getItem(key);
+      await writeToDatabase(pending.key, JSON.stringify(pending.value));
+      lastPersistedWork = pending.value.state;
+      if (!pendingWork && currentRevision === pending.revision) markSaved();
+    } catch (error) {
+      markSaveFailed(error, false);
+    }
+  });
+  return writeChain;
+}
+
+function scheduleDatabaseWrite() {
+  if (saveTimer !== null) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    void queueDatabaseWrite();
+  }, SAVE_DELAY_MS);
+}
+
+// Wait for the ACTUAL IndexedDB transaction to finish, for example when
+// importing an editable artwork file. A setState call alone is not a save.
+export async function flushAutosave(): Promise<boolean> {
+  if (storageReadFailed) return false;
+  do {
+    if (pendingWork) queueDatabaseWrite();
+    await writeChain;
+  } while (pendingWork && !storageReadFailed);
+  return !storageReadFailed && useAutosaveStatus.getState().status === 'saved';
+}
+
+const workStorage: PersistStorage<S> = {
+  getItem: async (key) => {
+    try {
+      const current = await readFromDatabase(key);
+      if (current !== null) {
+        const parsed = JSON.parse(current) as StoredWork;
+        if (!parsed || !parsed.state || !Array.isArray(parsed.state.elements)) {
+          throw new Error('Saved IndexedDB project is invalid');
+        }
+        lastPersistedWork = parsed.state;
+        markSaved();
+        return parsed;
+      }
+
+      // Existing browser/iPhone installations used localStorage. Migrate the
+      // FULL original value before displaying the editor; retain legacy data
+      // untouched as a safety copy even after successful migration.
+      const old = localStorage.getItem(key);
+      if (old === null) return null;
+      const parsed = JSON.parse(old) as StoredWork;
+      if (!parsed || !parsed.state || !Array.isArray(parsed.state.elements)) {
+        throw new Error('Legacy project data is invalid');
+      }
+      try {
+        await writeToDatabase(key, old);
+        lastPersistedWork = parsed.state;
+        markSaved();
+      } catch (error) {
+        // Show the recoverable old project but NEVER allow it to be overwritten.
+        storageReadFailed = true;
+        markSaveFailed(error, false);
+      }
+      return parsed;
     } catch (error) {
       storageReadFailed = true;
       markSaveFailed(error, true);
@@ -142,32 +303,39 @@ const safeStorage = createJSONStorage(() => ({
     }
   },
 
-  setItem: (key: string, value: string) => {
+  setItem: (key, value) => {
     if (storageReadFailed) return;
-
-    try {
-      localStorage.setItem(key, value);
-      markSaved();
-    } catch (error) {
-      markSaveFailed(error, false);
-    }
+    if (lastPersistedWork && !pendingWork &&
+        sameSavedWork(lastPersistedWork, value.state)) return;
+    pendingWork = { key, value, revision: ++currentRevision };
+    markSaving();
+    scheduleDatabaseWrite();
   },
 
-  removeItem: (key: string) => {
+  removeItem: async (key) => {
     if (storageReadFailed) return;
-
-    try {
-      localStorage.removeItem(key);
-      useAutosaveStatus.setState({
-        status: 'idle',
-        lastSavedAt: 0,
-        errorMessage: null,
-      });
-    } catch (error) {
-      markSaveFailed(error, false);
-    }
+    await writeChain;
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('Cannot delete project'));
+      tx.onabort = () => reject(tx.error ?? new Error('Project deletion aborted'));
+    });
+    // Deliberately do not delete the original localStorage safety copy.
+    useAutosaveStatus.setState({ status: 'idle', lastSavedAt: 0, errorMessage: null });
   },
-}));
+};
+
+// Request final writes when the iPhone app moves into the background. This
+// reduces loss of the very last drag without claiming guaranteed persistence.
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => { void flushAutosave(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') void flushAutosave();
+  });
+}
 
 function snapshot(state: Snapshot): Snapshot {
   return {
@@ -618,7 +786,10 @@ export const useEditor = create<S>()(
     },
     {
       name: 'jomon-pix-work',
-      storage: safeStorage,
+      storage: workStorage,
+      // Hydrate asynchronously from IndexedDB BEFORE mounting any controls;
+      // otherwise a fast tap could overwrite saved art with an empty canvas.
+      skipHydration: true,
       partialize: (state) => ({
         elements: state.elements,
         bgColor: state.bgColor,
