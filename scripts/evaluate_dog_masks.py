@@ -71,7 +71,7 @@ def board(items: list[tuple[str, Image.Image]], name: str) -> None:
     draw = ImageDraw.Draw(sheet)
     for idx, (caption, im) in enumerate(items):
         x, y = (idx % cols) * tw, (idx // cols) * th
-        bg = Image.new("RGB", (224, 227, 232), (235, 236, 237))
+        bg = Image.new("RGB", (224, 213), (235, 236, 237))
         tx = ImageDraw.Draw(bg)
         for xx in range(0, 224, 24):
             for yy in range(0, 213, 24):
