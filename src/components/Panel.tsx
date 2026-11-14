@@ -1,5 +1,5 @@
 
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useEditor, type CanvasPreset } from '../store';
 import {
@@ -14,7 +14,7 @@ import {
 } from '../lib/stickers';
 import { FACE_STICKERS } from '../lib/stickerPacks';
 import { findAttachmentPhoto } from '../lib/photoAttachments';
-import { AUTO_FACE_SETS, createAutoFaceStickers } from '../lib/autoFaceDeco';
+import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
 import {
   REAL_HANIWA_STICKERS,
   REAL_DOGU_STICKERS,
@@ -915,45 +915,99 @@ function StampTab({
   const [sub, setSub] = useState(initialSub);
   const [autoFace, setAutoFace] = useState(true);
   const [autoBusy, setAutoBusy] = useState(false);
+  const [faceBusy, setFaceBusy] = useState(false);
   const [autoMessage, setAutoMessage] = useState('');
+  const [faceInfo, setFaceInfo] = useState<{
+    photoId: string; src: string; count: number;
+  } | null>(null);
+  const [selectedFaceIndex, setSelectedFaceIndex] = useState(0);
+  const autoGuard = useRef(false);
   const s = useEditor();
 
   const availablePhotos = s.elements.filter(
     (item): item is ImageEl =>
       item.type === 'image' && !item.hidden && !item.locked,
   );
+  const activePhoto = findAttachmentPhoto(s.elements, s.selectedId);
+  const activePhotoId = activePhoto?.id;
+  const activePhotoSrc = activePhoto?.src;
 
-  const autoAdd = async (items: LibrarySticker[]) => {
-    if (autoBusy) return;
+  // Inspect the selected photograph once when it changes. For group photos,
+  // offer a clear left-to-right face selector BEFORE placing any sticker.
+  useEffect(() => {
+    let cancelled = false;
+    setFaceInfo(null);
+    setSelectedFaceIndex(0);
+    if (!autoFace || sub !== '顔デコ' || !activePhotoId || !activePhotoSrc) {
+      setFaceBusy(false);
+      return () => { cancelled = true; };
+    }
+
+    const photo = useEditor.getState().elements.find(
+      (item): item is ImageEl =>
+        item.type === 'image' && item.id === activePhotoId,
+    );
+    if (!photo || photo.hidden || photo.locked) {
+      setFaceBusy(false);
+      return () => { cancelled = true; };
+    }
+
+    setFaceBusy(true);
+    void countAutoFaceTargets(photo).then((count) => {
+      if (cancelled) return;
+      setFaceInfo({ photoId: photo.id, src: photo.src, count });
+      if (!count) {
+        setAutoMessage('顔を検出できませんでした。手動配置をお試しください。');
+      } else {
+        setAutoMessage('');
+      }
+    }).catch(() => {
+      if (cancelled) return;
+      setAutoMessage('顔認識に失敗しました。手動配置をお試しください。');
+    }).finally(() => {
+      if (!cancelled) setFaceBusy(false);
+    });
+    return () => { cancelled = true; };
+  }, [activePhotoId, activePhotoSrc, sub, autoFace]);
+
+  const autoAdd = async (sticker: LibrarySticker) => {
+    if (autoGuard.current || faceBusy) return;
     const current = useEditor.getState();
     const photo = findAttachmentPhoto(current.elements, current.selectedId);
     if (!photo) {
       setAutoMessage('先に写真を追加してください。複数枚ある場合は対象の写真を選んでください。');
       return;
     }
+    if (!faceInfo || faceInfo.photoId !== photo.id ||
+        faceInfo.src !== photo.src || faceInfo.count < 1) {
+      setAutoMessage('顔の認識が完了していません。顔を認識できない場合は手動配置を使ってください。');
+      return;
+    }
 
+    autoGuard.current = true;
     setAutoBusy(true);
-    setAutoMessage('写真から顔の位置を調べています…');
+    setAutoMessage('選択した顔にスタンプを配置中…');
     try {
-      const result = await createAutoFaceStickers(photo, items);
+      const result = await createAutoFaceSticker(photo, sticker, selectedFaceIndex);
       const latest = useEditor.getState();
-      const unchangedPhoto = latest.elements.find((element) =>
-        element.id === photo.id && element.type === 'image',
+      const unchangedPhoto = latest.elements.find((item) =>
+        item.id === photo.id && item.type === 'image',
       );
       if (!unchangedPhoto || unchangedPhoto.type !== 'image' ||
           unchangedPhoto.src !== photo.src ||
           unchangedPhoto.hidden || unchangedPhoto.locked) {
         throw new Error('写真が変更されたため配置を取り消しました。もう一度お試しください。');
       }
-      latest.addMany(result.stickers);
+      latest.add(result.sticker);
       setAutoMessage(
-        `${result.faceCount}人の顔を認識して、${result.stickers.length}個を自動配置しました。各スタンプは手で動かせます。`,
+        `左から${result.faceIndex + 1}人目に「${sticker.label}」を1個配置しました。移動・サイズ・回転を調整できます。`,
       );
     } catch (error) {
       setAutoMessage(
         error instanceof Error ? error.message : '顔デコの自動配置に失敗しました。',
       );
     } finally {
+      autoGuard.current = false;
       setAutoBusy(false);
     }
   };
@@ -1429,8 +1483,7 @@ function StampTab({
           {autoFace ? (
             <>
               <p className="hint-s" style={{ margin: '8px 0' }}>
-                顔を自動認識して、スタンプを顔に合わせて配置します。
-                写真に複数人が写っていれば最大4人に付けます。
+                1回タップで1個だけ。2人以上写っていても、選んだ1人にだけ自動配置します。
               </p>
               {availablePhotos.length > 1 && (
                 <>
@@ -1465,35 +1518,38 @@ function StampTab({
                   </div>
                 </>
               )}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: 7, marginBottom: 8,
-              }}>
-                {AUTO_FACE_SETS.map((set) => (
-                  <button type="button" key={set.id}
-                    aria-label={`${set.label}を自動配置`}
-                    disabled={autoBusy || !availablePhotos.length}
-                    onClick={() => {
-                      const presets = set.names
-                        .map((id) => FACE_STICKERS.find((sticker) => sticker.id === id))
-                        .filter((item): item is LibrarySticker => !!item);
-                      void autoAdd(presets);
-                    }}
-                    style={{
-                      minHeight: 51, borderRadius: 10,
-                      border: '1px solid #e3b4d0',
-                      background: '#ffffff',
-                      color: '#622c4c', fontSize: 12, fontWeight: 700,
-                      opacity: autoBusy ? 0.5 : 1,
-                    }}>
-                    {set.label}
-                  </button>
-                ))}
-              </div>
+              {faceBusy && (
+                <p role="status" className="hint-s">顔の位置を確認中…</p>
+              )}
+              {!faceBusy && faceInfo && faceInfo.photoId === activePhotoId &&
+                faceInfo.src === activePhotoSrc && faceInfo.count > 0 && (
+                <div style={{ marginBottom: 9 }}>
+                  <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>
+                    {faceInfo.count === 1
+                      ? '顔を1人認識しました'
+                      : `${faceInfo.count}人の顔を認識しました。付ける相手を選んでください。`}
+                  </p>
+                  {faceInfo.count > 1 && (
+                    <div className="row" role="group" aria-label="スタンプを付ける顔を選ぶ"
+                      style={{ flexWrap: 'wrap', gap: 7 }}>
+                      {Array.from({ length: faceInfo.count }, (_, i) => (
+                        <button type="button" className="chip" key={i}
+                          aria-pressed={selectedFaceIndex === i}
+                          disabled={autoBusy}
+                          onClick={() => setSelectedFaceIndex(i)}
+                          style={selectedFaceIndex === i
+                            ? { borderColor: '#ec54a5', background: '#ffeaf6' }
+                            : {}}>
+                          左から{i + 1}人目
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="hint-s" style={{ margin: '4px 0 0' }}>
-                下の顔デコを1つ押しても自動配置できます。
-                付けたあとは移動・大きさ・回転を自由に調整できます。
+                下の顔デコから1種類を選んでください。押すたびに1個だけ追加します。
+                追加後は移動・大きさ・回転を調整できます。
               </p>
             </>
           ) : (
@@ -1555,10 +1611,12 @@ function StampTab({
                     ? `${sticker.label}を自動配置`
                     : `${sticker.label}を追加`
                 }
-                disabled={autoBusy}
+                disabled={autoBusy || (sub === '顔デコ' && autoFace &&
+                  (faceBusy || !faceInfo || faceInfo.count < 1 ||
+                   faceInfo.photoId !== activePhotoId || faceInfo.src !== activePhotoSrc))}
                 onClick={() => {
                   if (sub === '顔デコ' && autoFace) {
-                    void autoAdd([sticker]);
+                    void autoAdd(sticker);
                   } else {
                     addLibrarySticker(sticker);
                   }
