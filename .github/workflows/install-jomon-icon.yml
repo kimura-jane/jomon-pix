@@ -1,0 +1,47 @@
+name: Install selected JOMON pix iOS icon
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'E6AB4520-0966-4EC1-9AF3-1E4A8BFD5F2E.png'
+      - 'scripts/apply-uploaded-icon.py'
+      - '.github/workflows/install-jomon-icon.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: install-jomon-pix-icon
+  cancel-in-progress: false
+
+jobs:
+  convert-and-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout JOMON pix only
+        uses: actions/checkout@v4
+      - name: Python for image conversion
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install image converter
+        run: python -m pip install 'Pillow==11.3.0'
+      - name: Convert uploaded design to App Store icon
+        run: |
+          python scripts/apply-uploaded-icon.py
+          python scripts/generate-ios-icon.py
+      - name: Commit icon to jomon-pix only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios/App/App/Assets.xcassets/AppIcon.appiconset/
+          if git diff --cached --quiet; then
+            echo "App icon already up to date."
+          else
+            git commit -m "Use uploaded JP JOMON design as iOS app icon"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
