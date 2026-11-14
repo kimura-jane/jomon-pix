@@ -12,7 +12,7 @@ export const TAF_DOG_STICKERS: LibrarySticker[] = Array.from(
       id: `tafdog-${number}`,
       label: `TAF DOG #${number}`,
       kind: 'image',
-      src: `${import.meta.env.BASE_URL}stickers/taf-dog/taf_dog_${number}.webp`,
+      src: `${import.meta.env.BASE_URL}stickers/taf-dog/v2/taf_dog_${number}.webp`,
     };
   },
 );
