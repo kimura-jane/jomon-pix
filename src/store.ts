@@ -54,6 +54,7 @@ type S = Snapshot & {
   savedAt: number;
 
   add: (el: CanvasEl) => void;
+  addMany: (items: CanvasEl[]) => void;
   update: (id: string, patch: Patch) => void;
   remove: (id: string) => void;
   duplicate: (id: string) => void;
@@ -268,6 +269,15 @@ export const useEditor = create<S>()(
         add: (el) => {
           commit({ elements: [...get().elements, el] });
           if (el.type !== 'line') set({ selectedId: el.id });
+        },
+
+        // One face-deco operation may add several stickers (or several faces).
+        // Keep it as ONE undo step and never replace existing photo elements.
+        addMany: (items) => {
+          if (!items.length) return;
+          commit({ elements: [...get().elements, ...items] });
+          const last = items[items.length - 1];
+          if (last.type !== 'line') set({ selectedId: last.id });
         },
 
         update: (id, patch) => {
