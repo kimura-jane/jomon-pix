@@ -2,7 +2,7 @@ name: Verify JSON backup roundtrip on Web and iOS-style builds
 
 on:
   push:
-    branches: [main, fix/opus-audit-20261115]
+    branches: [main]
     paths:
       - 'src/components/TopBar.tsx'
       - 'src/lib/nftDogs.ts'
