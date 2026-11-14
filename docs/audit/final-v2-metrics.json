@@ -1,0 +1,222 @@
+{
+  "taf_dog_01.webp": {
+    "fully_opaque_fraction": 0.33,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 43420
+  },
+  "taf_dog_02.webp": {
+    "fully_opaque_fraction": 0.2653,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 36714
+  },
+  "taf_dog_03.webp": {
+    "fully_opaque_fraction": 0.3841,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 36134
+  },
+  "taf_dog_04.webp": {
+    "fully_opaque_fraction": 0.3122,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 38104
+  },
+  "taf_dog_05.webp": {
+    "fully_opaque_fraction": 0.3611,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 39034
+  },
+  "taf_dog_06.webp": {
+    "fully_opaque_fraction": 0.3209,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 36106
+  },
+  "taf_dog_07.webp": {
+    "fully_opaque_fraction": 0.3237,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 46810
+  },
+  "taf_dog_08.webp": {
+    "fully_opaque_fraction": 0.3016,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 38056
+  },
+  "taf_dog_09.webp": {
+    "fully_opaque_fraction": 0.3314,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 34014
+  },
+  "taf_dog_10.webp": {
+    "fully_opaque_fraction": 0.2386,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 34150
+  },
+  "taf_dog_11.webp": {
+    "fully_opaque_fraction": 0.3914,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 44816
+  },
+  "taf_dog_12.webp": {
+    "fully_opaque_fraction": 0.3978,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 53282
+  },
+  "taf_dog_13.webp": {
+    "fully_opaque_fraction": 0.4093,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 52502
+  },
+  "taf_dog_14.webp": {
+    "fully_opaque_fraction": 0.3526,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 39890
+  },
+  "taf_dog_15.webp": {
+    "fully_opaque_fraction": 0.3207,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 45558
+  },
+  "taf_dog_16.webp": {
+    "fully_opaque_fraction": 0.4222,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 47958
+  },
+  "taf_dog_17.webp": {
+    "fully_opaque_fraction": 0.3332,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 42586
+  },
+  "taf_dog_18.webp": {
+    "fully_opaque_fraction": 0.3011,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 41740
+  },
+  "taf_dog_19.webp": {
+    "fully_opaque_fraction": 0.3373,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 41676
+  },
+  "taf_dog_20.webp": {
+    "fully_opaque_fraction": 0.3547,
+    "size": [
+      512,
+      512
+    ],
+    "source_sha": "1cdcd7d35a0d2657be95b40d049bab11d4538229",
+    "model": "u2net",
+    "threshold": 70,
+    "bytes": 40924
+  }
+}
