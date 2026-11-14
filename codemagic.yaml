@@ -65,16 +65,23 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR/ios/App"
           xcode-project use-profiles
-      - name: Use a unique build number
+      - name: Set and verify numeric App Store build number
         script: |
-          cd "$CM_BUILD_DIR/ios/App"
-          agvtool new-version -all "$CM_BUILD_NUMBER"
+          set -euo pipefail
+          # BUILD_NUMBER is the documented Codemagic sequence number.
+          # Do not use CM_BUILD_NUMBER: it previously produced CFBundleVersion=YES.
+          : "${BUILD_NUMBER:?Codemagic BUILD_NUMBER is not defined}"
+          python3 scripts/set_ios_build_number.py "$BUILD_NUMBER"
       - name: Build signed IPA
         script: |
           cd "$CM_BUILD_DIR/ios/App"
           xcode-project build-ipa \
             --workspace "$CM_BUILD_DIR/ios/App/App.xcworkspace" \
             --scheme App
+      - name: Verify built IPA version before App Store Connect upload
+        script: |
+          set -euo pipefail
+          python3 scripts/verify_ios_ipa_version.py
     artifacts:
       - "ios/App/build/ios/ipa/*.ipa"
       - "build/ios/ipa/*.ipa"
