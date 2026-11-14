@@ -6,6 +6,8 @@ on:
     paths:
       - scripts/audit_beauty_webkit.mjs
       - .github/workflows/audit-beauty-webkit.yml
+      - src/lib/beautyProcessor.ts
+      - src/components/useBeautyPreview.ts
   workflow_dispatch:
 
 permissions:
