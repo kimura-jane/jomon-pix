@@ -2,6 +2,7 @@
 import { useEditor, newId } from '../store';
 import type { TextEl } from '../types';
 import type { LibrarySticker } from './stickers';
+import { findAttachmentPhoto } from './photoAttachments';
 
 const base = () => ({
   id: newId(),
@@ -104,30 +105,27 @@ export async function addImageFromFile(file: File) {
 // キャンバスに合わせてスタンプの初期サイズを決定
 function getStickerPlacement() {
   const editor = useEditor.getState();
+  const photo = findAttachmentPhoto(editor.elements, editor.selectedId);
 
-  const shorterSide = Math.min(
-    editor.canvasWidth,
-    editor.canvasHeight,
-  );
+  // 写真がある場合、新規スタンプはその写真の中に配置する。
+  // 写真がなければ従来通りキャンバスのスタンプとして追加する。
+  const shorterSide = photo
+    ? Math.min(photo.width, photo.height)
+    : Math.min(editor.canvasWidth, editor.canvasHeight);
 
-  // 通常の800pxキャンバスでは336px
-  // 極端に小さい・大きいキャンバスにも対応
   const size = Math.min(
     520,
-    Math.max(
-      24,
-      Math.round(shorterSide * 0.42),
-    ),
+    Math.max(24, Math.round(shorterSide * 0.42)),
   );
+
+  const width = photo ? photo.width : editor.canvasWidth;
+  const height = photo ? photo.height : editor.canvasHeight;
 
   return {
     size,
-    x: Math.round(
-      (editor.canvasWidth - size) / 2,
-    ),
-    y: Math.round(
-      (editor.canvasHeight - size) / 2,
-    ),
+    x: Math.round((width - size) / 2),
+    y: Math.round((height - size) / 2),
+    ...(photo ? { parentImageId: photo.id } : {}),
   };
 }
 
@@ -175,10 +173,14 @@ export function addLibrarySticker(
 
 // 文字を追加
 export function addText(preset?: Partial<TextEl>) {
+  const state = useEditor.getState();
+  const photo = findAttachmentPhoto(state.elements, state.selectedId);
+
   useEditor.getState().add({
     ...base(),
-    x: 200,
-    y: 340,
+    x: photo ? Math.round(photo.width * 0.25) : 200,
+    y: photo ? Math.round(photo.height * 0.5) : 340,
+    ...(photo ? { parentImageId: photo.id } : {}),
     type: 'text',
     text: 'テキスト',
     fontFamily: 'Hachi Maru Pop',
