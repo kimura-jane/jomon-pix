@@ -1,0 +1,37 @@
+name: Preview illustrated scene backgrounds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/preview_scene_backgrounds.py'
+      - '.github/workflows/preview-scene-backgrounds.yml'
+      - 'public/backgrounds/v1/*.svg'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install renderer
+        run: python -m pip install "CairoSVG>=2.7,<3" "Pillow>=10,<12"
+      - name: Validate scene SVG and render contact sheet
+        run: python scripts/preview_scene_backgrounds.py
+      - name: Commit preview to jomon-pix only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/scene-backgrounds-preview.jpg
+          if ! git diff --cached --quiet; then
+            git commit -m "Audit six original scene backgrounds as rendered pictures"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
