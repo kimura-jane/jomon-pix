@@ -69,6 +69,18 @@ export type ImageFrame = {
   size: number;
 };
 
+// 数値設定のみ保存。元の写真のピクセルを上書きしない。
+export type BeautySettings = {
+  smooth: number;    // 肌を自然に整える
+  bright: number;    // 顔の明るさ
+  warmth: number;    // 血色
+  slim: number;      // 小顔
+  chin: number;      // あごの輪郭
+  eyes: number;      // 目の大きさ
+  lip: number;       // リップ
+  blush: number;     // チーク
+};
+
 export type ImageEl = Base & {
   type: 'image';
   // 写真内の座標で保存。画像の移動・変形に追従する。
@@ -78,6 +90,7 @@ export type ImageEl = Base & {
   height: number;
   filter: FilterPreset;
   frame?: ImageFrame;
+  beauty?: BeautySettings;
 };
 
 export type TextEl = Base & {
