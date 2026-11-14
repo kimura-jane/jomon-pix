@@ -2,7 +2,7 @@ name: Test automatic face decorations in Chromium and WebKit
 
 on:
   push:
-    branches: [main, fix/opus-audit-20261115]
+    branches: [main]
     paths:
       - 'scripts/audit_auto_face_deco.mjs'
       - '.github/workflows/audit-auto-face-deco.yml'
