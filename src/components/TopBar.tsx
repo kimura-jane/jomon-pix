@@ -51,6 +51,21 @@ function isImageSource(value: unknown): value is string {
   );
 }
 
+// Backups may contain paths to stickers bundled with this app. Only permit
+// known local asset layouts, never arbitrary local files or traversal paths.
+const BUNDLED_STICKER = /^\/(?:jomon-pix\/)?stickers\/(?:taf-dog\/v[23]\/taf_dog_(?:0[1-9]|1[0-9]|20)|archaeology\/v1\/(?:haniwa\/h(?:0[1-9]|10)|dogu\/d(?:0[1-9]|10)))\.webp$/;
+
+function isStickerSource(value: unknown): value is string {
+  return isImageSource(value) ||
+    (typeof value === 'string' && BUNDLED_STICKER.test(value));
+}
+
+function normalizeStickerSource(src: string | undefined): string | undefined {
+  if (!src || !BUNDLED_STICKER.test(src)) return src;
+  return src.replace(/^\/(?:jomon-pix\/)?stickers\//,
+    `${import.meta.env.BASE_URL}stickers/`);
+}
+
 function isImageFrame(value: unknown): boolean {
   return isRecord(value) &&
     ['none', 'simple', 'double', 'polaroid', 'film', 'album', 'neon', 'magazine']
@@ -127,7 +142,7 @@ function isCanvasElement(value: unknown): value is CanvasEl {
       return (
         typeof value.emoji === 'string' &&
         isFiniteNumber(value.size) && value.size > 0 &&
-        (value.src === undefined || isImageSource(value.src)) &&
+        (value.src === undefined || isStickerSource(value.src)) &&
         (value.label === undefined || typeof value.label === 'string')
       );
 
@@ -189,7 +204,11 @@ function parseBackup(raw: string): Artwork {
   // Explicitly restore defaults so opening an old backup cannot inherit
   // a newer project's background or social overlay.
   return {
-    elements: artwork.elements as CanvasEl[],
+    elements: (artwork.elements as CanvasEl[]).map((element) =>
+      element.type === 'sticker'
+        ? { ...element, src: normalizeStickerSource(element.src) }
+        : element
+    ),
     bgColor: artwork.bgColor as string,
     sceneBackground: (artwork.sceneBackground ?? 'none') as SceneId,
     socialTemplate: (artwork.socialTemplate ?? 'none') as SocialId,
@@ -443,7 +462,7 @@ export function TopBar() {
           ) : (
             <div style={{ marginTop: 6, fontSize: 11 }}>
               このまま画面を閉じると、変更内容が失われる可能性があります。
-              上の「保存」からPNG画像を書き出すか、📁から作品をバックアップしてください。
+              上の「画像保存」からPNG画像を書き出すか、📁から作品をバックアップしてください。
               PNGは再編集用のバックアップではありません。
             </div>
           )}
