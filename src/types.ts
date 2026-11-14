@@ -42,8 +42,19 @@ type Base = {
   locked?: boolean;
 };
 
+export type ImageStroke = {
+  id: string;
+  points: number[];
+  color: string;
+  width: number;
+  penStyle: PenStyle;
+  opacity: number;
+};
+
 export type ImageEl = Base & {
   type: 'image';
+  // 写真内の座標で保存。画像の移動・変形に追従する。
+  drawings?: ImageStroke[];
   src: string;
   width: number;
   height: number;
