@@ -1482,7 +1482,7 @@ function StampTab({
                     paddingBottom: 8,
                   }}>
                     {availablePhotos.map((photo, i) => {
-                      const selectedPhoto = findAttachmentPhoto(s.elements, s.selectedId);
+                      const selectedPhoto = findAttachmentPhoto(s.elements, s.selectedId, true);
                       return (
                         <button type="button" key={photo.id}
                           aria-label={`${getPhotoLabel(s.elements, photo.id)}を顔デコ対象にする`}
