@@ -1,6 +1,6 @@
 import type { BeautySettings } from '../types';
 
-type Landmark = { x: number; y: number };
+export type Landmark = { x: number; y: number };
 type PixelPoint = { x: number; y: number };
 
 export const DEFAULT_BEAUTY: BeautySettings = {
@@ -75,6 +75,14 @@ async function facePoints(image: HTMLImageElement): Promise<Landmark[][]> {
     .map((points) => points.map((p) => ({ x: p.x, y: p.y })));
   faceCache.set(image, faces);
   return faces;
+}
+
+// Share the same locally-hosted face model between Beauty and Face Deco.
+// Reuse its in-memory results to avoid loading two copies on iPhone.
+export async function detectFaceLandmarks(
+  image: HTMLImageElement,
+): Promise<Landmark[][]> {
+  return facePoints(image);
 }
 
 function makeCanvas(w: number, h: number): HTMLCanvasElement {
