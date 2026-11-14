@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   face-decoration:
@@ -46,14 +46,12 @@ jobs:
           done
           node scripts/audit_auto_face_deco.mjs chromium
           node scripts/audit_auto_face_deco.mjs webkit
-      - name: Commit QA reports to JOMON pix only
-        if: success()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/audit/face-deco-*-smoke.json docs/audit/face-deco-*.png
-          if ! git diff --cached --quiet; then
-            git commit -m "Verify auto face decoration placement and manual edits in browser tests"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+      - name: Upload browser QA evidence without changing main
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: face-deco-qa
+          path: |
+            docs/audit/face-deco-*-smoke.json
+            docs/audit/face-deco-*.png
+          if-no-files-found: warn
