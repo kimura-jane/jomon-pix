@@ -23,11 +23,18 @@ path = Path('ios/App/App/Info.plist')
 with path.open('rb') as f:
     info = plistlib.load(f)
 info['CFBundleDisplayName'] = 'JOMON pix'
+info['NSCameraUsageDescription'] = '写真を撮影してJOMON pixで加工するために使用します。'
 info['NSPhotoLibraryUsageDescription'] = '写真を選択してJOMON pixで加工するために使用します。'
 info['NSPhotoLibraryAddUsageDescription'] = '加工した写真を端末に保存するために使用します。'
 info['UIFileSharingEnabled'] = True
 info['LSSupportsOpeningDocumentsInPlace'] = True
 info['ITSAppUsesNonExemptEncryption'] = False
+# iPhone and iPad editing controls are designed for portrait.
+info['UISupportedInterfaceOrientations'] = ['UIInterfaceOrientationPortrait']
+info['UISupportedInterfaceOrientations~ipad'] = ['UIInterfaceOrientationPortrait']
+info['UIRequiresFullScreen'] = True
+# The old 32-bit armv7 requirement is obsolete on iOS 15+.
+info.pop('UIRequiredDeviceCapabilities', None)
 with path.open('wb') as f:
     plistlib.dump(info, f)
 PY
