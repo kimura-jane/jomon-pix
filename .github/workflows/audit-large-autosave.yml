@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   browser-storage:
@@ -41,14 +41,10 @@ jobs:
           done
           node scripts/audit_large_autosave.mjs chromium
           node scripts/audit_large_autosave.mjs webkit
-      - name: Save non-personal automated QA results
-        if: success()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/audit/large-autosave-*.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Verify large photo autosave migration in Chromium and WebKit"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+      - name: Upload autosave QA reports without changing main
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: large-autosave-qa
+          path: docs/audit/large-autosave-*.json
+          if-no-files-found: warn
