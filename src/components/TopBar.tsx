@@ -225,7 +225,7 @@ function createBackupFile(): File {
 
 export function TopBar() {
   const {
-    tab, setTab, undo, redo, past, future, savedAt, select,
+    tab, setTab, undo, redo, past, future, select,
   } = useEditor();
 
   const autosaveStatus = useAutosaveStatus((state) => state.status);
@@ -353,7 +353,7 @@ export function TopBar() {
       }
 
       setWorkOpen(false);
-      alert('作品を読み込みました。写真・文字・スタンプを再編集できます。');
+      alert('作品を復元しました。');
     } catch (error) {
       alert(error instanceof Error ? error.message : '作品を読み込めませんでした。');
     } finally {
@@ -378,15 +378,7 @@ export function TopBar() {
           <span className="saved" role="status" style={{
             color: '#177245', background: '#e6f8ed', fontWeight: 700,
           }}>
-            ✓ 自動保存済み
-          </span>
-        )}
-
-        {autosaveStatus === 'idle' && savedAt > 0 && (
-          <span className="saved" style={{
-            color: '#756778', background: '#f3edf3',
-          }}>
-            前回の作品を表示中
+            ✓ 自動保存
           </span>
         )}
 
@@ -429,7 +421,7 @@ export function TopBar() {
         </button>
 
         <button type="button" className="save" onClick={save} disabled={busy}>
-          {busy ? '作成中…' : '保存'}
+          {busy ? '作成中…' : '画像保存'}
         </button>
       </div>
 
@@ -466,11 +458,8 @@ export function TopBar() {
         }}>
           <div className="modal" onClick={(event) => event.stopPropagation()}
             style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
-            <h3>作品のバックアップ・復元</h3>
-            <p className="hint" style={{ lineHeight: 1.7 }}>
-              写真・文字・スタンプ・キャンバス設定をまとめて保存します。
-              PNGとは違い、読み込んだ後も編集できます。
-            </p>
+            <h3>作品データ</h3>
+             <p className="hint">あとから編集できる作品ファイル（JSON）</p>
 
             <button type="button" className="btn primary big"
               disabled={workBusy} onClick={exportWork}>
@@ -491,11 +480,7 @@ export function TopBar() {
               }}
             />
 
-            <p className="hint" style={{ lineHeight: 1.7 }}>
-              復元すると現在の作品を置き換え、編集履歴はリセットされます。
-              先に現在の作品をバックアップしてください。
-              保存したJSONには写真データも含まれるので、取り扱いに注意してください。
-            </p>
+            <p className="hint">※復元すると今の作品が置き換わります。JSONには写真も含まれます。</p>
 
             <button type="button" className="btn big ghost" disabled={workBusy}
               onClick={() => setWorkOpen(false)}>
