@@ -563,7 +563,16 @@ function PenTab() {
     setTool,
     pen,
     setPen,
+    elements,
+    selectedId,
+    select,
   } = useEditor();
+
+  const photos = elements.filter(
+    (el) => el.type === 'image' && !el.hidden && !el.locked,
+  );
+  const selectedPhoto = photos.find((el) => el.id === selectedId);
+  const fallbackPhoto = photos[photos.length - 1];
 
   const opacityPercent = Math.round(
     (pen.opacity ?? 1) * 100,
@@ -571,6 +580,66 @@ function PenTab() {
 
   return (
     <>
+      <div className="label">ペンを描く写真</div>
+      {photos.length === 0 ? (
+        <p className="hint-s">
+          先に画像タブで写真を追加してください。ペンは写真に直接紐づきます。
+        </p>
+      ) : (
+        <>
+          <div
+            className="row"
+            style={{
+              flexWrap: 'nowrap',
+              overflowX: 'auto',
+              padding: '4px 2px 8px',
+            }}
+          >
+            {[...photos].reverse().map((photo, index) => (
+              <button
+                key={photo.id}
+                type="button"
+                onClick={() => select(photo.id)}
+                title={'写真' + (index + 1) + 'を描画対象にする'}
+                aria-label={'写真' + (index + 1) + 'を描画対象にする'}
+                aria-pressed={photo.id === (selectedPhoto ?? fallbackPhoto)?.id}
+                style={{
+                  flex: '0 0 auto',
+                  background: '#fff',
+                  border: photo.id === (selectedPhoto ?? fallbackPhoto)?.id
+                    ? '2px solid #ff4fa3'
+                    : '2px solid #f2d7e8',
+                  borderRadius: 12,
+                  padding: 4,
+                  display: 'grid',
+                  placeItems: 'center',
+                  gap: 3,
+                  width: 65,
+                  touchAction: 'manipulation',
+                }}
+              >
+                <img
+                  src={photo.src}
+                  alt=""
+                  loading="lazy"
+                  draggable={false}
+                  style={{
+                    display: 'block',
+                    width: 50,
+                    height: 50,
+                    objectFit: 'contain',
+                    borderRadius: 7,
+                  }}
+                />
+                <span style={{ fontSize: 10 }}>写真{index + 1}</span>
+              </button>
+            ))}
+          </div>
+          <p className="hint-s">
+            ピンク枠の写真に描きます。描いた線は写真と一緒に移動・拡大・回転します。
+          </p>
+        </>
+      )}
       <Seg
         items={['ペン', '消しゴム']}
         value={
@@ -589,7 +658,7 @@ function PenTab() {
 
       {tool === 'eraser' ? (
         <p className="hint-s">
-          なぞった線を1本ずつ消せるよ
+          選択した写真に描いた線をなぞると、1本ずつ消せます。
         </p>
       ) : (
         <>
