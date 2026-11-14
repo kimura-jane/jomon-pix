@@ -1,0 +1,41 @@
+{
+  "browser": "chromium",
+  "mode": "automated browser, not physical iPhone",
+  "checks": [
+    "Cat ears, whiskers and blush all placed using face landmarks",
+    "One undo removes the complete set; redo restores all",
+    "Automatically placed sticker can be resized manually",
+    "Both people receive independently positioned editable dog ears/nose/blush",
+    "Manual placement remains available after automatic placement"
+  ],
+  "errors": [],
+  "unexpectedPosts": [],
+  "createdAt": "2026-11-14T13:16:15.368Z",
+  "catStickers": [
+    {
+      "label": "ねこ耳",
+      "x": 113.11,
+      "y": -21.57,
+      "rotation": -0.73,
+      "size": 168.47,
+      "parentImageId": "16ffa24a-ac2e-4a6f-acf8-d0acf2b52022"
+    },
+    {
+      "label": "ねこのひげ",
+      "x": 141.37,
+      "y": 52.17,
+      "rotation": -0.73,
+      "size": 113.85,
+      "parentImageId": "16ffa24a-ac2e-4a6f-acf8-d0acf2b52022"
+    },
+    {
+      "label": "ほっぺピンク",
+      "x": 138.24,
+      "y": 60.7,
+      "rotation": -0.73,
+      "size": 120.33,
+      "parentImageId": "16ffa24a-ac2e-4a6f-acf8-d0acf2b52022"
+    }
+  ],
+  "status": "success"
+}
