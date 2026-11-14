@@ -1,0 +1,60 @@
+{
+  "d09": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Periodo_jomon%2C_dogu%2C_2000-1000_a.c..JPG",
+    "page": "https://commons.wikimedia.org/wiki/File:Periodo_jomon,_dogu,_2000-1000_a.c..JPG",
+    "license": "CC0 1.0",
+    "author": "Hiart",
+    "label": "装飾の多い縄文土偶",
+    "bytes": 49182,
+    "foreground_fraction": 0.324,
+    "bounding_box": [
+      32,
+      27,
+      994,
+      1573
+    ],
+    "source_size": [
+      1020,
+      1600
+    ],
+    "output_size": [
+      296,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "d10": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Figurine_Dogu_Jomon_Mus%C3%A9e_Guimet_70608_2.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:Figurine_Dogu_Jomon_Mus%C3%A9e_Guimet_70608_2.jpg",
+    "license": "Public Domain",
+    "author": "Vassil",
+    "label": "ギメ美術館の土偶",
+    "bytes": 64504,
+    "foreground_fraction": 0.428,
+    "bounding_box": [
+      99,
+      69,
+      1066,
+      1480
+    ],
+    "source_size": [
+      1196,
+      1600
+    ],
+    "output_size": [
+      326,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}
