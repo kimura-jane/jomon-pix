@@ -1,0 +1,622 @@
+{
+  "h01": {
+    "museum": "The Met",
+    "object_id": 45545,
+    "title": "Haniwa Figure of a Warrior",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45545",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/1978_412_1706.JPG",
+    "license": "CC0",
+    "file": "haniwa-h01.webp",
+    "foreground_fraction": 0.262,
+    "bounding_box": [
+      74,
+      58,
+      374,
+      612
+    ],
+    "source_size": [
+      446,
+      624
+    ],
+    "output_size": [
+      258,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 42776
+  },
+  "h02": {
+    "museum": "The Met",
+    "object_id": 47272,
+    "title": "Head of a Female Haniwa Figure with Headdress",
+    "source_url": "https://www.metmuseum.org/art/collection/search/47272",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/17_228_3_44809.jpg",
+    "license": "CC0",
+    "file": "haniwa-h02.webp",
+    "foreground_fraction": 0.423,
+    "bounding_box": [
+      24,
+      50,
+      418,
+      581
+    ],
+    "source_size": [
+      435,
+      624
+    ],
+    "output_size": [
+      353,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 38924
+  },
+  "h03": {
+    "museum": "The Met",
+    "object_id": 45843,
+    "title": "Haniwa House of the Period",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45843",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/17_229_24_44814.jpg",
+    "license": "CC0",
+    "file": "haniwa-h03.webp",
+    "foreground_fraction": 0.303,
+    "bounding_box": [
+      65,
+      11,
+      346,
+      624
+    ],
+    "source_size": [
+      400,
+      625
+    ],
+    "output_size": [
+      218,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 27646
+  },
+  "h04": {
+    "museum": "The Met",
+    "object_id": 62462,
+    "title": "Haniwa Head of Boar",
+    "source_url": "https://www.metmuseum.org/art/collection/search/62462",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/1986_496_242227.jpg",
+    "license": "CC0",
+    "file": "haniwa-h04.webp",
+    "foreground_fraction": 0.428,
+    "bounding_box": [
+      37,
+      89,
+      483,
+      532
+    ],
+    "source_size": [
+      503,
+      624
+    ],
+    "output_size": [
+      446,
+      443
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 44424
+  },
+  "h05": {
+    "museum": "The Met",
+    "object_id": 44834,
+    "title": "Wild Boar Piglet Clay Tomb Sculpture (Haniwa)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44834",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/h1_1975.268.418.jpg",
+    "license": "CC0",
+    "file": "haniwa-h05.webp",
+    "foreground_fraction": 0.45,
+    "bounding_box": [
+      39,
+      41,
+      555,
+      437
+    ],
+    "source_size": [
+      599,
+      475
+    ],
+    "output_size": [
+      476,
+      365
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 56648
+  },
+  "h06": {
+    "museum": "The Met",
+    "object_id": 44833,
+    "title": "Head of a Warrior Clay Tomb Sculpture (Haniwa)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44833",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DT222.jpg",
+    "license": "CC0",
+    "file": "haniwa-h06.webp",
+    "foreground_fraction": 0.333,
+    "bounding_box": [
+      58,
+      92,
+      418,
+      525
+    ],
+    "source_size": [
+      468,
+      624
+    ],
+    "output_size": [
+      360,
+      433
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 39340
+  },
+  "h07": {
+    "museum": "The Met",
+    "object_id": 53156,
+    "title": "Haniwa (Clay Sculpture) of a Female Shrine Attendant",
+    "source_url": "https://www.metmuseum.org/art/collection/search/53156",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/2015_300_255_Burke_website.jpg",
+    "license": "CC0",
+    "file": "haniwa-h07.webp",
+    "foreground_fraction": 0.382,
+    "bounding_box": [
+      49,
+      33,
+      453,
+      581
+    ],
+    "source_size": [
+      507,
+      624
+    ],
+    "output_size": [
+      351,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 61424
+  },
+  "h08": {
+    "museum": "Cleveland",
+    "object_id": 134753,
+    "title": "Haniwa Horse",
+    "source_url": "https://clevelandart.org/art/1957.27",
+    "image_url": "https://openaccess-cdn.clevelandart.org/1957.27/1957.27_web.jpg",
+    "license": "CC0",
+    "file": "haniwa-h08.webp",
+    "foreground_fraction": 0.381,
+    "bounding_box": [
+      114,
+      154,
+      657,
+      835
+    ],
+    "source_size": [
+      776,
+      900
+    ],
+    "output_size": [
+      380,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 38948
+  },
+  "h09": {
+    "museum": "Cleveland",
+    "object_id": 160882,
+    "title": "Haniwa in the Form of a Shield",
+    "source_url": "https://clevelandart.org/art/1999.170",
+    "image_url": "https://openaccess-cdn.clevelandart.org/1999.170/1999.170_web.jpg",
+    "license": "CC0",
+    "file": "haniwa-h09.webp",
+    "foreground_fraction": 0.194,
+    "bounding_box": [
+      192,
+      73,
+      513,
+      885
+    ],
+    "source_size": [
+      690,
+      893
+    ],
+    "output_size": [
+      188,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 25224
+  },
+  "h10": {
+    "museum": "Cleveland",
+    "object_id": 138495,
+    "title": "Haniwa Figure of a Female",
+    "source_url": "https://clevelandart.org/art/1962.39",
+    "image_url": "https://openaccess-cdn.clevelandart.org/1962.39/1962.39_web.jpg",
+    "license": "CC0",
+    "file": "haniwa-h10.webp",
+    "foreground_fraction": 0.408,
+    "bounding_box": [
+      145,
+      155,
+      617,
+      726
+    ],
+    "source_size": [
+      764,
+      900
+    ],
+    "output_size": [
+      393,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 46414
+  },
+  "h11": {
+    "museum": "The Met",
+    "object_id": 44832,
+    "title": "Head of a Clay Tomb Sculpture (Haniwa)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44832",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DT10526.jpg",
+    "license": "CC0",
+    "file": "haniwa-h11.webp",
+    "foreground_fraction": 0.32,
+    "bounding_box": [
+      84,
+      68,
+      387,
+      565
+    ],
+    "source_size": [
+      500,
+      625
+    ],
+    "output_size": [
+      290,
+      476
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 40412
+  },
+  "h12": {
+    "museum": "The Met",
+    "object_id": 45548,
+    "title": "Head of a Male Haniwa Figure",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45548",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/LC-1975_268_415_004.jpg",
+    "license": "CC0",
+    "file": "haniwa-h12.webp",
+    "foreground_fraction": 0.121,
+    "bounding_box": [
+      112,
+      99,
+      274,
+      356
+    ],
+    "source_size": [
+      389,
+      625
+    ],
+    "output_size": [
+      162,
+      257
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 14926
+  },
+  "d01": {
+    "museum": "The Met",
+    "object_id": 53625,
+    "title": "Dogū (Clay Figurine)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/53625",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DT10152.jpg",
+    "license": "CC0",
+    "file": "dogu-d01.webp",
+    "foreground_fraction": 0.168,
+    "bounding_box": [
+      110,
+      183,
+      391,
+      488
+    ],
+    "source_size": [
+      500,
+      625
+    ],
+    "output_size": [
+      281,
+      305
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 28826
+  },
+  "d02": {
+    "museum": "The Met",
+    "object_id": 45532,
+    "title": "Copy of a Dogū (Clay Figurine)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45532",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP-44079-001.jpg",
+    "license": "CC0",
+    "file": "dogu-d02.webp",
+    "foreground_fraction": 0.245,
+    "bounding_box": [
+      69,
+      84,
+      416,
+      548
+    ],
+    "source_size": [
+      468,
+      624
+    ],
+    "output_size": [
+      347,
+      464
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 34686
+  },
+  "d03": {
+    "museum": "The Met",
+    "object_id": 45519,
+    "title": "Head of a Clay Figure (Dogū)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45519",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323768.jpg",
+    "license": "CC0",
+    "file": "dogu-d03.webp",
+    "foreground_fraction": 0.276,
+    "bounding_box": [
+      100,
+      126,
+      358,
+      527
+    ],
+    "source_size": [
+      468,
+      624
+    ],
+    "output_size": [
+      258,
+      401
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 40616
+  },
+  "d04": {
+    "museum": "The Met",
+    "object_id": 44824,
+    "title": "Dogū (Clay Figurine)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44824",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP246469.jpg",
+    "license": "CC0",
+    "file": "dogu-d04.webp",
+    "foreground_fraction": 0.287,
+    "bounding_box": [
+      87,
+      58,
+      507,
+      411
+    ],
+    "source_size": [
+      600,
+      450
+    ],
+    "output_size": [
+      420,
+      353
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 40654
+  },
+  "d05": {
+    "museum": "The Met",
+    "object_id": 45533,
+    "title": "Head of a Clay Figure (Dogū)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45533",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323769.jpg",
+    "license": "CC0",
+    "file": "dogu-d05.webp",
+    "foreground_fraction": 0.205,
+    "bounding_box": [
+      146,
+      104,
+      447,
+      375
+    ],
+    "source_size": [
+      600,
+      450
+    ],
+    "output_size": [
+      301,
+      271
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 31602
+  },
+  "d06": {
+    "museum": "The Met",
+    "object_id": 45530,
+    "title": "Head of a Clay Figure (Dogū)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45530",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323751.jpg",
+    "license": "CC0",
+    "file": "dogu-d06.webp",
+    "foreground_fraction": 0.241,
+    "bounding_box": [
+      140,
+      98,
+      452,
+      385
+    ],
+    "source_size": [
+      600,
+      450
+    ],
+    "output_size": [
+      312,
+      287
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 37796
+  },
+  "d07": {
+    "museum": "The Met",
+    "object_id": 45531,
+    "title": "Head of a Clay Figure (Dogū)",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45531",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DP323765.jpg",
+    "license": "CC0",
+    "file": "dogu-d07.webp",
+    "foreground_fraction": 0.15,
+    "bounding_box": [
+      116,
+      197,
+      339,
+      490
+    ],
+    "source_size": [
+      468,
+      624
+    ],
+    "output_size": [
+      223,
+      293
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 23924
+  },
+  "d08": {
+    "museum": "The Met",
+    "object_id": 44822,
+    "title": "Standing Female Clay Figure",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44822",
+    "image_url": "https://images.metmuseum.org/CRDImages/as/web-large/DT10517.jpg",
+    "license": "CC0",
+    "file": "dogu-d08.webp",
+    "foreground_fraction": 0.242,
+    "bounding_box": [
+      105,
+      66,
+      389,
+      513
+    ],
+    "source_size": [
+      500,
+      625
+    ],
+    "output_size": [
+      284,
+      447
+    ],
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bytes": 33454
+  }
+}
