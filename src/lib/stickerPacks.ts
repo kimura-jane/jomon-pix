@@ -33,7 +33,7 @@ const outline = '#47322f';
 // 顔デコ 30種類
 // ========================================
 
-export const FACE_STICKERS: LibrarySticker[] = [
+const ALL_FACE_STICKERS: LibrarySticker[] = [
   make('face-cat-ears', 'ねこ耳', `
     <path d="M39 86 L42 22 Q66 35 81 60 Q100 55 119 60 Q134 35 158 22 L161 86 Q100 101 39 86Z" fill="#f7b8cd" stroke="${outline}" stroke-width="6" stroke-linejoin="round"/>
     <path d="M51 69 L51 40 Q66 52 72 65Z M149 69 L149 40 Q134 52 128 65Z" fill="#fff0f4"/>
@@ -324,6 +324,19 @@ export const VARIETY_DOG_STICKERS: LibrarySticker[] = [
     <path d="M76 73 Q100 58 124 73" stroke="#fff0cf" stroke-width="7" fill="none" stroke-linecap="round"/>
   `),
 ];
+
+// サングラス・メガネ類は独立した「サングラス」カテゴリで選択する。
+// 既存のSVG定義は残し、顔デコ一覧からだけ除外する（保存済み作品を守る）。
+export const FACE_STICKERS: LibrarySticker[] = ALL_FACE_STICKERS.filter(
+  (sticker) => ![
+    'face-sunglasses',
+    'face-heart-glasses',
+    'face-round-glasses',
+    'face-pixel-glasses',
+    'face-3d-glasses',
+    'face-mustache-glasses',
+  ].includes(sticker.id),
+);
 
 // ========================================
 // 埴輪 6種類
