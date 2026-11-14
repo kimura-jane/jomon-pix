@@ -48,6 +48,16 @@ podfile.write_text(pods)
 
 project = Path('ios/App/App.xcodeproj/project.pbxproj')
 text = project.read_text()
+# Fix the escaped-linebreak form accidentally written by an earlier
+# scaffold attempt; do not touch the legitimate \\n inside Xcode shell scripts.
+for escaped, actual in [
+    (r';\n/* End PBXBuildFile section */', ';\n/* End PBXBuildFile section */'),
+    (r';\n/* End PBXFileReference section */', ';\n/* End PBXFileReference section */'),
+    (r'/* Info.plist */,\n', '/* Info.plist */,\n'),
+    (r'/* Main.storyboard in Resources */,\n',
+     '/* Main.storyboard in Resources */,\n'),
+]:
+    text = text.replace(escaped, actual)
 text, target_count = re.subn(
     r'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;',
     'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
