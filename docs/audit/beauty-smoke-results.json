@@ -1,17 +1,25 @@
 {
   "test": "JOMON pix face-aware beauty",
-  "ts": "2026-11-14T12:40:53.709Z",
+  "ts": "2026-11-14T12:47:53.457Z",
   "checks": [
     "Beauty panel available with photo",
     "Local face landmarker recognized real portrait",
-    "Skin smoothing rendered on the canvas",
+    "Verified canvas pixels changed, not just the slider state",
     "Settings persist without replacing source image",
     "Jaw narrowing preview and persisted value",
+    "Eye enlargement preview",
     "Makeup preview",
     "PNG export with face effects",
-    "Non-destructive beauty reset"
+    "Non-destructive beauty reset",
+    "Two visible people both detected and processed"
   ],
   "errors": [],
   "outboundPostUrls": [],
+  "visualDelta": {
+    "changedPixels": 4938,
+    "totalDifference": 511153,
+    "width": 362,
+    "height": 362
+  },
   "status": "success"
 }
