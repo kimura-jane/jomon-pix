@@ -211,10 +211,6 @@ export function PhotoCropModal({ el, onClose }: Props) {
       >
         <h3>写真をトリミング</h3>
 
-        <p className="hint">
-          ピンクの枠の内側が残ります
-        </p>
-
         <div
           style={{
             display: 'flex',
@@ -269,7 +265,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
           </div>
         </div>
 
-        <div className="label">切り抜く比率</div>
+        <div className="label">比率</div>
 
         <div className="row">
           {[
@@ -298,7 +294,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
           ))}
         </div>
 
-        <div className="label">切り抜く位置を調整</div>
+        <div className="label">範囲</div>
 
         {EDGE_LABELS.map(({ id, label }) => (
           <label
@@ -335,17 +331,12 @@ export function PhotoCropModal({ el, onClose }: Props) {
           </label>
         ))}
 
-        <p className="hint">
-          適用前は元の写真が残ります。
-          適用後も「戻す」で直前の状態に戻せます。
-        </p>
-
         <button
           className="btn primary big"
           onClick={apply}
           disabled={busy || !imageSize.width}
         >
-          {busy ? '処理中…' : 'この範囲で切り抜く'}
+          {busy ? '処理中…' : '切り抜く'}
         </button>
 
         <button
