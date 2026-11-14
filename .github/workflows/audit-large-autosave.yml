@@ -1,0 +1,54 @@
+name: Verify large artwork autosave on iPhone-like browsers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/store.ts'
+      - 'src/App.tsx'
+      - 'src/components/TopBar.tsx'
+      - 'scripts/audit_large_autosave.mjs'
+      - '.github/workflows/audit-large-autosave.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  browser-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test environment
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Compile editor
+        run: npm run typecheck && npm run build
+      - name: Test heavy PNG and legacy migrations
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/jomon-autosave-preview.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_large_autosave.mjs chromium
+          node scripts/audit_large_autosave.mjs webkit
+      - name: Save non-personal automated QA results
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/large-autosave-*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Verify large photo autosave migration in Chromium and WebKit"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
