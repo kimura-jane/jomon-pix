@@ -7,17 +7,16 @@ import { HistorySlider } from './HistorySlider';
 type Control = {
   key: keyof BeautySettings;
   label: string;
-  desc: string;
 };
 const CONTROLS: Control[] = [
-  { key: 'smooth', label: '美肌・毛穴ぼかし', desc: '目や唇を残して肌を自然になめらかに' },
-  { key: 'bright', label: '肌の明るさ', desc: '顔まわりを明るく' },
-  { key: 'warmth', label: '血色', desc: '健康的な温かい肌色に' },
-  { key: 'slim', label: '小顔', desc: '頬の幅を控えめに整える' },
-  { key: 'chin', label: 'あごシャープ', desc: 'あご付近の輪郭を整える' },
-  { key: 'eyes', label: '目の大きさ', desc: '目元を少しだけ大きく' },
-  { key: 'lip', label: 'ナチュラルリップ', desc: '唇に自然な色味をプラス' },
-  { key: 'blush', label: 'チーク', desc: '頬にほんのり血色感' },
+  { key: 'smooth', label: '美肌' },
+  { key: 'bright', label: '明るさ' },
+  { key: 'warmth', label: '血色' },
+  { key: 'slim', label: '小顔' },
+  { key: 'chin', label: 'あご' },
+  { key: 'eyes', label: '目の大きさ' },
+  { key: 'lip', label: 'リップ' },
+  { key: 'blush', label: 'チーク' },
 ];
 
 export function BeautyPanel() {
@@ -50,23 +49,18 @@ export function BeautyPanel() {
     return (
       <div className="soon">
         <div style={{ fontSize: 35 }}>💄</div>
-        <p>先に「画像」から顔が写った写真を追加してください。</p>
+        <p>先に写真を追加してください。</p>
       </div>
     );
   }
 
   return (
     <>
-      <h3 style={{ margin: '0 0 6px' }}>ビューティー</h3>
-      <p className="hint-s">
-        顔を検出して自然に加工します。元の写真はそのまま保持し、
-        あとで強度を変更したり、加工をすべて外したりできます。
-      </p>
 
       {photos.length > 1 && (
         <>
           <p className="hint-s" style={{ fontWeight: 700, margin: '9px 0 4px' }}>
-            加工する写真を選択
+            写真を選択
           </p>
           <div style={{
             display: 'flex', overflowX: 'auto',
@@ -97,12 +91,12 @@ export function BeautyPanel() {
       )}
 
       {!photo ? (
-        <p className="hint-s">加工する写真を選んでください。</p>
+        <p className="hint-s">写真を選択</p>
       ) : (
         <>
           {photo.locked && (
             <p className="hint-s" style={{ fontWeight: 700 }}>
-              写真がロックされています。「レイヤー」から解除してください。
+              写真のロックを解除してください。
             </p>
           )}
           {status && status.state !== 'idle' && (
@@ -145,12 +139,8 @@ export function BeautyPanel() {
                 onKeyUp={() => setComparing(photo.id, false)}
                 onBlur={() => setComparing(photo.id, false)}
               >
-                {comparing ? '加工前を表示中（指を離すと加工後）' : '長押しで加工前と比較'}
+                {comparing ? '加工前を表示中' : '長押しで比較'}
               </button>
-              <p className="hint-s" style={{ margin: '6px 0 0' }}>
-                押している間は元の顔に戻り、離すと加工後の顔を表示します。
-                加工設定や保存済みの作品は変更しません。
-              </p>
             </div>
           )}
 
@@ -169,9 +159,6 @@ export function BeautyPanel() {
                     {beauty[control.key]}%
                   </span>
                 </div>
-                <p className="hint-s" style={{ margin: '2px 0 8px', fontSize: 11 }}>
-                  {control.desc}
-                </p>
                 <HistorySlider
                   label={control.label}
                   min={0}
@@ -188,13 +175,8 @@ export function BeautyPanel() {
           <button type="button" className="big-btn light"
             disabled={!hasValue || photo.locked}
             onClick={() => editor.update(photo.id, { beauty: undefined })}>
-            ビューティーをすべて解除
+            加工をリセット
           </button>
-          <p className="hint-s">
-            顔認識と画像加工は端末内で実行します。顔のない写真は加工されません。
-            顔が小さい、横を向いている、隠れている場合は効果が出ないことがあります。
-            色や輪郭が不自然になったら強度を下げてください。
-          </p>
         </>
       )}
     </>
