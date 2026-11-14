@@ -9,6 +9,7 @@ export function isPhotoAttachment(el: CanvasEl): el is PhotoAttachment {
 export function findAttachmentPhoto(
   elements: CanvasEl[],
   selectedId: string | null,
+  preserveSelectedPhoto = false,
 ): ImageEl | undefined {
   const selected = elements.find((el) => el.id === selectedId);
   const selectedPhotoId =
@@ -19,8 +20,11 @@ export function findAttachmentPhoto(
     (el): el is ImageEl => el.type === 'image' && !el.hidden && !el.locked,
   );
 
-  return available.find((photo) => photo.id === selectedPhotoId) ??
-    available[available.length - 1];
+  const selectedAvailable = available.find((photo) => photo.id === selectedPhotoId);
+  // Face decorations must never jump silently from a selected locked/hidden
+  // photo to another photo. Other tools preserve their original fallback.
+  if (preserveSelectedPhoto && selectedPhotoId && !selectedAvailable) return undefined;
+  return selectedAvailable ?? available[available.length - 1];
 }
 
 // 画像の変形を反転し、キャンバス座標を写真内の座標に変換する。
@@ -69,4 +73,17 @@ export function toCanvasWorld<T extends PhotoAttachment>(
     scaleX: el.scaleX * photo.scaleX,
     scaleY: el.scaleY * photo.scaleY,
   };
+}
+
+
+// Use the same photo number throughout every tool. Hidden or locked photos
+// still count, so changing tabs cannot rename a different photograph.
+export function getPhotoLabel(elements: CanvasEl[], photoId: string): string {
+  let number = 0;
+  for (const element of elements) {
+    if (element.type !== 'image') continue;
+    number += 1;
+    if (element.id === photoId) return `写真${number}`;
+  }
+  return '写真';
 }
