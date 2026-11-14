@@ -30,11 +30,17 @@ function allImagesReady(stage: Konva.Stage): boolean {
 
     const node = stage.findOne(`#${el.id}`);
 
-    if (!node || node.getClassName() !== 'Image') {
+    // 写真は「画像＋ペン描画」のGroupとして管理する。
+    // スタンプは従来どおりImageノード。
+    const imageNode = node?.getClassName() === 'Group'
+      ? node.findOne('Image')
+      : node;
+
+    if (!imageNode || imageNode.getClassName() !== 'Image') {
       return false;
     }
 
-    const image = (node as Konva.Image).image();
+    const image = (imageNode as Konva.Image).image();
 
     if (!(image instanceof HTMLImageElement)) {
       return false;
