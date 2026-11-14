@@ -1,0 +1,56 @@
+name: Verify on-device beauty with real portrait
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/audit_beauty_ui.mjs
+      - .github/workflows/audit-beauty-ui.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  browser-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and provision test browser
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install chromium
+      - name: Acquire official MediaPipe sample portrait for runtime test only
+        run: |
+          curl --fail --location --retry 3 --max-time 60 \
+            https://storage.googleapis.com/mediapipe-assets/portrait.jpg \
+            --output /tmp/beauty-portrait.jpg
+          test "$(wc -c </tmp/beauty-portrait.jpg)" -gt 10000
+      - name: Build current application
+        run: npm run typecheck && npm run build
+      - name: Exercise beauty inference sliders and PNG export
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/beauty-vite.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_beauty_ui.mjs
+      - name: Commit non-image runtime audit results to jomon-pix only
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/beauty-smoke-results.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Verify on-device face beauty and image export in Chromium"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
