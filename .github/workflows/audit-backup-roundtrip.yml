@@ -1,0 +1,59 @@
+name: Verify JSON backup roundtrip on Web and iOS-style builds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/TopBar.tsx'
+      - 'src/lib/nftDogs.ts'
+      - 'src/lib/museumStickers.ts'
+      - 'scripts/audit_backup_roundtrip.mjs'
+      - '.github/workflows/audit-backup-roundtrip.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup-roundtrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser test dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Typecheck and build GitHub Pages version
+        run: npm run typecheck && npm run build
+      - name: Test Web backup and both asset path variants
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/backup-web.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_backup_roundtrip.mjs chromium /jomon-pix/ 4173
+          node scripts/audit_backup_roundtrip.mjs webkit /jomon-pix/ 4173
+      - name: Build iOS-style root asset paths
+        run: npm run build:native
+      - name: Test iOS-style backup and both asset path variants
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4174 --base / >/tmp/backup-native.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4174/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_backup_roundtrip.mjs chromium / 4174
+          node scripts/audit_backup_roundtrip.mjs webkit / 4174
+      - name: Upload roundtrip reports without writing to Git
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-roundtrip-qa
+          path: docs/audit/backup-roundtrip-*.json
+          if-no-files-found: warn
