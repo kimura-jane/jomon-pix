@@ -1,0 +1,59 @@
+name: Test automatic face decorations in Chromium and WebKit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/audit_auto_face_deco.mjs'
+      - '.github/workflows/audit-auto-face-deco.yml'
+      - 'src/lib/autoFaceDeco.ts'
+      - 'src/components/Panel.tsx'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  face-decoration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and provision browser test dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Download official test portrait into CI temporary storage
+        run: |
+          curl -fSL --retry 3 --max-time 80 \
+            https://storage.googleapis.com/mediapipe-assets/portrait.jpg \
+            -o /tmp/face-deco-portrait.jpg
+          test "$(wc -c </tmp/face-deco-portrait.jpg)" -gt 10000
+      - name: Typecheck and build
+        run: npm run typecheck && npm run build
+      - name: Test auto-positioning and individual adjustment in both browsers
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/face-deco-vite.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_auto_face_deco.mjs chromium
+          node scripts/audit_auto_face_deco.mjs webkit
+      - name: Commit QA reports to JOMON pix only
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/face-deco-*-smoke.json docs/audit/face-deco-*.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Verify auto face decoration placement and manual edits in browser tests"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
