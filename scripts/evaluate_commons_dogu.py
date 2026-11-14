@@ -40,10 +40,24 @@ def main():
     thumbs=[]
     data={}
     for key,spec in PICKS.items():
-        req=requests.get(spec["url"],headers={"User-Agent":"JOMON-pix-artifact-sticker/1.0 (photo license audit)"},timeout=65)
-        req.raise_for_status()
-        if len(req.content)<10000:raise RuntimeError("Invalid source image "+key)
-        photo=Image.open(BytesIO(req.content)).convert("RGB")
+        urls = [
+            (spec["url"], None),
+            ("https://images.weserv.nl/", {"url": spec["url"], "w": 1200, "q": 90}),
+            ("https://wsrv.nl/", {"url": spec["url"], "w": 1200, "q": 90}),
+        ]
+        raw=None
+        for url,params in urls:
+            try:
+                res=requests.get(url,params=params,headers={"User-Agent":"Mozilla/5.0 (compatible; JOMONpix-open-access-art/1.0)"},timeout=40)
+                res.raise_for_status()
+                if len(res.content)<10000 or not res.headers.get("Content-Type","").startswith("image/"):
+                    raise RuntimeError("Non-image or short response")
+                raw=res.content
+                break
+            except Exception as err:
+                print("Source endpoint failed",key,url,type(err).__name__,str(err)[:130],flush=True)
+        if raw is None:raise RuntimeError("All image delivery endpoints failed for "+key)
+        photo=Image.open(BytesIO(raw)).convert("RGB")
         rendered,stats=cutout(photo,session)
         save=dest/f"dogu-{key}.webp"
         rendered.save(save,"WEBP",quality=93,method=6)
