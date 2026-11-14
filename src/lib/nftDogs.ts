@@ -3,6 +3,7 @@ import type { LibrarySticker } from './stickers';
 // Source artworks are read-only in kimura-jane/inu.
 // Background-free, optimized 512px WebP assets are stored in THIS repository.
 // The original NFT pixels/colours are retained; no redrawing or generic dog art.
+// v2 keeps the existing sticker IDs and preserves legacy image URLs for saved artwork.
 export const TAF_DOG_STICKERS: LibrarySticker[] = Array.from(
   { length: 20 },
   (_, index) => {
