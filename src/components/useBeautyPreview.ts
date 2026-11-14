@@ -21,6 +21,7 @@ export function useBeautyPreview(
   const signature = beautySignature(settings);
   const [ready, setReady] = useState<Preview | null>(null);
   const setResult = useBeautyStatus((state) => state.setResult);
+  const comparing = useBeautyStatus((state) => state.comparingId === id);
 
   useEffect(() => {
     if (signature === 'none') {
@@ -72,6 +73,10 @@ export function useBeautyPreview(
   }, [id, source, original, signature, setResult]);
 
   if (signature === 'none') return { image: original, signature: 'none' };
+  // Press-and-hold comparison shows the original immediately without
+  // modifying settings or cancelling the processed image already in memory.
+  // Mark the preview as pending so saving cannot export an unedited comparison.
+  if (comparing) return { image: original, signature: 'pending' };
   if (ready?.source === source && ready.signature === signature) {
     return { image: ready.image, signature };
   }
