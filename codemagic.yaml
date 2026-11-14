@@ -62,18 +62,22 @@ workflows:
           cd ios/App
           pod install
       - name: Apply Apple signing profiles from Codemagic
-        script: xcode-project use-profiles
+        script: |
+          cd "$CM_BUILD_DIR/ios/App"
+          xcode-project use-profiles
       - name: Use a unique build number
         script: |
-          cd ios/App
+          cd "$CM_BUILD_DIR/ios/App"
           agvtool new-version -all "$CM_BUILD_NUMBER"
       - name: Build signed IPA
         script: |
+          cd "$CM_BUILD_DIR/ios/App"
           xcode-project build-ipa \
             --workspace "$CM_BUILD_DIR/ios/App/App.xcworkspace" \
             --scheme App
     artifacts:
       - "ios/App/build/ios/ipa/*.ipa"
+      - "build/ios/ipa/*.ipa"
       - "/tmp/xcodebuild_logs/*.log"
       - "$HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM"
     # Deliberately no publishing block: a signed IPA is generated only.
