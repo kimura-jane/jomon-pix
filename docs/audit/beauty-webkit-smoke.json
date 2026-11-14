@@ -1,0 +1,17 @@
+{
+  "target": "WebKit iPhone-like browser (NOT physical iPhone)",
+  "date": "2026-11-14T12:31:54.365Z",
+  "steps": [
+    "slider input",
+    "local FaceLandmarker initialized on WebKit",
+    "PNG export",
+    "reset"
+  ],
+  "errors": [],
+  "networkFailures": [],
+  "badResponses": [],
+  "transmittedPhotos": false,
+  "faceResult": "顔の加工を表示しています。",
+  "firstPreviewMs": 919,
+  "status": "success"
+}
