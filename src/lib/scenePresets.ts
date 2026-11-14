@@ -20,7 +20,7 @@ export const SOCIAL_PRESETS: { id: SocialId; label: string; detail: string }[] =
   { id: 'none', label: 'なし', detail: '演出を解除' },
   { id: 'live', label: 'ライブ配信風', detail: 'LIVE・コメント・視聴者' },
   { id: 'game', label: 'ゲーム配信風', detail: 'ゲーム画面・チャット' },
-  { id: 'video', label: '動画サイト風', detail: '動画サムネ・再生バー' },
+  { id: 'video', label: 'YouTube風', detail: '動画サムネ・再生バー（オリジナルUI）' },
   { id: 'shorts', label: '縦動画風', detail: 'いいね・コメント・BGM' },
   { id: 'social', label: 'SNS投稿風', detail: 'プロフィール・キャプション' },
   { id: 'story', label: 'ストーリー風', detail: 'タイムバー・返信欄' },
