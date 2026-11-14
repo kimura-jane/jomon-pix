@@ -212,6 +212,89 @@ function Slider({
   );
 }
 
+
+function PhotoAttachmentControls({
+  el,
+}: {
+  el: TextEl | StickerEl;
+}) {
+  const s = useEditor();
+  const photos = s.elements.filter(
+    (item): item is ImageEl =>
+      item.type === 'image' && !item.hidden && !item.locked,
+  );
+  const currentParent = s.elements.find(
+    (item) => item.type === 'image' && item.id === el.parentImageId,
+  );
+  if (!photos.length && !currentParent) return null;
+
+  return (
+    <div
+      style={{
+        background: '#fff9fd',
+        border: '1px solid #f4d3e5',
+        borderRadius: 14,
+        padding: 10,
+        margin: '12px 0',
+      }}
+    >
+      <div className="label" style={{ margin: '0 0 6px' }}>
+        写真と一緒に動かす
+      </div>
+      <p className="hint-s" style={{ margin: '0 0 8px' }}>
+        {el.parentImageId
+          ? 'この装飾は写真に紐づいています。写真を動かすと一緒に動きます。'
+          : '写真を選ぶと、今の位置をできるだけ保って紐づけます。'}
+      </p>
+      <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
+        {photos.map((photo, index) => (
+          <button
+            type="button"
+            key={photo.id}
+            disabled={!!el.locked}
+            onClick={() => s.attachToImage(el.id, photo.id)}
+            aria-label={`写真${index + 1}に紐づける`}
+            aria-pressed={el.parentImageId === photo.id}
+            style={{
+              flex: '0 0 auto',
+              display: 'grid',
+              justifyItems: 'center',
+              gap: 3,
+              border: el.parentImageId === photo.id
+                ? '2px solid #ff4fa3' : '2px solid #f4d3e5',
+              borderRadius: 10,
+              padding: 4,
+              background: '#fff',
+            }}
+          >
+            <img
+              src={photo.src}
+              alt=""
+              loading="lazy"
+              draggable={false}
+              style={{ width: 46, height: 46, objectFit: 'contain' }}
+            />
+            <span style={{ fontSize: 10 }}>
+              {el.parentImageId === photo.id ? '✓ ' : ''}写真{index + 1}
+            </span>
+          </button>
+        ))}
+        {el.parentImageId && (
+          <button
+            type="button"
+            className="chip"
+            disabled={!!el.locked}
+            onClick={() => s.detachFromImage(el.id)}
+            style={{ flexShrink: 0, fontSize: 11 }}
+          >
+            紐づけ解除
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // 写真タブ
 function ImageTab() {
   const ref = useRef<HTMLInputElement>(null);
@@ -543,6 +626,8 @@ function TextTab({
                 }
               />
 
+              <PhotoAttachmentControls el={el} />
+
               <button
                 className="big-btn light"
                 onClick={() => addText()}
@@ -835,10 +920,15 @@ function StampTab() {
         ? selected
         : undefined;
 
-  const shorterSide = Math.min(
-    s.canvasWidth,
-    s.canvasHeight,
+  const parentPhoto = s.elements.find(
+    (el) =>
+      el.type === 'image' &&
+      el.id === selectedSticker?.parentImageId,
   );
+  const shorterSide =
+    parentPhoto?.type === 'image'
+      ? Math.min(parentPhoto.width, parentPhoto.height)
+      : Math.min(s.canvasWidth, s.canvasHeight);
 
   const currentPercent = selectedSticker
     ? stickerPercent(
@@ -1137,6 +1227,8 @@ function StampTab() {
               🗑 削除
             </button>
           </div>
+
+          <PhotoAttachmentControls el={selectedSticker} />
 
           <p
             className="hint-s"
@@ -1449,6 +1541,10 @@ function EditTab({
               🗑 削除
             </button>
           </div>
+
+          {el && (el.type === 'sticker' || el.type === 'text') && (
+            <PhotoAttachmentControls el={el} />
+          )}
 
           {el && (
             <HistorySlider
