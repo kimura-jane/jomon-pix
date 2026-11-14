@@ -1,5 +1,5 @@
 # JOMON pix — iPhone first (Capacitor 7 + Vite + React).
-# Manual workflows only. NO automatic TestFlight or App Store submission.
+# Manual build initiation only. Signed IPA builds upload to App Store Connect for internal TestFlight testing; no App Store review submission.
 # Bundle ID com.jomonpix.app must be registered in Apple Developer first.
 workflows:
   ios-simulator-check:
@@ -36,7 +36,7 @@ workflows:
       - "/tmp/xcodebuild_logs/*.log"
 
   ios-ipa:
-    name: "JOMON pix — signed iOS IPA (manual)"
+    name: "JOMON pix — signed IPA + TestFlight upload (manual)"
     instance_type: mac_mini_m2
     max_build_duration: 120
     # IMPORTANT: Set this to the App Store Connect integration name
@@ -80,5 +80,14 @@ workflows:
       - "build/ios/ipa/*.ipa"
       - "/tmp/xcodebuild_logs/*.log"
       - "$HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM"
-    # Deliberately no publishing block: a signed IPA is generated only.
-    # TestFlight uploading and App Store submission are not enabled.
+    publishing:
+      app_store_connect:
+        # Authenticates with integrations.app_store_connect (reference name above).
+        # Uploads the signed .ipa to App Store Connect, making it available
+        # in TestFlight after Apple finishes processing the binary.
+        auth: integration
+        # Do not submit for EXTERNAL TestFlight beta review automatically.
+        # Internal testers can be assigned in App Store Connect after processing.
+        submit_to_testflight: false
+        # Never submit the app to App Store review.
+        submit_to_app_store: false
