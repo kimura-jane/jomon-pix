@@ -1,0 +1,178 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { chromium, webkit } from 'playwright';
+
+const browserName = process.argv[2] || 'chromium';
+const base = process.argv[3] || '/jomon-pix/';
+const port = Number(process.argv[4] || '4173');
+assert(['chromium', 'webkit'].includes(browserName));
+assert(['/jomon-pix/', '/'].includes(base));
+const browser = await (browserName === 'chromium' ? chromium : webkit).launch({
+  headless: true,
+  ...(browserName === 'chromium' ? { args: ['--no-sandbox'] } : {}),
+});
+const page = await browser.newPage({
+  viewport: { width: 390, height: 844 },
+  acceptDownloads: true,
+  isMobile: browserName === 'webkit',
+  hasTouch: true,
+});
+const report = {
+  browser: browserName,
+  base,
+  checks: [],
+  errors: [],
+  dialogs: [],
+  date: new Date().toISOString(),
+};
+page.on('pageerror', (e) => report.errors.push(e.message));
+page.on('dialog', (dialog) => {
+  report.dialogs.push(dialog.message());
+  void dialog.accept();
+});
+
+const readWork = () => page.evaluate(async () => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('jomon-pix-projects-v1', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  try {
+    const raw = await new Promise((resolve, reject) => {
+      const tx = db.transaction('work', 'readonly');
+      let stored;
+      const request = tx.objectStore('work').get('jomon-pix-work');
+      request.onsuccess = () => { stored = request.result; };
+      tx.oncomplete = () => resolve(stored);
+      tx.onerror = () => reject(tx.error);
+    });
+    return typeof raw === 'string' ? JSON.parse(raw).state : null;
+  } finally {
+    db.close();
+  }
+});
+const waitWork = async (predicate, label) => {
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    const state = await readWork();
+    if (state && predicate(state)) return state;
+    await page.waitForTimeout(250);
+  }
+  throw new Error('Saved work did not reach expected state: ' + label);
+};
+const onlyStickers = (work) => work.elements.filter((el) => el.type === 'sticker');
+const expectedSuffixes = [
+  'taf-dog/v2/taf_dog_01.webp',
+  'archaeology/v1/haniwa/h01.webp',
+  'archaeology/v1/dogu/d01.webp',
+];
+
+try {
+  await page.addInitScript(() => {
+    // Exercise the browser-download backup path in both engines.
+    Object.defineProperty(navigator, 'canShare', {
+      value: () => false, configurable: true,
+    });
+  });
+  await page.goto(`http://127.0.0.1:${port}${base}`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+
+  for (const [category, name] of [
+    ['犬', 'TAF DOG #01を追加'],
+    ['埴輪', '武人埴輪・立像を追加'],
+    ['土偶', '小型土偶を追加'],
+  ]) {
+    await page.getByRole('button', { name: category, exact: true }).click();
+    await page.getByRole('button', { name, exact: true }).click();
+  }
+  const original = onlyStickers(await waitWork(
+    (work) => onlyStickers(work).length === 3, 'three bundled stickers',
+  ));
+  for (let i = 0; i < original.length; i += 1) {
+    assert.equal(original[i].src, base + 'stickers/' + expectedSuffixes[i]);
+  }
+  report.checks.push('Three bundled dog/haniwa/dogu assets saved in project');
+
+  await page.getByRole('button', { name: '作品のバックアップと復元' }).click();
+  const pendingDownload = page.waitForEvent('download', { timeout: 30000 });
+  await page.getByRole('button', { name: '作品をバックアップ', exact: true }).click();
+  const download = await pendingDownload;
+  const backup = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  assert.equal(backup.app, 'JOMON pix');
+  assert.equal(backup.formatVersion, 1);
+  assert.equal(backup.artwork.elements.length, 3);
+  report.checks.push('User-facing JSON backup download contains all bundled stickers');
+
+  // Restore both Web and native path variants into either build. Import must
+  // preserve element IDs and labels, and map asset paths to this build's base.
+  for (const prefix of ['/jomon-pix/', '/']) {
+    const altered = structuredClone(backup);
+    altered.artwork.elements.forEach((element, i) => {
+      element.src = prefix + 'stickers/' + expectedSuffixes[i];
+    });
+    const previousSuccesses = report.dialogs.filter((d) => d.includes('作品を復元しました')).length;
+    await page.locator('input[type="file"][accept=".json,application/json"]')
+      .setInputFiles({
+        name: 'roundtrip.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(altered)),
+      });
+    await page.getByRole('button', { name: '作品をバックアップ', exact: true })
+      .waitFor({ state: 'hidden', timeout: 30000 });
+    const restored = onlyStickers(await waitWork(
+      (work) => onlyStickers(work).length === 3 &&
+        onlyStickers(work).every((el, i) =>
+          el.src === base + 'stickers/' + expectedSuffixes[i]),
+      'cross-platform imported sticker paths',
+    ));
+    assert.deepEqual(restored.map((el) => el.id), original.map((el) => el.id));
+    assert.deepEqual(restored.map((el) => el.label), original.map((el) => el.label));
+    assert.equal(
+      report.dialogs.filter((d) => d.includes('作品を復元しました')).length,
+      previousSuccesses + 1,
+    );
+    report.checks.push(`Restored ${prefix} paths into ${base} build`);
+    await page.getByRole('button', { name: '作品のバックアップと復元' }).click();
+  }
+
+  // Never accept an arbitrary relative file path from an untrusted backup.
+  const malicious = structuredClone(backup);
+  malicious.artwork.elements[0].src = '/jomon-pix/stickers/../../private.webp';
+  const previousErrors = report.dialogs.filter((d) =>
+    d.includes('作品データの形式またはサイズが正しくありません')).length;
+  await page.locator('input[type="file"][accept=".json,application/json"]')
+    .setInputFiles({
+      name: 'invalid.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(malicious)),
+    });
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline && report.dialogs.filter((d) =>
+    d.includes('作品データの形式またはサイズが正しくありません')).length === previousErrors) {
+    await page.waitForTimeout(100);
+  }
+  assert.equal(
+    report.dialogs.filter((d) =>
+      d.includes('作品データの形式またはサイズが正しくありません')).length,
+    previousErrors + 1,
+  );
+  assert.deepEqual(
+    onlyStickers(await readWork()).map((el) => el.src),
+    original.map((_, i) => base + 'stickers/' + expectedSuffixes[i]),
+  );
+  report.checks.push('Path traversal rejected without overwriting project');
+
+  assert.deepEqual(report.errors, []);
+  report.status = 'success';
+} catch (error) {
+  report.status = 'failure';
+  report.errors.push(error.stack ?? String(error));
+  throw error;
+} finally {
+  fs.mkdirSync('docs/audit', { recursive: true });
+  const suffix = base === '/' ? 'native' : 'web';
+  fs.writeFileSync(`docs/audit/backup-roundtrip-${browserName}-${suffix}.json`,
+    JSON.stringify(report, null, 2) + '\n');
+  console.log(JSON.stringify(report, null, 2));
+  await browser.close();
+}
