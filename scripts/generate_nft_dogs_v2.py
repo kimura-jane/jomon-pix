@@ -158,7 +158,7 @@ def remove_known_background_fragments(image: Image.Image, number: int) -> Image.
         # Red neon bokeh above and outside the left ear. Preserve the warm
         # original ear colour by requiring the strong red-only hue.
         neon = (
-            (xx <= 128) & (yy <= 95)
+            (xx <= 120) & (yy <= 59)
             & (red > 17)
             & (red > green * 1.9)
             & (red > blue * 1.5)
