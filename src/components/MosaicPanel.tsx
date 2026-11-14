@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor } from '../store';
 import { removeBg } from '../lib/removeBg';
 import type { ImageEl } from '../types';
+import { getPhotoLabel } from '../lib/photoAttachments';
 
 type Mode = 'rectangle' | 'brush' | 'all' | 'background';
 type Point = { x: number; y: number };
@@ -13,7 +14,7 @@ type View = { width: number; height: number };
 const OPTIONS: { id: Mode; label: string }[] = [
   { id: 'rectangle', label: '範囲指定' },
   { id: 'brush', label: 'ブラシ' },
-  { id: 'all', label: '画像全体' },
+  { id: 'all', label: '写真全体' },
   { id: 'background', label: '背景だけ' },
 ];
 
@@ -165,7 +166,6 @@ function MosaicDialog({
   const pictureRef = useRef<HTMLDivElement>(null);
   const drawingRef = useRef<number | null>(null);
   const regionStartRef = useRef<Point | null>(null);
-  const lastStrokeRef = useRef<number | null>(null);
 
   useEffect(() => {
     let valid = true;
@@ -217,7 +217,6 @@ function MosaicDialog({
     setStrokes([]);
     drawingRef.current = null;
     regionStartRef.current = null;
-    lastStrokeRef.current = null;
     setError('');
   };
 
@@ -251,10 +250,7 @@ function MosaicDialog({
         points: [p],
         size: Math.min(source.naturalWidth, source.naturalHeight) * brushPercent / 100,
       };
-      setStrokes((old) => {
-        lastStrokeRef.current = old.length;
-        return [...old, stroke];
-      });
+      setStrokes((old) => [...old, stroke]);
     }
   };
 
@@ -280,15 +276,10 @@ function MosaicDialog({
     if (drawingRef.current !== event.pointerId) return;
     drawingRef.current = null;
     regionStartRef.current = null;
-    lastStrokeRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
-
-  const brushWidth = source
-    ? Math.min(source.naturalWidth, source.naturalHeight) * brushPercent / 100
-    : 0;
 
   const apply = async () => {
     if (!source || working) return;
@@ -375,12 +366,7 @@ function MosaicDialog({
           <p className="hint-s" style={{ margin: 0 }}>
             {mode === 'rectangle' ? 'ドラッグで範囲指定'
               : mode === 'brush' ? '指で塗る'
-              : '初回はAIモデルを取得します'}
-          </p>
-        )}
-        {mode === 'background' && (
-          <p className="hint-s" style={{ margin: 0 }}>
-            ※AIの判定には誤差があります。加工後に確認してください。
+              : '初回はAIモデルを取得します。※AIの判定には誤差があります。'}
           </p>
         )}
 
@@ -476,7 +462,6 @@ function MosaicDialog({
                     />
                   ),
                 )}
-                {mode === 'brush' && brushWidth > 0 && null}
               </svg>
             </div>
           ) : (
@@ -603,11 +588,11 @@ export function MosaicPanel() {
             <>
               <div className="label">写真を選択</div>
               <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
-                {[...photos].reverse().map((photo, index) => (
+                {photos.map((photo) => (
                   <button
                     key={photo.id}
                     type="button"
-                    aria-label={'画像' + (index + 1) + 'を選択'}
+                    aria-label={getPhotoLabel(elements, photo.id) + 'を選択'}
                     aria-pressed={photo.id === target?.id}
                     onClick={() => select(photo.id)}
                     style={{
@@ -625,7 +610,7 @@ export function MosaicPanel() {
                       alt=""
                       style={{ display: 'block', width: 50, height: 50, objectFit: 'contain' }}
                     />
-                    <span style={{ fontSize: 10 }}>画像{index + 1}</span>
+                    <span style={{ fontSize: 10 }}>{getPhotoLabel(elements, photo.id)}</span>
                   </button>
                 ))}
               </div>
