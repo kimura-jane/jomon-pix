@@ -68,6 +68,38 @@ try {
   report.visualDelta = visualDelta;
   assert(visualDelta.changedPixels > 200, 'Beauty did not visibly change the canvas pixels');
   report.checks.push('Verified canvas pixels changed, not just the slider state');
+
+  const diffFromOriginal = async () => page.evaluate(() => {
+    const canvas = document.querySelector('.konvajs-content canvas');
+    const prev = window.__beautyBaseline;
+    if (!(canvas instanceof HTMLCanvasElement)) throw Error('Konva canvas is missing');
+    const now = canvas.getContext('2d').getImageData(0, 0, prev.width, prev.height).data;
+    let changed = 0;
+    for (let i = 0; i < now.length; i += 4) {
+      if (Math.abs(now[i] - prev.pixels[i]) +
+        Math.abs(now[i + 1] - prev.pixels[i + 1]) +
+        Math.abs(now[i + 2] - prev.pixels[i + 2]) > 24) changed++;
+    }
+    return changed;
+  });
+  const compare = page.locator('button').filter({
+    hasText: /長押しで加工前と比較|加工前を表示中/,
+  });
+  await compare.dispatchEvent('pointerdown', { pointerType: 'touch' });
+  await page.waitForTimeout(200);
+  assert.equal(await compare.getAttribute('aria-pressed'), 'true');
+  const beforePixels = await diffFromOriginal();
+  assert(beforePixels < visualDelta.changedPixels * 0.3,
+    'Press-to-compare did not restore the original image');
+  await compare.dispatchEvent('pointerup', { pointerType: 'touch' });
+  await page.waitForTimeout(200);
+  assert.equal(await compare.getAttribute('aria-pressed'), 'false');
+  const afterPixels = await diffFromOriginal();
+  assert(afterPixels > visualDelta.changedPixels * 0.5,
+    'Releasing comparison did not restore the processed image');
+  report.checks.push('Press-and-hold before/after comparison toggles original pixels');
+  report.compareDelta = { beforePixels, afterPixels };
+
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem('jomon-pix-work')).state);
   assert.equal(state.elements.find((e) => e.type === 'image').beauty.smooth, 100);
   report.checks.push('Settings persist without replacing source image');
