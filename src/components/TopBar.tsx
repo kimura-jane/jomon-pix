@@ -1,7 +1,7 @@
 
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useAutosaveStatus, useEditor, type CanvasPreset } from '../store';
+import { flushAutosave, useAutosaveStatus, useEditor, type CanvasPreset } from '../store';
 import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
 import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
@@ -303,8 +303,8 @@ export function TopBar() {
     setWorkBusy(true);
 
     try {
-      if (file.size > 30 * 1024 * 1024) {
-        throw new Error('作品ファイルが大きすぎます（上限30MB）。');
+      if (file.size > 100 * 1024 * 1024) {
+        throw new Error('作品ファイルが大きすぎます（上限100MB）。');
       }
 
       const artwork = parseBackup(await file.text());
@@ -330,7 +330,9 @@ export function TopBar() {
         savedAt: Date.now(),
       });
 
-      if (useAutosaveStatus.getState().status === 'failed') {
+      // IndexedDB writes are asynchronous. A state update only queues the
+      // write; wait until the transaction commits before claiming success.
+      if (!await flushAutosave()) {
         // 保存できなかった場合、編集画面を元に戻す。
         useEditor.setState({
           elements: previous.elements,
@@ -347,7 +349,7 @@ export function TopBar() {
           future: previous.future,
           savedAt: previous.savedAt,
         });
-        throw new Error('作品をブラウザ内に保存できなかったため、読み込みを取り消しました。');
+        throw new Error('作品を端末に保存できなかったため、読み込みを取り消しました。');
       }
 
       setWorkOpen(false);
@@ -363,6 +365,14 @@ export function TopBar() {
     <header className="top">
       <div className="brand">
         <span className="logo">JOMON pix</span>
+
+        {autosaveStatus === 'saving' && (
+          <span className="saved" role="status" style={{
+            color: '#855789', background: '#f6e9fb',
+          }}>
+            保存中…
+          </span>
+        )}
 
         {autosaveStatus === 'saved' && (
           <span className="saved" role="status" style={{
