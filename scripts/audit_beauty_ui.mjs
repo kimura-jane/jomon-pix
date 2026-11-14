@@ -122,7 +122,7 @@ try {
     ctx.drawImage(portrait, portrait.naturalWidth, 0);
     return canvas.toDataURL('image/png');
   }, portrait64);
-  await page.getByRole('button', { name: '画像', exact: true }).click();
+  await page.locator('button.tab').first().click();
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
     name: 'two-person-portrait.png',
     mimeType: 'image/png',
