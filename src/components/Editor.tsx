@@ -587,9 +587,14 @@ export function Editor() {
   // 選択中の写真を優先。未選択ならタッチ位置にある最前面の写真。
   const imageAtPointer = () => {
     const images = editableImages();
-    const selected = images.find(
-      (image) => image.id === useEditor.getState().selectedId,
-    );
+    const state = useEditor.getState();
+    const current = state.elements.find((el) => el.id === state.selectedId);
+    const linkedImageId =
+      current?.type === 'image' ? current.id :
+      current && (current.type === 'text' || current.type === 'sticker')
+        ? current.parentImageId
+        : undefined;
+    const selected = images.find((image) => image.id === linkedImageId);
     const candidates = selected ? [selected] : [...images].reverse();
     for (const image of candidates) {
       const point = localPoint(image);
@@ -844,14 +849,35 @@ export function Editor() {
               fill={bgColor}
             />
 
-            {elements.map((el) => (
-              <ElementNode
-                key={el.id}
-                el={el}
-                draft={el.type === 'image' && draft?.imageId === el.id
-                  ? draft.stroke : undefined}
-              />
-            ))}
+            {elements.map((el) => {
+              // 子レイヤーは親写真のKonva.Group内で描画する。
+              // 親が存在しない古いデータは、消さずに単独表示する。
+              if (
+                (el.type === 'sticker' || el.type === 'text') &&
+                el.parentImageId &&
+                elements.some((candidate) =>
+                  candidate.type === 'image' &&
+                  candidate.id === el.parentImageId,
+                )
+              ) return null;
+
+              const attached = el.type === 'image'
+                ? elements.filter((candidate) =>
+                    (candidate.type === 'sticker' || candidate.type === 'text') &&
+                    candidate.parentImageId === el.id,
+                  )
+                : [];
+
+              return (
+                <ElementNode
+                  key={el.id}
+                  el={el}
+                  attached={attached}
+                  draft={el.type === 'image' && draft?.imageId === el.id
+                    ? draft.stroke : undefined}
+                />
+              );
+            })}
 
             <Transformer
               ref={trRef}
