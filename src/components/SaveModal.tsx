@@ -126,16 +126,11 @@ export function SaveModal({ blob, onClose }: Props) {
 
         {imageSize && (
           <p className="hint">
-            保存画像のサイズ：
+            サイズ：
             {imageSize.width} × {imageSize.height} px
           </p>
         )}
 
-        <p className="hint">
-          {native
-            ? '「写真に保存・共有」を押し、iPhoneの共有画面から「画像を保存」または「ファイルに保存」を選んでください。'
-            : '画像を長押しして「写真に追加」でも保存できます'}
-        </p>
 
         {canShare && (
           <button
@@ -148,6 +143,8 @@ export function SaveModal({ blob, onClose }: Props) {
             {saving ? '準備中…' : '📷 写真に保存・共有'}
           </button>
         )}
+
+        {native && <p className="hint">共有画面で「画像を保存」を選択</p>}
 
         {!native && (
           <button
