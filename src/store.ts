@@ -10,7 +10,9 @@ export const newId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-export type CanvasPreset = 'square' | '4:5' | '9:16' | 'photo' | 'custom';
+// Keep 'photo' for previously saved projects and JSON backups, but it is
+// no longer offered in the canvas-size picker.
+export type CanvasPreset = 'square' | '4:5' | '9:16' | '16:9' | 'photo' | 'custom';
 
 export type CanvasCrop = {
   x: number;
@@ -23,6 +25,7 @@ const CANVAS_SIZES = {
   square: { width: 800, height: 800 },
   '4:5': { width: 800, height: 1000 },
   '9:16': { width: 900, height: 1600 },
+  '16:9': { width: 1600, height: 900 },
 };
 
 type Pen = {
