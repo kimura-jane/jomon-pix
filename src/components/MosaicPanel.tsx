@@ -305,7 +305,7 @@ function MosaicDialog({
         } catch (error) {
           console.error('[JOMON pix] 背景だけモザイク: 被写体の検出に失敗', error);
           throw new Error(
-            '被写体の自動判定に失敗しました。Wi-Fiなど安定した通信環境で再試行してください。元の写真は変更していません。',
+            '被写体の自動判定に失敗しました。通信状態や端末の空きメモリを確認して再試行してください。元の写真は変更していません。',
           );
         }
       }
@@ -378,7 +378,7 @@ function MosaicDialog({
               ? '指で隠したい場所をなぞる。何度でも追加できます'
               : mode === 'all'
                 ? '選択した写真全体を加工します。上のスタンプや文字はそのままです'
-                : 'AIが人物などの被写体を検出し、被写体を残して背景だけ加工します。初回はモデルのダウンロードが必要です'}
+                : 'AIが人物などの被写体を検出し、被写体を残して背景だけ加工します。判定結果は「適用」後に確認できます。初回はモデルのダウンロードが必要です'}
         </p>
 
         <div
@@ -433,7 +433,7 @@ function MosaicDialog({
                   pointerEvents: 'none',
                 }}
               >
-                {(mode === 'all' || mode === 'background') && (
+                {mode === 'all' && (
                   <rect
                     width={source.naturalWidth}
                     height={source.naturalHeight}
