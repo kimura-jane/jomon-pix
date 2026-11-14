@@ -152,15 +152,16 @@ def remove_known_background_fragments(image: Image.Image, number: int) -> Image.
         )
         rgba[:, :, 3][branches] = 0
         # Everything beyond this boundary is background, not the ear/body.
-        rgba[90:237, 404:SIZE, 3] = 0
+        rgba[85:160, 398:SIZE, 3] = 0
+        rgba[160:237, 404:SIZE, 3] = 0
     elif number == 19:
         # Red neon bokeh above and outside the left ear. Preserve the warm
         # original ear colour by requiring the strong red-only hue.
         neon = (
             (xx <= 128) & (yy <= 95)
-            & (red > 60)
-            & (red > green * 2.05)
-            & (red > blue * 1.7)
+            & (red > 17)
+            & (red > green * 1.9)
+            & (red > blue * 1.5)
         )
         rgba[:, :, 3][neon] = 0
     # Strip hidden background RGB beneath fully transparent pixels.
