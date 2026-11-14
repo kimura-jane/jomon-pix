@@ -362,7 +362,8 @@ export function Editor() {
         rotation: 0,
         scaleX: 1,
         scaleY: 1,
-        opacity: 1,
+        // 描き終わった線にも透明度を保持する
+        opacity: pen.opacity,
         points: draft,
         color: pen.color,
         width: pen.width,
@@ -517,6 +518,8 @@ export function Editor() {
                   width: pen.width,
                   penStyle: pen.style,
                 })}
+                // 描画途中にも同じ透明度を反映する
+                opacity={pen.opacity}
                 listening={false}
               />
             )}
