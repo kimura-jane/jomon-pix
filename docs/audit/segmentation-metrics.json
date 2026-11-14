@@ -1,0 +1,446 @@
+{
+  "u2net": {
+    "01": {
+      "opaque_fraction": 0.238,
+      "transparent_fraction": 0.755,
+      "bbox_fraction": 0.454,
+      "bbox": [
+        282,
+        66,
+        815,
+        959
+      ]
+    },
+    "02": {
+      "opaque_fraction": 0.28,
+      "transparent_fraction": 0.712,
+      "bbox_fraction": 0.544,
+      "bbox": [
+        274,
+        26,
+        869,
+        985
+      ]
+    },
+    "03": {
+      "opaque_fraction": 0.383,
+      "transparent_fraction": 0.611,
+      "bbox_fraction": 0.601,
+      "bbox": [
+        162,
+        44,
+        838,
+        977
+      ]
+    },
+    "04": {
+      "opaque_fraction": 0.332,
+      "transparent_fraction": 0.661,
+      "bbox_fraction": 0.551,
+      "bbox": [
+        178,
+        37,
+        779,
+        999
+      ]
+    },
+    "05": {
+      "opaque_fraction": 0.247,
+      "transparent_fraction": 0.746,
+      "bbox_fraction": 0.419,
+      "bbox": [
+        237,
+        202,
+        804,
+        976
+      ]
+    },
+    "06": {
+      "opaque_fraction": 0.37,
+      "transparent_fraction": 0.624,
+      "bbox_fraction": 0.618,
+      "bbox": [
+        148,
+        192,
+        940,
+        1419
+      ]
+    },
+    "07": {
+      "opaque_fraction": 0.337,
+      "transparent_fraction": 0.653,
+      "bbox_fraction": 0.703,
+      "bbox": [
+        161,
+        32,
+        934,
+        985
+      ]
+    },
+    "08": {
+      "opaque_fraction": 0.33,
+      "transparent_fraction": 0.663,
+      "bbox_fraction": 0.648,
+      "bbox": [
+        116,
+        204,
+        969,
+        1399
+      ]
+    },
+    "09": {
+      "opaque_fraction": 0.308,
+      "transparent_fraction": 0.684,
+      "bbox_fraction": 0.656,
+      "bbox": [
+        181,
+        84,
+        945,
+        984
+      ]
+    },
+    "10": {
+      "opaque_fraction": 0.211,
+      "transparent_fraction": 0.784,
+      "bbox_fraction": 0.44,
+      "bbox": [
+        207,
+        315,
+        851,
+        1389
+      ]
+    },
+    "11": {
+      "opaque_fraction": 0.38,
+      "transparent_fraction": 0.612,
+      "bbox_fraction": 0.657,
+      "bbox": [
+        119,
+        68,
+        867,
+        989
+      ]
+    },
+    "12": {
+      "opaque_fraction": 0.391,
+      "transparent_fraction": 0.6,
+      "bbox_fraction": 0.688,
+      "bbox": [
+        148,
+        71,
+        927,
+        997
+      ]
+    },
+    "13": {
+      "opaque_fraction": 0.387,
+      "transparent_fraction": 0.604,
+      "bbox_fraction": 0.728,
+      "bbox": [
+        111,
+        85,
+        953,
+        992
+      ]
+    },
+    "14": {
+      "opaque_fraction": 0.341,
+      "transparent_fraction": 0.652,
+      "bbox_fraction": 0.614,
+      "bbox": [
+        196,
+        57,
+        897,
+        975
+      ]
+    },
+    "15": {
+      "opaque_fraction": 0.294,
+      "transparent_fraction": 0.7,
+      "bbox_fraction": 0.514,
+      "bbox": [
+        215,
+        347,
+        952,
+        1443
+      ]
+    },
+    "16": {
+      "opaque_fraction": 0.392,
+      "transparent_fraction": 0.597,
+      "bbox_fraction": 0.701,
+      "bbox": [
+        84,
+        80,
+        903,
+        978
+      ]
+    },
+    "17": {
+      "opaque_fraction": 0.299,
+      "transparent_fraction": 0.695,
+      "bbox_fraction": 0.509,
+      "bbox": [
+        180,
+        301,
+        919,
+        1384
+      ]
+    },
+    "18": {
+      "opaque_fraction": 0.236,
+      "transparent_fraction": 0.758,
+      "bbox_fraction": 0.436,
+      "bbox": [
+        225,
+        120,
+        778,
+        947
+      ]
+    },
+    "19": {
+      "opaque_fraction": 0.342,
+      "transparent_fraction": 0.649,
+      "bbox_fraction": 0.675,
+      "bbox": [
+        116,
+        26,
+        869,
+        966
+      ]
+    },
+    "20": {
+      "opaque_fraction": 0.345,
+      "transparent_fraction": 0.647,
+      "bbox_fraction": 0.586,
+      "bbox": [
+        190,
+        51,
+        857,
+        972
+      ]
+    }
+  },
+  "isnet-general-use": {
+    "01": {
+      "opaque_fraction": 0.235,
+      "transparent_fraction": 0.758,
+      "bbox_fraction": 0.403,
+      "bbox": [
+        281,
+        169,
+        817,
+        958
+      ]
+    },
+    "02": {
+      "opaque_fraction": 0.279,
+      "transparent_fraction": 0.712,
+      "bbox_fraction": 0.544,
+      "bbox": [
+        274,
+        26,
+        869,
+        985
+      ]
+    },
+    "03": {
+      "opaque_fraction": 0.384,
+      "transparent_fraction": 0.61,
+      "bbox_fraction": 0.604,
+      "bbox": [
+        161,
+        43,
+        839,
+        977
+      ]
+    },
+    "04": {
+      "opaque_fraction": 0.328,
+      "transparent_fraction": 0.664,
+      "bbox_fraction": 0.55,
+      "bbox": [
+        179,
+        37,
+        779,
+        998
+      ]
+    },
+    "05": {
+      "opaque_fraction": 0.213,
+      "transparent_fraction": 0.779,
+      "bbox_fraction": 0.417,
+      "bbox": [
+        238,
+        203,
+        805,
+        974
+      ]
+    },
+    "06": {
+      "opaque_fraction": 0.355,
+      "transparent_fraction": 0.638,
+      "bbox_fraction": 0.616,
+      "bbox": [
+        149,
+        195,
+        942,
+        1416
+      ]
+    },
+    "07": {
+      "opaque_fraction": 0.334,
+      "transparent_fraction": 0.656,
+      "bbox_fraction": 0.703,
+      "bbox": [
+        160,
+        33,
+        934,
+        985
+      ]
+    },
+    "08": {
+      "opaque_fraction": 0.329,
+      "transparent_fraction": 0.664,
+      "bbox_fraction": 0.646,
+      "bbox": [
+        117,
+        205,
+        970,
+        1396
+      ]
+    },
+    "09": {
+      "opaque_fraction": 0.333,
+      "transparent_fraction": 0.659,
+      "bbox_fraction": 0.656,
+      "bbox": [
+        180,
+        84,
+        944,
+        985
+      ]
+    },
+    "10": {
+      "opaque_fraction": 0.23,
+      "transparent_fraction": 0.764,
+      "bbox_fraction": 0.478,
+      "bbox": [
+        154,
+        310,
+        851,
+        1388
+      ]
+    },
+    "11": {
+      "opaque_fraction": 0.38,
+      "transparent_fraction": 0.612,
+      "bbox_fraction": 0.712,
+      "bbox": [
+        120,
+        68,
+        931,
+        988
+      ]
+    },
+    "12": {
+      "opaque_fraction": 0.408,
+      "transparent_fraction": 0.583,
+      "bbox_fraction": 0.688,
+      "bbox": [
+        149,
+        70,
+        927,
+        997
+      ]
+    },
+    "13": {
+      "opaque_fraction": 0.382,
+      "transparent_fraction": 0.609,
+      "bbox_fraction": 0.733,
+      "bbox": [
+        109,
+        86,
+        957,
+        992
+      ]
+    },
+    "14": {
+      "opaque_fraction": 0.313,
+      "transparent_fraction": 0.678,
+      "bbox_fraction": 0.608,
+      "bbox": [
+        199,
+        59,
+        896,
+        973
+      ]
+    },
+    "15": {
+      "opaque_fraction": 0.291,
+      "transparent_fraction": 0.704,
+      "bbox_fraction": 0.512,
+      "bbox": [
+        215,
+        349,
+        952,
+        1441
+      ]
+    },
+    "16": {
+      "opaque_fraction": 0.38,
+      "transparent_fraction": 0.611,
+      "bbox_fraction": 0.688,
+      "bbox": [
+        84,
+        79,
+        887,
+        977
+      ]
+    },
+    "17": {
+      "opaque_fraction": 0.296,
+      "transparent_fraction": 0.698,
+      "bbox_fraction": 0.506,
+      "bbox": [
+        181,
+        303,
+        919,
+        1382
+      ]
+    },
+    "18": {
+      "opaque_fraction": 0.234,
+      "transparent_fraction": 0.76,
+      "bbox_fraction": 0.435,
+      "bbox": [
+        226,
+        121,
+        779,
+        946
+      ]
+    },
+    "19": {
+      "opaque_fraction": 0.297,
+      "transparent_fraction": 0.692,
+      "bbox_fraction": 0.619,
+      "bbox": [
+        155,
+        52,
+        868,
+        962
+      ]
+    },
+    "20": {
+      "opaque_fraction": 0.348,
+      "transparent_fraction": 0.642,
+      "bbox_fraction": 0.651,
+      "bbox": [
+        189,
+        51,
+        930,
+        972
+      ]
+    }
+  }
+}
