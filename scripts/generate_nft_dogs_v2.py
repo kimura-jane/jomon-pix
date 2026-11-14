@@ -137,8 +137,6 @@ def remove_known_background_fragments(image: Image.Image, number: int) -> Image.
     Both operations affect transparent alpha only; original canine RGB pixels
     and the other 18 stickers are left unchanged.
     """
-    if number not in (16, 19):
-        return image
     rgba = np.asarray(image).copy()
     yy, xx = np.ogrid[:SIZE, :SIZE]
     red = rgba[:, :, 0].astype(np.float32)
@@ -165,6 +163,9 @@ def remove_known_background_fragments(image: Image.Image, number: int) -> Image.
             & (red > blue * 1.7)
         )
         rgba[:, :, 3][neon] = 0
+    # Strip hidden background RGB beneath fully transparent pixels.
+    # This avoids color bleed in renderers that mishandle non-premultiplied alpha.
+    rgba[:, :, :3][rgba[:, :, 3] == 0] = 0
     return Image.fromarray(rgba, "RGBA")
 
 
