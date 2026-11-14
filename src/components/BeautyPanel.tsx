@@ -13,7 +13,7 @@ const CONTROLS: Control[] = [
   { key: 'bright', label: '明るさ' },
   { key: 'warmth', label: '血色' },
   { key: 'slim', label: '小顔' },
-  { key: 'chin', label: 'あご' },
+  { key: 'chin', label: 'あごシャープ' },
   { key: 'eyes', label: '目の大きさ' },
   { key: 'lip', label: 'リップ' },
   { key: 'blush', label: 'チーク' },
