@@ -1,5 +1,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
+import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
 
 type Props = {
   blob: Blob;
@@ -14,6 +15,8 @@ type ImageSize = {
 export function SaveModal({ blob, onClose }: Props) {
   const [url, setUrl] = useState<string>();
   const [imageSize, setImageSize] = useState<ImageSize | null>(null);
+  const [saving, setSaving] = useState(false);
+  const native = isNativeApp();
 
   useEffect(() => {
     const u = URL.createObjectURL(blob);
@@ -34,22 +37,29 @@ export function SaveModal({ blob, onClose }: Props) {
     [blob],
   );
 
-  const canShare =
+  const canShare = native || (
     typeof navigator !== 'undefined' &&
     typeof navigator.canShare === 'function' &&
-    navigator.canShare({ files: [file] });
+    navigator.canShare({ files: [file] })
+  );
 
   const share = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
-      await navigator.share({
-        files: [file],
-      });
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        alert(
-          '共有できませんでした。画像を長押しして保存してください。',
-        );
+      if (native) {
+        await shareNativeFile(blob, file.name);
+      } else {
+        await navigator.share({ files: [file] });
       }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '';
+      if (!/abort|cancel|dismiss/i.test(message)) {
+        alert('共有できませんでした。' +
+          (native ? 'もう一度お試しください。' : '画像を長押しして保存してください。'));
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -122,8 +132,9 @@ export function SaveModal({ blob, onClose }: Props) {
         )}
 
         <p className="hint">
-          画像を長押しして「写真に追加」でも
-          保存できます
+          {native
+            ? '「写真に保存・共有」を押し、iPhoneの共有画面から「画像を保存」または「ファイルに保存」を選んでください。'
+            : '画像を長押しして「写真に追加」でも保存できます'}
         </p>
 
         {canShare && (
@@ -131,20 +142,23 @@ export function SaveModal({ blob, onClose }: Props) {
             type="button"
             className="btn primary big"
             onClick={share}
+            disabled={saving}
             style={{ flexShrink: 0 }}
           >
-            📷 写真に保存・共有
+            {saving ? '準備中…' : '📷 写真に保存・共有'}
           </button>
         )}
 
-        <button
-          type="button"
-          className="btn big"
-          onClick={download}
-          style={{ flexShrink: 0 }}
-        >
-          ⬇ ファイルに保存
-        </button>
+        {!native && (
+          <button
+            type="button"
+            className="btn big"
+            onClick={download}
+            style={{ flexShrink: 0 }}
+          >
+            ⬇ ファイルに保存
+          </button>
+        )}
 
         <button
           type="button"

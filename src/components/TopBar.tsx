@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor, type CanvasPreset } from '../store';
 import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
+import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
 import type { CanvasEl, Tab } from '../types';
 import { SCENE_IDS, SOCIAL_IDS, type SceneId, type SocialId } from '../lib/scenePresets';
 
@@ -264,6 +265,10 @@ export function TopBar() {
 
     try {
       const file = createBackupFile();
+      if (isNativeApp()) {
+        await shareNativeFile(file, file.name);
+        return;
+      }
       if (
         typeof navigator.share === 'function' &&
         typeof navigator.canShare === 'function' &&

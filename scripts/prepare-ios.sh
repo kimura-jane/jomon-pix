@@ -34,5 +34,24 @@ PY
 
 python3 scripts/generate-ios-icon.py
 
+# Apple requires a privacy manifest for native file timestamp access.
+# Capacitor's Filesystem plugin uses this category for user-created files.
+python3 - <<'PY'
+from pathlib import Path
+import plistlib
+path = Path('ios/App/App/PrivacyInfo.xcprivacy')
+privacy = {
+    'NSPrivacyTracking': False,
+    'NSPrivacyTrackingDomains': [],
+    'NSPrivacyCollectedDataTypes': [],
+    'NSPrivacyAccessedAPITypes': [{
+        'NSPrivacyAccessedAPIType': 'NSPrivacyAccessedAPICategoryFileTimestamp',
+        'NSPrivacyAccessedAPITypeReasons': ['C617.1'],
+    }],
+}
+with path.open('wb') as f:
+    plistlib.dump(privacy, f)
+PY
+
 echo "Prepared Capacitor iOS workspace: ios/App/App.xcworkspace"
 echo "Web asset base: / (native bundle), bundle ID: com.jomonpix.app"

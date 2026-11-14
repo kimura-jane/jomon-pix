@@ -61,13 +61,13 @@ def main() -> None:
     compressor = zlib.compressobj(9)
     pixels = bytearray()
     for y in range(SIZE):
-        row = bytearray(b"\\x00")  # PNG filter type 0
+        row = bytearray(b"\x00")  # PNG filter type 0
         for x in range(SIZE):
             row.extend(icon_color(x, y))
         pixels.extend(compressor.compress(row))
     pixels.extend(compressor.flush())
     png = (
-        b"\\x89PNG\\r\\n\\x1a\\n"
+        b"\x89PNG\r\n\x1a\n"
         + chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 2, 0, 0, 0))
         + chunk(b"IDAT", bytes(pixels))
         + chunk(b"IEND", b"")

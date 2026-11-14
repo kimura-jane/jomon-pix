@@ -1,0 +1,84 @@
+name: Preflight Capacitor iOS source (no Codemagic run)
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - capacitor.config.ts
+      - codemagic.yaml
+      - scripts/prepare-ios.sh
+      - scripts/generate-ios-icon.py
+      - src/components/SaveModal.tsx
+      - src/components/TopBar.tsx
+      - src/lib/nativeFileShare.ts
+      - .github/workflows/ios-native-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jomon-pix-ios-native-scaffold
+  cancel-in-progress: false
+
+jobs:
+  check-and-scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned iOS dependencies and validate React/TypeScript
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Generate Capacitor Xcode project and native web bundle
+        run: bash scripts/prepare-ios.sh
+      - name: Validate native bundle, icon and iOS project
+        run: |
+          test -f ios/App/App.xcodeproj/project.pbxproj
+          test -f ios/App/App.xcworkspace/contents.xcworkspacedata
+          test -f ios/App/App/Info.plist
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+          test -f dist/mediapipe/face_landmarker.task
+          test -f dist/mediapipe/vision_wasm_internal.wasm || find dist/mediapipe -name '*.wasm' | grep -q .
+          python3 - <<'PY'
+          from pathlib import Path
+          import plistlib, struct, zlib
+          p=Path('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png').read_bytes()
+          assert p[:8] == b'\x89PNG\r\n\x1a\n'
+          size=struct.unpack('>II',p[16:24])
+          assert size == (1024,1024), size
+          data=b''
+          cursor=8
+          while cursor<len(p):
+              n=struct.unpack('>I',p[cursor:cursor+4])[0]
+              tag=p[cursor+4:cursor+8]
+              payload=p[cursor+8:cursor+8+n]
+              if tag==b'IDAT': data+=payload
+              cursor+=n+12
+          raw=zlib.decompress(data)
+          assert len(raw)==1024*(1+1024*3),len(raw)
+          assert raw[0] == 0
+          with Path('ios/App/App/Info.plist').open('rb') as handle:
+              info=plistlib.load(handle)
+          assert info['CFBundleDisplayName']=='JOMON pix'
+          print('PNG icon and iOS Info.plist validated')
+          PY
+      - name: Commit generated iOS project and npm lockfile to jomon-pix only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json ios/
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "Generate iOS native Xcode scaffold and lockfile for Codemagic"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
