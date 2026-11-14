@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor } from '../store';
+import { removeBg } from '../lib/removeBg';
 import type { ImageEl } from '../types';
 
-type Mode = 'rectangle' | 'brush' | 'all';
+type Mode = 'rectangle' | 'brush' | 'all' | 'background';
 type Point = { x: number; y: number };
 type Region = { start: Point; end: Point };
 type Stroke = { points: Point[]; size: number };
@@ -12,7 +13,8 @@ type View = { width: number; height: number };
 const OPTIONS: { id: Mode; label: string }[] = [
   { id: 'rectangle', label: '範囲指定' },
   { id: 'brush', label: 'ブラシ' },
-  { id: 'all', label: '背景全体' },
+  { id: 'all', label: '画像全体' },
+  { id: 'background', label: '背景だけ' },
 ];
 
 function createCanvas(width: number, height: number) {
@@ -28,12 +30,28 @@ function context(canvas: HTMLCanvasElement) {
   return ctx;
 }
 
+function loadProcessedImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        resolve(img);
+      } else {
+        reject(new Error('AIによる切り抜き画像が正しくありません'));
+      }
+    };
+    img.onerror = () => reject(new Error('AIによる切り抜き画像を読み込めません'));
+    img.src = src;
+  });
+}
+
 function pixelate(
   img: HTMLImageElement,
   mode: Mode,
   tileSize: number,
   region: Region | null,
   strokes: Stroke[],
+  foreground: HTMLImageElement | null = null,
 ): string {
   const width = img.naturalWidth;
   const height = img.naturalHeight;
@@ -56,7 +74,7 @@ function pixelate(
   mosaicCtx.imageSmoothingEnabled = false;
   mosaicCtx.drawImage(reduced, 0, 0, width, height);
 
-  if (mode !== 'all') {
+  if (mode !== 'all' && mode !== 'background') {
     const mask = createCanvas(width, height);
     const ctx = context(mask);
     ctx.fillStyle = '#ffffff';
@@ -103,6 +121,23 @@ function pixelate(
   }
 
   out.drawImage(mosaic, 0, 0);
+
+  if (mode === 'background') {
+    if (!foreground) throw new Error('被写体の自動判定が完了していません');
+
+    // 背景削除AIが返す透明PNGは「被写体の位置」のみを判定する。
+    // 元の写真のRGBをアルファマスクで切り出し、モザイクの上に戻す。
+    // これにより人物の色調を保持し、背景部分だけがピクセル化される。
+    const subject = createCanvas(width, height);
+    const subjectCtx = context(subject);
+    subjectCtx.drawImage(img, 0, 0);
+    subjectCtx.globalCompositeOperation = 'destination-in';
+    subjectCtx.drawImage(foreground, 0, 0, width, height);
+    subjectCtx.globalCompositeOperation = 'source-over';
+
+    out.drawImage(subject, 0, 0);
+  }
+
   const jpeg = img.src.startsWith('data:image/jpeg') ||
     img.src.startsWith('data:image/jpg');
   return output.toDataURL(jpeg ? 'image/jpeg' : 'image/png', 0.87);
@@ -202,7 +237,7 @@ function MosaicDialog({
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (working || mode === 'all' || !source) return;
+    if (working || (mode !== 'rectangle' && mode !== 'brush') || !source) return;
     const p = getPoint(event.clientX, event.clientY);
     if (!p) return;
     event.preventDefault();
@@ -255,18 +290,35 @@ function MosaicDialog({
     ? Math.min(source.naturalWidth, source.naturalHeight) * brushPercent / 100
     : 0;
 
-  const apply = () => {
+  const apply = async () => {
     if (!source || working) return;
     setError('');
     setWorking(true);
+
     try {
+      // 他の加工ではAIモデルを読み込まない。通信が必要なのは「背景だけ」。
+      let foreground: HTMLImageElement | null = null;
+      if (mode === 'background') {
+        try {
+          const extracted = await removeBg(photo.src);
+          foreground = await loadProcessedImage(extracted);
+        } catch (error) {
+          console.error('[JOMON pix] 背景だけモザイク: 被写体の検出に失敗', error);
+          throw new Error(
+            '被写体の自動判定に失敗しました。Wi-Fiなど安定した通信環境で再試行してください。元の写真は変更していません。',
+          );
+        }
+      }
+
+      // AI処理中に対象が変わった場合、古い画像で上書きしない。
       const state = useEditor.getState();
       const latest = state.elements.find((el) => el.id === photo.id);
       if (!latest || latest.type !== 'image' ||
           latest.src !== photo.src || latest.locked || latest.hidden) {
         throw new Error('画像が変更されました。画面を閉じて選び直してください');
       }
-      const result = pixelate(source, mode, tileSize, region, strokes);
+
+      const result = pixelate(source, mode, tileSize, region, strokes, foreground);
       state.update(photo.id, { src: result });
       const saved = useAutosaveStatus.getState();
       if (saved.status === 'failed') {
@@ -298,7 +350,15 @@ function MosaicDialog({
         }}
       >
         <h3>▦ モザイク加工</h3>
-        <div className="seg" style={{ marginBottom: 0 }}>
+        <div
+          className="seg"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: 6,
+            marginBottom: 0,
+          }}
+        >
           {OPTIONS.map((option) => (
             <button
               key={option.id}
@@ -316,7 +376,9 @@ function MosaicDialog({
             ? '写真の上で指を滑らせて四角い範囲を指定'
             : mode === 'brush'
               ? '指で隠したい場所をなぞる。何度でも追加できます'
-              : 'この写真の全体を加工します。他のレイヤーには影響しません'}
+              : mode === 'all'
+                ? '選択した写真全体を加工します。上のスタンプや文字はそのままです'
+                : 'AIが人物などの被写体を検出し、被写体を残して背景だけ加工します。初回はモデルのダウンロードが必要です'}
         </p>
 
         <div
@@ -346,7 +408,7 @@ function MosaicDialog({
                 height: view.height,
                 overflow: 'hidden',
                 touchAction: 'none',
-                cursor: mode === 'all' ? 'default' : 'crosshair',
+                cursor: mode === 'rectangle' || mode === 'brush' ? 'crosshair' : 'default',
               }}
             >
               <img
@@ -371,7 +433,7 @@ function MosaicDialog({
                   pointerEvents: 'none',
                 }}
               >
-                {mode === 'all' && (
+                {(mode === 'all' || mode === 'background') && (
                   <rect
                     width={source.naturalWidth}
                     height={source.naturalHeight}
@@ -447,7 +509,7 @@ function MosaicDialog({
           </label>
         )}
 
-        {mode !== 'all' && (
+        {(mode === 'rectangle' || mode === 'brush') && (
           <button
             type="button"
             className="chip"
@@ -483,12 +545,14 @@ function MosaicDialog({
               (mode === 'brush' && !strokes.length)}
             onClick={apply}
           >
-            {working ? '加工中…' : 'モザイクを適用'}
+            {working
+              ? mode === 'background' ? '被写体を判定中…' : '加工中…'
+              : mode === 'background' ? '背景だけにモザイク' : 'モザイクを適用'}
           </button>
         </div>
 
         <p className="hint-s" style={{ margin: 0 }}>
-          適用後は「戻す」で元に戻せます。加工の指定は外部に送信しません。
+          適用後は「戻す」で元に戻せます。背景だけモザイクはAIモデルを端末に読み込み、写真をブラウザ内で処理します。判定結果は写真によって異なります。
         </p>
       </div>
     </div>,
@@ -504,14 +568,20 @@ export function MosaicPanel() {
     (el): el is ImageEl => el.type === 'image' && !el.locked && !el.hidden,
   );
   const selected = photos.find((el) => el.id === selectedId);
-  const background = photos[0];
-  const target = mode === 'all'
-    ? background
-    : selected ?? photos[photos.length - 1];
+  // どのモードも、選択中の写真を処理する。
+  // 「背景だけ」はキャンバスの最背面画像という意味ではない。
+  const target = selected ?? photos[photos.length - 1];
 
   return (
     <>
-      <div className="seg">
+      <div
+        className="seg"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: 6,
+        }}
+      >
         {OPTIONS.map((option) => (
           <button
             key={option.id}
@@ -531,10 +601,12 @@ export function MosaicPanel() {
         <>
           <p className="hint-s">
             {mode === 'all'
-              ? '最も奥にある写真全体を加工。上に重ねた画像・文字・スタンプはそのままです。'
-              : '選択した写真の一部だけを加工します。'}
+              ? '選択した写真全体にモザイクをかけます。スタンプや文字は加工しません。'
+              : mode === 'background'
+                ? 'AIで人物などの被写体を検出し、その写真の背景だけにモザイクをかけます。'
+                : '選択した写真の指定部分だけを加工します。'}
           </p>
-          {mode !== 'all' && photos.length > 1 && (
+          {photos.length > 1 && (
             <>
               <div className="label">加工する画像を選択</div>
               <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
@@ -572,7 +644,11 @@ export function MosaicPanel() {
             disabled={!target}
             onClick={() => setOpen(true)}
           >
-            {mode === 'all' ? '▦ 背景画像全体を加工' : '▦ モザイクを指定する'}
+            {mode === 'all'
+              ? '▦ 画像全体を加工'
+              : mode === 'background'
+                ? '▦ 背景だけモザイク'
+                : '▦ モザイクを指定する'}
           </button>
           <p className="hint-s">
             元の写真は「戻す」で復元できます。加工するのは写真レイヤーだけです。
