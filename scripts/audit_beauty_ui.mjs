@@ -63,7 +63,7 @@ try {
   assert(dimensions.width >= 600 && dimensions.height >= 600);
   report.checks.push('PNG export with face effects');
 
-  await page.getByRole('button', { name: '閉じる' }).click();
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: 'ビューティーをすべて解除' }).click();
   const state3 = await page.evaluate(() => JSON.parse(localStorage.getItem('jomon-pix-work')).state);
   assert(!state3.elements.find((e) => e.type === 'image').beauty);
