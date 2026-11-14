@@ -1,6 +1,7 @@
 
 import type Konva from 'konva';
 import { useEditor } from '../store';
+import { sceneSrc } from './scenePresets';
 
 export const CANVAS_W = 800;
 export const CANVAS_H = 800;
@@ -17,7 +18,25 @@ const IMAGE_CHECK_INTERVAL = 80;
 // 表示対象の写真・画像スタンプが
 // 実際に描画可能な状態か確認する。
 function allImagesReady(stage: Konva.Stage): boolean {
-  const elements = useEditor.getState().elements;
+  const state = useEditor.getState();
+  const elements = state.elements;
+
+  // Scene images load asynchronously just like ordinary photo stickers.
+  // Never export a PNG with a blank backdrop while the selected scene is loading.
+  if (state.sceneBackground !== 'none') {
+    const node = stage.findOne('.scene-art');
+    if (!node || node.getClassName() !== 'Image') return false;
+    const image = (node as Konva.Image).image();
+    const source = sceneSrc(state.sceneBackground);
+    if (
+      !(image instanceof HTMLImageElement) ||
+      !image.complete ||
+      image.naturalWidth <= 0 ||
+      image.naturalHeight <= 0 ||
+      !source ||
+      !image.src.endsWith(source)
+    ) return false;
+  }
 
   return elements.every((el) => {
     if (el.hidden) return true;
