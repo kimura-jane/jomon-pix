@@ -7,6 +7,8 @@ const results = {
   date: new Date().toISOString(),
   steps: [],
   errors: [],
+  networkFailures: [],
+  badResponses: [],
   transmittedPhotos: false,
 };
 const browser = await webkit.launch({ headless: true });
@@ -18,6 +20,17 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 page.on('pageerror', (error) => results.errors.push(error.message));
+page.on('console', (message) => {
+  if (message.type() === 'error') results.errors.push('console: ' + message.text());
+});
+page.on('requestfailed', (request) => {
+  results.networkFailures.push({ url: request.url(), failure: request.failure() });
+});
+page.on('response', (response) => {
+  if (response.status() >= 400 && response.url().includes('mediapipe')) {
+    results.badResponses.push({ status: response.status(), url: response.url() });
+  }
+});
 page.on('request', (request) => {
   if (request.method() === 'POST' && !request.url().startsWith('http://127.0.0.1:4173')) {
     results.transmittedPhotos = true;
@@ -34,7 +47,13 @@ try {
   assert.equal(await skin.inputValue(), '100');
   results.steps.push('slider input');
   const start = Date.now();
-  await page.getByText('顔の加工を表示しています。').waitFor({ timeout: 60000 });
+  await page.waitForFunction(() => {
+    const message = document.querySelector('[role="status"]')?.textContent ?? '';
+    return message.includes('顔の加工を表示') || message.includes('顔認識を利用') || message.includes('顔を検出できません');
+  }, { timeout: 60000 });
+  const faceResult = await page.locator('[role="status"]').first().innerText();
+  results.faceResult = faceResult;
+  assert(faceResult.includes('顔の加工を表示'), 'Face processing failed on WebKit: ' + faceResult);
   results.firstPreviewMs = Date.now() - start;
   results.steps.push('local FaceLandmarker initialized on WebKit');
   await page.getByRole('button', { name: '保存', exact: true }).click();
@@ -52,6 +71,7 @@ try {
   results.status = 'success';
 } catch (error) {
   results.status = 'failure';
+  results.visibleStatus = await page.locator('[role="status"]').allTextContents().catch(() => []);
   results.errors.push(error.stack ?? String(error));
   throw error;
 } finally {
