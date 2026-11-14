@@ -58,6 +58,9 @@ def clean_stands(im: Image.Image, kind: str, art_id: str) -> Image.Image:
     if kind == "dogu" and art_id == "d02":
         # The white museum support under the clay replica's center.
         dr.rectangle((238, 348, 280, 511), fill=0)
+    if kind == "dogu" and art_id == "d07":
+        # Thin dark metal peg hanging below the original clay head.
+        dr.rectangle((237, 375, 276, 511), fill=0)
     rgba.putalpha(alpha)
     arr=np.asarray(rgba).copy()
     arr[:,:,:3][arr[:,:,3] == 0] = 0
