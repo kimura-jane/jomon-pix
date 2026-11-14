@@ -66,7 +66,9 @@ jobs:
               cursor+=n+12
           raw=zlib.decompress(data)
           assert len(raw)==1024*(1+1024*3),len(raw)
-          assert raw[0] == 0
+          # PNG accepts adaptive row filters 0..4; the selected JOMON
+          # artwork uses Pillow compression, not necessarily filter 0.
+          assert raw[0] in range(5), raw[0]
           with Path('ios/App/App/Info.plist').open('rb') as handle:
               info=plistlib.load(handle)
           assert info['CFBundleDisplayName']=='JOMON pix'
