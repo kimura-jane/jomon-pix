@@ -148,9 +148,11 @@ function useCommon(el: CanvasEl) {
 function ImageNode({
   el,
   draft,
+  attached,
 }: {
   el: ImageEl;
   draft?: ImageStroke;
+  attached: CanvasEl[];
 }) {
   const [img] = useImage(el.src, 'anonymous');
   const ref = useRef<Konva.Image>(null);
@@ -180,40 +182,45 @@ function ImageNode({
   ]);
 
   return (
-    <Group
-      {...common}
-      clipX={0}
-      clipY={0}
-      clipWidth={el.width}
-      clipHeight={el.height}
-    >
-      <KImage
-        ref={ref}
-        image={img}
-        width={el.width}
-        height={el.height}
-        filters={preset.filters}
-        {...preset.props}
-      />
-      {(el.drawings ?? []).map((stroke) => (
-        <Line
-          key={stroke.id}
-          {...penProps(stroke)}
-          opacity={
-            stroke.opacity * (stroke.penStyle === 'marker' ? 0.45 : 1)
-          }
-          listening={false}
+    <Group {...common}>
+      {/* 写真とペンは写真の縁で切り取る。スタンプ・文字は縁を越えて配置できる。 */}
+      <Group
+        clipX={0}
+        clipY={0}
+        clipWidth={el.width}
+        clipHeight={el.height}
+      >
+        <KImage
+          ref={ref}
+          image={img}
+          width={el.width}
+          height={el.height}
+          filters={preset.filters}
+          {...preset.props}
         />
+        {(el.drawings ?? []).map((stroke) => (
+          <Line
+            key={stroke.id}
+            {...penProps(stroke)}
+            opacity={
+              stroke.opacity * (stroke.penStyle === 'marker' ? 0.45 : 1)
+            }
+            listening={false}
+          />
+        ))}
+        {draft && (
+          <Line
+            {...penProps(draft)}
+            opacity={
+              draft.opacity * (draft.penStyle === 'marker' ? 0.45 : 1)
+            }
+            listening={false}
+          />
+        )}
+      </Group>
+      {attached.map((child) => (
+        <ElementNode key={child.id} el={child} />
       ))}
-      {draft && (
-        <Line
-          {...penProps(draft)}
-          opacity={
-            draft.opacity * (draft.penStyle === 'marker' ? 0.45 : 1)
-          }
-          listening={false}
-        />
-      )}
     </Group>
   );
 }
@@ -242,9 +249,11 @@ function StickerImageNode({
 export function ElementNode({
   el,
   draft,
+  attached = [],
 }: {
   el: CanvasEl;
   draft?: ImageStroke;
+  attached?: CanvasEl[];
 }) {
   const common = useCommon(el);
   const textRef = useRef<Konva.Text>(null);
@@ -273,7 +282,7 @@ export function ElementNode({
 
   // 写真
   if (el.type === 'image') {
-    return <ImageNode el={el} draft={draft} />;
+    return <ImageNode el={el} draft={draft} attached={attached} />;
   }
 
   // スタンプ
