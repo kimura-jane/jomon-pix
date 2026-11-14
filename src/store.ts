@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CanvasEl, Patch, PenStyle, Tab, Tool } from './types';
+import { isPhotoAttachment, toCanvasWorld, toPhotoLocal } from './lib/photoAttachments';
 
 export const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -53,6 +54,8 @@ type S = Snapshot & {
   update: (id: string, patch: Patch) => void;
   remove: (id: string) => void;
   duplicate: (id: string) => void;
+  attachToImage: (id: string, photoId: string) => boolean;
+  detachFromImage: (id: string) => boolean;
   move: (id: string, dir: Dir) => void;
   select: (id: string | null) => void;
 
@@ -260,15 +263,41 @@ export const useEditor = create<S>()(
 
         update: (id, patch) => {
           const current = get().elements;
-          if (!current.some((el) => el.id === id)) return;
+          const original = current.find((el) => el.id === id);
+          if (!original) return;
+
+          // 写真を切り抜いた場合、子の座標も1回のUndoで移動する。
+          // 通常の移動・拡大・回転は親Groupの変形に任せる。
+          const isCrop = original.type === 'image' &&
+            typeof patch.x === 'number' &&
+            typeof patch.y === 'number' &&
+            typeof patch.width === 'number' &&
+            typeof patch.height === 'number' &&
+            (patch.width !== original.width || patch.height !== original.height);
+
+          let childOffsetX = 0;
+          let childOffsetY = 0;
+          if (isCrop && original.type === 'image') {
+            const dx = (patch.x as number) - original.x;
+            const dy = (patch.y as number) - original.y;
+            const rad = original.rotation * Math.PI / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            childOffsetX = (cos * dx + sin * dy) /
+              (Math.abs(original.scaleX) > 0.0001 ? original.scaleX : 1);
+            childOffsetY = (-sin * dx + cos * dy) /
+              (Math.abs(original.scaleY) > 0.0001 ? original.scaleY : 1);
+          }
 
           commit(
             {
-              elements: current.map((el) =>
-                el.id === id
-                  ? ({ ...el, ...patch } as CanvasEl)
-                  : el,
-              ),
+              elements: current.map((el) => {
+                if (el.id === id) return { ...el, ...patch } as CanvasEl;
+                if (isCrop && isPhotoAttachment(el) && el.parentImageId === id) {
+                  return { ...el, x: el.x - childOffsetX, y: el.y - childOffsetY };
+                }
+                return el;
+              }),
             },
             id,
           );
@@ -276,16 +305,30 @@ export const useEditor = create<S>()(
 
         remove: (id) => {
           const current = get();
-          if (!current.elements.some((el) => el.id === id)) return;
+          const target = current.elements.find((el) => el.id === id);
+          if (!target) return;
 
+          // 写真を消す場合、紐づく文字・スタンプも同時に消す。
+          // Undoではすべて一括で復元する。
+          const removed = new Set([id]);
+          if (target.type === 'image') {
+            current.elements.forEach((el) => {
+              if (isPhotoAttachment(el) && el.parentImageId === id) {
+                removed.add(el.id);
+              }
+            });
+          }
           commit({
-            elements: current.elements.filter((el) => el.id !== id),
+            elements: current.elements.filter((el) => !removed.has(el.id)),
           });
-          if (current.selectedId === id) set({ selectedId: null });
+          if (current.selectedId && removed.has(current.selectedId)) {
+            set({ selectedId: null });
+          }
         },
 
         duplicate: (id) => {
-          const el = get().elements.find((item) => item.id === id);
+          const elements = get().elements;
+          const el = elements.find((item) => item.id === id);
           if (!el) return;
 
           const copy = {
@@ -296,8 +339,63 @@ export const useEditor = create<S>()(
             locked: false,
           } as CanvasEl;
 
-          commit({ elements: [...get().elements, copy] });
+          const children = el.type === 'image'
+            ? elements
+                .filter((item) =>
+                  isPhotoAttachment(item) && item.parentImageId === el.id,
+                )
+                .map((item) => ({
+                  ...item,
+                  id: newId(),
+                  parentImageId: copy.id,
+                  locked: false,
+                }) as CanvasEl)
+            : [];
+
+          commit({ elements: [...elements, copy, ...children] });
           set({ selectedId: copy.id });
+        },
+
+        attachToImage: (id, photoId) => {
+          const elements = get().elements;
+          const child = elements.find((el) => el.id === id);
+          const photo = elements.find((el) => el.id === photoId);
+          if (!child || !isPhotoAttachment(child) ||
+              !photo || photo.type !== 'image' || photo.hidden || photo.locked ||
+              child.locked || child.parentImageId === photo.id) {
+            return false;
+          }
+
+          // 既に別の写真に属する場合、一度世界座標へ戻す。
+          const old = elements.find((el) => el.id === child.parentImageId);
+          const globalChild = old?.type === 'image'
+            ? toCanvasWorld(child, old)
+            : { ...child, parentImageId: undefined };
+          const attached = toPhotoLocal(globalChild, photo);
+
+          commit({
+            elements: elements.map((el) => el.id === id ? attached : el),
+          });
+          return true;
+        },
+
+        detachFromImage: (id) => {
+          const elements = get().elements;
+          const child = elements.find((el) => el.id === id);
+          if (!child || !isPhotoAttachment(child) ||
+              !child.parentImageId || child.locked) {
+            return false;
+          }
+
+          const photo = elements.find((el) => el.id === child.parentImageId);
+          const detached = photo?.type === 'image'
+            ? toCanvasWorld(child, photo)
+            : { ...child, parentImageId: undefined };
+
+          commit({
+            elements: elements.map((el) => el.id === id ? detached : el),
+          });
+          return true;
         },
 
         move: (id, dir) => {
@@ -407,11 +505,11 @@ export const useEditor = create<S>()(
             return true;
           }
 
-          const elements = state.elements.map((el) => ({
-            ...el,
-            x: el.x - x,
-            y: el.y - y,
-          })) as CanvasEl[];
+          const elements = state.elements.map((el) =>
+            isPhotoAttachment(el) && el.parentImageId
+              ? el
+              : ({ ...el, x: el.x - x, y: el.y - y } as CanvasEl),
+          );
 
           commit({
             elements,
