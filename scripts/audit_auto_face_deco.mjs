@@ -33,46 +33,57 @@ page.on('request', (req) => {
 // The editor migrated to IndexedDB to support large photos. Wait for a
 // COMMITTED autosave and then read the project's persisted state, not the
 // obsolete localStorage path (which is now a recovery-only legacy copy).
-const readState = async () => {
-  await page.getByText('自動保存済み', { exact: false })
-    .waitFor({ timeout: 15000 });
-  return page.evaluate(async () => {
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('jomon-pix-projects-v1', 1);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    try {
-      const stored = await new Promise((resolve, reject) => {
-        const transaction = db.transaction('work', 'readonly');
-        let value;
-        const request = transaction.objectStore('work').get('jomon-pix-work');
-        request.onsuccess = () => { value = request.result; };
-        transaction.oncomplete = () => resolve(value);
-        transaction.onerror = () => reject(transaction.error);
-      });
-      if (typeof stored !== 'string') {
-        throw new Error('No committed IndexedDB project was found');
-      }
-      return JSON.parse(stored).state;
-    } finally {
-      db.close();
-    }
+// Read actual committed work instead of relying on UI message text.
+const readState = async () => page.evaluate(async () => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('jomon-pix-projects-v1', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
   });
+  try {
+    const stored = await new Promise((resolve, reject) => {
+      const transaction = db.transaction('work', 'readonly');
+      let value;
+      const request = transaction.objectStore('work').get('jomon-pix-work');
+      request.onsuccess = () => { value = request.result; };
+      transaction.oncomplete = () => resolve(value);
+      transaction.onerror = () => reject(transaction.error);
+    });
+    return typeof stored === 'string' ? JSON.parse(stored).state : null;
+  } finally {
+    db.close();
+  }
+});
+const waitForState = async (condition, label) => {
+  const deadline = Date.now() + 65000;
+  while (Date.now() < deadline) {
+    const state = await readState();
+    if (state && condition(state)) return state;
+    await page.waitForTimeout(200);
+  }
+  throw new Error(`Timed out waiting for saved state: ${label}`);
 };
 const images = (s) => s.elements.filter((x) => x.type === 'image');
 const stickers = (s) => s.elements.filter((x) => x.type === 'sticker');
 try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/', { waitUntil: 'networkidle' });
+  // No-photo guidance is visible even though automatic placement is disabled.
+  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.getByRole('status').filter({ hasText: '先に写真を追加してください。' })
+    .waitFor({ timeout: 15000 });
+  assert.equal(await page.getByRole('button', { name: 'ねこ耳を自動配置' }).isDisabled(), true);
+  report.checks.push('No-photo guidance is displayed before disabled face stickers');
+  await page.getByRole('button', { name: /画像/ }).first().click();
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/face-deco-portrait.jpg');
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
 
-  await page.getByText('顔を1人認識しました').waitFor({ timeout: 65000 });
   assert.equal(await page.getByRole('button', { name: /セットを自動配置/ }).count(), 0);
-  await page.getByRole('button', { name: 'ねこ耳を自動配置' }).click();
-  await page.getByText(/左から1人目に「ねこ耳」を1個配置しました/).waitFor({ timeout: 65000 });
-  const state = await readState();
+  await page.getByRole('button', { name: 'ねこ耳を自動配置' }).click({ timeout: 65000 });
+  const state = await waitForState(
+    (saved) => images(saved).length === 1 && stickers(saved).length === 1,
+    'single-face cat-ear placement',
+  );
   assert.equal(images(state).length, 1);
   assert.equal(stickers(state).length, 1);
   const first = stickers(state)[0];
@@ -83,15 +94,19 @@ try {
   await page.screenshot({ path: `${output}/face-deco-${name}-single.png`, fullPage: true });
 
   await page.getByRole('button', { name: '戻す' }).click();
-  assert.equal(stickers(await readState()).length, 0);
+  await waitForState((saved) => stickers(saved).length === 0, 'undo');
   await page.getByRole('button', { name: 'やり直す' }).click();
-  assert.equal(stickers(await readState()).length, 1);
+  await waitForState((saved) => stickers(saved).length === 1, 'redo');
   report.checks.push('Undo and redo affect exactly one sticker');
 
   await page.getByRole('button', { name: '配置済みスタンプ1を選択' }).click();
   await page.getByRole('slider', { name: 'スタンプの大きさ' }).focus();
   await page.keyboard.press('End');
-  const resized = stickers(await readState())[0];
+  const resized = stickers(await waitForState(
+    (saved) => stickers(saved).length === 1 &&
+      stickers(saved)[0].scaleX * stickers(saved)[0].size > first.scaleX * first.size,
+    'sticker resize',
+  ))[0];
   assert(resized.scaleX * resized.size > first.scaleX * first.size);
   report.checks.push('Sticker remains independently resizable');
 
@@ -117,22 +132,29 @@ try {
     buffer: Buffer.from(data.split(',')[1], 'base64'),
   });
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
-  await page.getByText(/2人の顔を認識しました/).waitFor({ timeout: 65000 });
-  const targetPhoto = images(await readState()).at(-1);
+  await page.getByRole('button', { name: '左から2人目', exact: true })
+    .waitFor({ timeout: 65000 });
+  const targetPhoto = images(await waitForState(
+    (saved) => images(saved).length === 2, 'second photo autosave',
+  )).at(-1);
   assert.equal(await page.getByRole('button', { name: '左から1人目', exact: true }).count(), 1);
   assert.equal(await page.getByRole('button', { name: '左から2人目', exact: true }).count(), 1);
 
   await page.getByRole('button', { name: 'いぬの鼻を自動配置' }).click();
-  await page.getByText(/左から1人目に「いぬの鼻」を1個配置しました/).waitFor({ timeout: 65000 });
-  const firstGroup = stickers(await readState()).filter((x) => x.parentImageId === targetPhoto.id);
+  const firstGroup = stickers(await waitForState(
+    (saved) => stickers(saved).filter((x) => x.parentImageId === targetPhoto.id).length === 1,
+    'left-face nose',
+  )).filter((x) => x.parentImageId === targetPhoto.id);
   assert.equal(firstGroup.length, 1, 'Two-face photo must NOT duplicate one stamp on both people');
   assert.equal(firstGroup[0].label, 'いぬの鼻');
   report.checks.push('TWO people detected, but first tap adds ONE nose on leftmost face');
 
   await page.getByRole('button', { name: '左から2人目', exact: true }).click();
   await page.getByRole('button', { name: 'ねこ耳を自動配置' }).click();
-  await page.getByText(/左から2人目に「ねこ耳」を1個配置しました/).waitFor({ timeout: 65000 });
-  const both = stickers(await readState()).filter((x) => x.parentImageId === targetPhoto.id);
+  const both = stickers(await waitForState(
+    (saved) => stickers(saved).filter((x) => x.parentImageId === targetPhoto.id).length === 2,
+    'right-face ear',
+  )).filter((x) => x.parentImageId === targetPhoto.id);
   assert.equal(both.length, 2);
   assert.equal(both[1].label, 'ねこ耳');
   const horizontalDelta = Math.abs(
@@ -145,7 +167,9 @@ try {
 
   await page.getByRole('button', { name: '手動配置', exact: true }).click();
   await page.getByRole('button', { name: 'ねこの鼻を追加' }).click();
-  const manual = stickers(await readState()).at(-1);
+  const manual = stickers(await waitForState(
+    (saved) => stickers(saved).length === 4, 'manual placement',
+  )).at(-1);
   assert.equal(manual.label, 'ねこの鼻');
   assert.equal(manual.parentImageId, targetPhoto.id);
   report.checks.push('Manual placement remains selectable for a single stamp');
