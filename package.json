@@ -16,7 +16,8 @@
     "react-dom": "^18.3.1",
     "react-konva": "^18.2.10",
     "use-image": "^1.1.1",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.0",
+    "@mediapipe/tasks-vision": "1.2.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
