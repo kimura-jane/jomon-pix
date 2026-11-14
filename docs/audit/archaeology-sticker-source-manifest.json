@@ -1,0 +1,202 @@
+[
+  {
+    "id": "h01",
+    "kind": "haniwa",
+    "label": "武人埴輪・立像",
+    "file": "public/stickers/archaeology/v1/haniwa/h01.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45545",
+    "object_id": 45545,
+    "license": "CC0"
+  },
+  {
+    "id": "h02",
+    "kind": "haniwa",
+    "label": "女性埴輪・結髪",
+    "file": "public/stickers/archaeology/v1/haniwa/h02.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/47272",
+    "object_id": 47272,
+    "license": "CC0"
+  },
+  {
+    "id": "h03",
+    "kind": "haniwa",
+    "label": "家形埴輪",
+    "file": "public/stickers/archaeology/v1/haniwa/h03.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45843",
+    "object_id": 45843,
+    "license": "CC0"
+  },
+  {
+    "id": "h04",
+    "kind": "haniwa",
+    "label": "猪形埴輪・頭部",
+    "file": "public/stickers/archaeology/v1/haniwa/h04.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/62462",
+    "object_id": 62462,
+    "license": "CC0"
+  },
+  {
+    "id": "h05",
+    "kind": "haniwa",
+    "label": "猪の子埴輪",
+    "file": "public/stickers/archaeology/v1/haniwa/h05.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44834",
+    "object_id": 44834,
+    "license": "CC0"
+  },
+  {
+    "id": "h06",
+    "kind": "haniwa",
+    "label": "武人埴輪・頭部",
+    "file": "public/stickers/archaeology/v1/haniwa/h06.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44833",
+    "object_id": 44833,
+    "license": "CC0"
+  },
+  {
+    "id": "h07",
+    "kind": "haniwa",
+    "label": "女性埴輪・祭祀",
+    "file": "public/stickers/archaeology/v1/haniwa/h07.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/53156",
+    "object_id": 53156,
+    "license": "CC0"
+  },
+  {
+    "id": "h08",
+    "kind": "haniwa",
+    "label": "馬形埴輪",
+    "file": "public/stickers/archaeology/v1/haniwa/h08.webp",
+    "museum": "Cleveland",
+    "source_url": "https://clevelandart.org/art/1957.27",
+    "object_id": 134753,
+    "license": "CC0"
+  },
+  {
+    "id": "h09",
+    "kind": "haniwa",
+    "label": "盾形埴輪",
+    "file": "public/stickers/archaeology/v1/haniwa/h09.webp",
+    "museum": "Cleveland",
+    "source_url": "https://clevelandart.org/art/1999.170",
+    "object_id": 160882,
+    "license": "CC0"
+  },
+  {
+    "id": "h10",
+    "kind": "haniwa",
+    "label": "女性人物埴輪",
+    "file": "public/stickers/archaeology/v1/haniwa/h10.webp",
+    "museum": "Cleveland",
+    "source_url": "https://clevelandart.org/art/1962.39",
+    "object_id": 138495,
+    "license": "CC0"
+  },
+  {
+    "id": "d01",
+    "kind": "dogu",
+    "label": "小型土偶",
+    "file": "public/stickers/archaeology/v1/dogu/d01.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/53625",
+    "object_id": 53625,
+    "license": "CC0"
+  },
+  {
+    "id": "d02",
+    "kind": "dogu",
+    "label": "遮光器土偶・模造",
+    "file": "public/stickers/archaeology/v1/dogu/d02.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45532",
+    "object_id": 45532,
+    "license": "CC0"
+  },
+  {
+    "id": "d03",
+    "kind": "dogu",
+    "label": "土偶頭部・縄文後期",
+    "file": "public/stickers/archaeology/v1/dogu/d03.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45519",
+    "object_id": 45519,
+    "license": "CC0"
+  },
+  {
+    "id": "d04",
+    "kind": "dogu",
+    "label": "腕を広げる土偶",
+    "file": "public/stickers/archaeology/v1/dogu/d04.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44824",
+    "object_id": 44824,
+    "license": "CC0"
+  },
+  {
+    "id": "d05",
+    "kind": "dogu",
+    "label": "遮光器土偶・頭部",
+    "file": "public/stickers/archaeology/v1/dogu/d05.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45533",
+    "object_id": 45533,
+    "license": "CC0"
+  },
+  {
+    "id": "d06",
+    "kind": "dogu",
+    "label": "土偶顔面・大きな眉",
+    "file": "public/stickers/archaeology/v1/dogu/d06.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45530",
+    "object_id": 45530,
+    "license": "CC0"
+  },
+  {
+    "id": "d07",
+    "kind": "dogu",
+    "label": "土偶頭部・口開き",
+    "file": "public/stickers/archaeology/v1/dogu/d07.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/45531",
+    "object_id": 45531,
+    "license": "CC0"
+  },
+  {
+    "id": "d08",
+    "kind": "dogu",
+    "label": "女性立像土偶",
+    "file": "public/stickers/archaeology/v1/dogu/d08.webp",
+    "museum": "The Met",
+    "source_url": "https://www.metmuseum.org/art/collection/search/44822",
+    "object_id": 44822,
+    "license": "CC0"
+  },
+  {
+    "id": "d09",
+    "kind": "dogu",
+    "label": "装飾土偶・縄文",
+    "file": "public/stickers/archaeology/v1/dogu/d09.webp",
+    "museum": "Wikimedia Commons (photograph)",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Periodo_jomon,_dogu,_2000-1000_a.c..JPG",
+    "author": "Hiart",
+    "license": "CC0 1.0"
+  },
+  {
+    "id": "d10",
+    "kind": "dogu",
+    "label": "ギメ美術館の土偶",
+    "file": "public/stickers/archaeology/v1/dogu/d10.webp",
+    "museum": "Wikimedia Commons (photograph)",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Figurine_Dogu_Jomon_Mus%C3%A9e_Guimet_70608_2.jpg",
+    "author": "Vassil",
+    "license": "Public Domain"
+  }
+]
