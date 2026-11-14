@@ -35,6 +35,8 @@ export function BeautyPanel() {
     (photos.length === 1 ? photos[0] : undefined);
   const beauty = photo?.beauty ?? DEFAULT_BEAUTY;
   const status = useBeautyStatus((store) => photo ? store.byImage[photo.id] : undefined);
+  const comparing = useBeautyStatus((store) => store.comparingId === photo?.id);
+  const setComparing = useBeautyStatus((store) => store.setComparing);
   const hasValue = BEAUTY_FIELDS.some((key) => beauty[key] > 0);
 
   const change = (field: keyof BeautySettings, value: number) => {
@@ -111,6 +113,45 @@ export function BeautyPanel() {
             }}>
               {status.message}
             </p>
+          )}
+
+          {hasValue && status?.state === 'ready' && (
+            <div style={{
+              margin: '10px 0', padding: 10, borderRadius: 12,
+              background: '#fff4fb', border: '1px solid #f1c9e3',
+            }}>
+              <button
+                type="button"
+                className="chip"
+                aria-pressed={comparing}
+                style={{
+                  display: 'block', width: '100%', minHeight: 44,
+                  touchAction: 'none', userSelect: 'none',
+                  background: comparing ? '#e9d3e5' : '#ffffff',
+                  borderColor: '#e56cae', fontWeight: 700,
+                }}
+                onPointerDown={() => setComparing(photo.id, true)}
+                onPointerUp={() => setComparing(photo.id, false)}
+                onPointerCancel={() => setComparing(photo.id, false)}
+                onPointerLeave={() => setComparing(photo.id, false)}
+                onTouchStart={() => setComparing(photo.id, true)}
+                onTouchEnd={() => setComparing(photo.id, false)}
+                onTouchCancel={() => setComparing(photo.id, false)}
+                onKeyDown={(event) => {
+                  if (event.key === ' ' || event.key === 'Enter') {
+                    setComparing(photo.id, true);
+                  }
+                }}
+                onKeyUp={() => setComparing(photo.id, false)}
+                onBlur={() => setComparing(photo.id, false)}
+              >
+                {comparing ? '加工前を表示中（指を離すと加工後）' : '長押しで加工前と比較'}
+              </button>
+              <p className="hint-s" style={{ margin: '6px 0 0' }}>
+                押している間は元の顔に戻り、離すと加工後の顔を表示します。
+                加工設定や保存済みの作品は変更しません。
+              </p>
+            </div>
           )}
 
           <div style={{ display: 'grid', gap: 13, margin: '12px 0' }}>
