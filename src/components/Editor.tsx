@@ -9,6 +9,7 @@ import {
 } from 'react-konva';
 import { useEditor, newId } from '../store';
 import { ElementNode } from './ElementNode';
+import { SceneBackdrop, SocialOverlay } from './SceneLayers';
 import { stageRef } from '../lib/stageRef';
 import type { CanvasEl, ImageEl, ImageStroke } from '../types';
 
@@ -380,6 +381,8 @@ export function Editor() {
     elements,
     selectedId,
     bgColor,
+    sceneBackground,
+    socialTemplate,
     canvasWidth,
     canvasHeight,
     tool,
@@ -875,6 +878,7 @@ export function Editor() {
               height={canvasHeight}
               fill={bgColor}
             />
+            <SceneBackdrop scene={sceneBackground} width={canvasWidth} height={canvasHeight} />
 
             {elements.map((el) => {
               // 子レイヤーは親写真のKonva.Group内で描画する。
@@ -905,6 +909,8 @@ export function Editor() {
                 />
               );
             })}
+
+            <SocialOverlay kind={socialTemplate} width={canvasWidth} height={canvasHeight} />
 
             <Transformer
               ref={trRef}
