@@ -48,6 +48,7 @@ export function PhotoFrame({ width: w, height: h, frame }: Props) {
   const y = t / 2;
   const innerW = Math.max(0, w - t);
   const innerH = Math.max(0, h - t);
+  const filmHoles = Math.max(2, Math.floor(w / (t * 1.9)));
 
   return (
     <Group listening={false}>
@@ -92,10 +93,10 @@ export function PhotoFrame({ width: w, height: h, frame }: Props) {
       {frame.style === 'film' && (
         <>
           {bars(w, h, t * 1.75, t * 1.75, t * 0.55, t * 0.55, '#17151a')}
-          {Array.from({ length: Math.max(2, Math.floor(w / (t * 1.9))) }, (_, index, all) => {
+          {Array.from({ length: filmHoles }, (_, index) => {
             const holeW = Math.max(3, t * 0.9);
             const holeH = Math.max(2, t * 0.58);
-            const holeX = (index + 0.5) * w / all.length - holeW / 2;
+            const holeX = (index + 0.5) * w / filmHoles - holeW / 2;
             return (
               <Group key={index}>
                 <Rect x={holeX} y={t * 0.33} width={holeW} height={holeH}
