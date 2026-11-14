@@ -49,8 +49,11 @@ export function useBeautyPreview(
             });
             return;
           }
-          setReady({ source, signature, image: output });
-          setResult(id, { state: 'ready', message: '顔の加工を表示しています。' });
+          setReady({ source, signature, image: output.canvas });
+          setResult(id, {
+            state: 'ready',
+            message: `顔の加工を表示しています。（${output.faceCount}人の顔を検出）`,
+          });
         } catch (error) {
           if (cancelled) return;
           console.error('[JOMON pix] Beauty processing failed:', error);
