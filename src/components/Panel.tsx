@@ -14,11 +14,11 @@ import {
 } from '../lib/stickers';
 import {
   FACE_STICKERS,
-  VARIETY_DOG_STICKERS,
   VARIETY_HANIWA_STICKERS,
   VARIETY_DOGU_STICKERS,
 } from '../lib/stickerPacks';
 import { SUNGLASSES_STICKERS } from '../lib/glassesStickers';
+import { TAF_DOG_STICKERS } from '../lib/nftDogs';
 import { removeBg } from '../lib/removeBg';
 import { PhotoCropModal } from './PhotoCropModal';
 import { CanvasCropModal } from './CanvasCropModal';
@@ -72,16 +72,11 @@ const CANVAS_PRESETS: {
   { id: 'photo', label: '写真に合わせる' },
 ];
 
-const DOG_EMOJI = [
-  '🐶', '🐕', '🐩', '🦮',
-  '🐕‍🦺', '🐾', '🦴', '🌭',
-];
-
 const EXTRA_EMOJI = [
   '🐰', '🫶', '🥳', '😂', '😍', '🙈',
 ];
 
-// 内蔵スタンプ全88種類
+// 顔デコ・TAF DOG・サングラスなどのスタンプカテゴリ
 const STAMP_GROUPS: {
   label: string;
   items: LibrarySticker[];
@@ -95,14 +90,17 @@ const STAMP_GROUPS: {
     items: SUNGLASSES_STICKERS,
   },
   ...STICKER_CATEGORIES.map((category) => {
+    if (category.label === '犬') {
+      // 犬はinu由来の透明NFTスタンプ20匹だけにする。
+      return { label: category.label, items: TAF_DOG_STICKERS };
+    }
+
     const additional =
-      category.label === '犬'
-        ? VARIETY_DOG_STICKERS
-        : category.label === '埴輪'
-          ? VARIETY_HANIWA_STICKERS
-          : category.label === '土偶'
-            ? VARIETY_DOGU_STICKERS
-            : [];
+      category.label === '埴輪'
+        ? VARIETY_HANIWA_STICKERS
+        : category.label === '土偶'
+          ? VARIETY_DOGU_STICKERS
+          : [];
 
     return {
       label: category.label,
@@ -992,12 +990,7 @@ function StampTab({
     (item) => item.label === sub,
   );
 
-  const extraEmoji =
-    sub === '犬'
-      ? DOG_EMOJI
-      : sub === '絵文字'
-        ? EXTRA_EMOJI
-        : [];
+  const extraEmoji = sub === '絵文字' ? EXTRA_EMOJI : [];
 
   const sliderKeys = [
     'ArrowLeft',
@@ -1359,11 +1352,13 @@ function StampTab({
 
       {group && (
         <>
-          {(sub === '顔デコ' || sub === 'サングラス') && (
+          {(sub === '顔デコ' || sub === 'サングラス' || sub === '犬') && (
             <p className="hint-s">
-              {sub === 'サングラス'
-                ? '26種類から選べます。写真の顔に重ねて位置・大きさ・角度を調整できます。'
-                : '写真の顔に重ねて使えます。位置と大きさを調整してね。'}
+              {sub === '犬'
+                ? 'TAF DOGのNFT原画から犬だけを切り抜いた20匹。背景なしで貼れます。'
+                : sub === 'サングラス'
+                  ? '26種類から選べます。写真の顔に重ねて位置・大きさ・角度を調整できます。'
+                  : '写真の顔に重ねて使えます。位置と大きさを調整してね。'}
             </p>
           )}
 
@@ -1398,8 +1393,7 @@ function StampTab({
                   touchAction: 'manipulation',
                 }}
               >
-                {sticker.kind ===
-                  'svg' &&
+                {(sticker.kind === 'svg' || sticker.kind === 'image') &&
                 sticker.src ? (
                   <img
                     src={sticker.src}
