@@ -157,6 +157,18 @@ const ALL_FACE_STICKERS: LibrarySticker[] = [
     <path d="M18 98 L77 105 M22 120 L77 114 M31 141 L79 123 M182 98 L123 105 M178 120 L123 114 M169 141 L121 123" stroke="${outline}" stroke-width="5" fill="none" stroke-linecap="round"/>
   `),
 
+  make('face-cat-nose', 'ねこの鼻', `
+    <path d="M65 86 Q100 75 135 86 Q132 105 100 122 Q68 105 65 86Z" fill="#f087a1" stroke="${outline}" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M100 121 L100 137 M100 137 Q89 149 79 138 M100 137 Q111 149 121 138" fill="none" stroke="${outline}" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="86" cy="92" rx="7" ry="4" fill="#ffd3df" opacity=".85"/>
+  `),
+
+  make('face-dog-nose', 'いぬの鼻', `
+    <path d="M52 83 Q100 55 148 83 Q155 104 124 121 L108 132 Q100 136 92 132 L76 121 Q45 104 52 83Z" fill="#332c2f" stroke="#57464a" stroke-width="6" stroke-linejoin="round"/>
+    <ellipse cx="81" cy="86" rx="15" ry="7" fill="#8d757a" opacity=".7"/>
+    <path d="M100 130 L100 148 Q85 163 72 146 M100 148 Q115 163 128 146" fill="none" stroke="#59474a" stroke-width="5" stroke-linecap="round"/>
+  `),
+
   make('face-pig-snout', 'ぶた鼻', `
     <ellipse cx="100" cy="109" rx="43" ry="29" fill="#ffb4c7" stroke="#b76680" stroke-width="6"/>
     <ellipse cx="86" cy="109" rx="8" ry="13" fill="#dc7393"/>
