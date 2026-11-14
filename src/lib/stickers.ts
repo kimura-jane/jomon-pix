@@ -1,7 +1,7 @@
 export type LibrarySticker = {
   id: string;
   label: string;
-  kind: 'svg' | 'emoji';
+  kind: 'svg' | 'image' | 'emoji';
   src?: string;
   emoji?: string;
 };
