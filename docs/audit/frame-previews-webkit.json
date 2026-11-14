@@ -1,0 +1,12 @@
+{
+  "browser": "webkit",
+  "checks": [
+    "scene: all 7 actual rendered thumbnails are visible",
+    "social: all 7 actual rendered thumbnails are visible",
+    "Social preview click applies live template",
+    "border: all 8 actual rendered thumbnails are visible",
+    "Before photo: 8 frame references visible but disabled; after adding photo: border selected"
+  ],
+  "errors": [],
+  "status": "success"
+}
