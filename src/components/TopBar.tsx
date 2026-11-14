@@ -458,17 +458,17 @@ export function TopBar() {
         }}>
           <div className="modal" onClick={(event) => event.stopPropagation()}
             style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
-            <h3>作品データ</h3>
-             <p className="hint">あとから編集できる作品ファイル（JSON）</p>
+            <h3>作品のバックアップ</h3>
+             <p className="hint">編集できる状態で作品を保存・復元</p>
 
             <button type="button" className="btn primary big"
               disabled={workBusy} onClick={exportWork}>
-              {workBusy ? '処理中…' : '作品をバックアップ（JSON）'}
+              {workBusy ? '処理中…' : '作品をバックアップ'}
             </button>
 
             <button type="button" className="btn big"
               disabled={workBusy} onClick={() => importRef.current?.click()}>
-              バックアップから復元
+              バックアップを読み込む
             </button>
 
             <input type="file" ref={importRef} accept=".json,application/json"
@@ -480,7 +480,7 @@ export function TopBar() {
               }}
             />
 
-            <p className="hint">※復元すると今の作品が置き換わります。JSONには写真も含まれます。</p>
+            <p className="hint">※復元すると今の作品が置き換わります。バックアップには写真も含まれます。</p>
 
             <button type="button" className="btn big ghost" disabled={workBusy}
               onClick={() => setWorkOpen(false)}>
