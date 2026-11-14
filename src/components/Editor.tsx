@@ -244,7 +244,7 @@ function FloatingLayers({
     observer.observe(parent);
     observer.observe(panel);
     return () => observer.disconnect();
-  }, [elements.length > 0]);
+  }, [elements.some((element) => element.type !== 'line')]);
 
   const startLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
