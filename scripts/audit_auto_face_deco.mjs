@@ -79,6 +79,8 @@ try {
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
 
   assert.equal(await page.getByRole('button', { name: /セットを自動配置/ }).count(), 0);
+  await page.getByRole('status').filter({ hasText: '顔を1人認識しました' })
+    .waitFor({ timeout: 65000 });
   await page.getByRole('button', { name: 'ねこ耳を自動配置' }).click({ timeout: 65000 });
   const state = await waitForState(
     (saved) => images(saved).length === 1 && stickers(saved).length === 1,
@@ -133,6 +135,8 @@ try {
   });
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
   await page.getByRole('button', { name: '左から2人目', exact: true })
+    .waitFor({ timeout: 65000 });
+  await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })
     .waitFor({ timeout: 65000 });
   const targetPhoto = images(await waitForState(
     (saved) => images(saved).length === 2, 'second photo autosave',
