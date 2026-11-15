@@ -169,7 +169,12 @@ function openDatabase(): Promise<IDBDatabase> {
       };
       request.onsuccess = () => {
         const db = request.result;
-        db.onversionchange = () => db.close();
+        // Another tab may upgrade/delete this database. The old connection
+        // becomes unusable and must not be reused for later saves.
+        db.onversionchange = () => {
+          db.close();
+          databasePromise = null;
+        };
         resolve(db);
       };
       request.onerror = () => reject(request.error ?? new Error('IndexedDB open failed'));
