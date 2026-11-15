@@ -8,7 +8,7 @@ export async function removeBg(src: string): Promise<string> {
     ? {
         publicPath: new URL(
           `${import.meta.env.BASE_URL}offline-background/`,
-          window.location.origin,
+          document.baseURI,
         ).href,
         model: 'isnet_fp16' as const,
       }

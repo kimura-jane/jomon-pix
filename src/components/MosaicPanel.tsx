@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor } from '../store';
 import { removeBg } from '../lib/removeBg';
+import { isNativeApp } from '../lib/nativeFileShare';
 import type { ImageEl } from '../types';
 import { getPhotoLabel } from '../lib/photoAttachments';
 
@@ -287,7 +288,8 @@ function MosaicDialog({
     setWorking(true);
 
     try {
-      // 他の加工ではAIモデルを読み込まない。通信が必要なのは「背景だけ」。
+      // 他の加工ではAI不要。「背景だけ」は端末内AIで被写体を判定する。
+      // Web版のみモデル取得に通信を利用する場合がある。
       let foreground: HTMLImageElement | null = null;
       if (mode === 'background') {
         try {
@@ -296,7 +298,9 @@ function MosaicDialog({
         } catch (error) {
           console.error('[JOMON pix] 背景だけモザイク: 被写体の検出に失敗', error);
           throw new Error(
-            '被写体の自動判定に失敗しました。通信状態や端末の空きメモリを確認して再試行してください。元の写真は変更していません。',
+            isNativeApp()
+              ? '被写体の自動判定に失敗しました。端末の空きメモリを確認して再試行してください。元の写真は変更していません。'
+              : '被写体の自動判定に失敗しました。通信状態や端末の空きメモリを確認して再試行してください。元の写真は変更していません。',
           );
         }
       }
@@ -366,7 +370,9 @@ function MosaicDialog({
           <p className="hint-s" style={{ margin: 0 }}>
             {mode === 'rectangle' ? 'ドラッグで範囲指定'
               : mode === 'brush' ? '指で塗る'
-              : '初回はAIモデルを取得します。※AIの判定には誤差があります。'}
+              : isNativeApp()
+                ? '端末内AIで背景を判定します。'
+                : '初回はAIモデルを取得します。※AIの判定には誤差があります。'}
           </p>
         )}
 
