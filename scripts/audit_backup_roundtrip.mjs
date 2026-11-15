@@ -168,6 +168,70 @@ try {
   );
   report.checks.push('Path traversal rejected without overwriting project');
 
+  // Real user-facing vector stickers are encoded SVG data URLs with leading
+  // whitespace. Both must survive backup and restore (on both asset bases).
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.getByRole('button', { name: 'サングラス', exact: true }).click();
+  await page.getByRole('button', { name: '定番ブラックを追加' }).click();
+  await page.getByRole('button', { name: '顔デコ', exact: true }).click();
+  await page.getByRole('button', { name: '手動配置', exact: true }).click();
+  await page.getByRole('button', { name: 'ねこ耳を追加' }).click();
+  const withSvg = onlyStickers(await waitWork(
+    (work) => onlyStickers(work).length === 5, 'vector stickers saved',
+  ));
+  const svgSources = withSvg.slice(-2).map((element) => element.src);
+  assert(svgSources.every((source) =>
+    /^data:image\/svg\+xml;charset=UTF-8,%0A/i.test(source)));
+  await page.getByRole('button', { name: '作品のバックアップと復元' }).click();
+  const vectorDownloadPromise = page.waitForEvent('download', { timeout: 30000 });
+  await page.getByRole('button', { name: '作品をバックアップ', exact: true }).click();
+  const vectorDownload = await vectorDownloadPromise;
+  const vectorBackup = JSON.parse(fs.readFileSync(await vectorDownload.path(), 'utf8'));
+  assert.equal(vectorBackup.artwork.elements.length, 5);
+  const previousVectorSuccess = report.dialogs.filter((d) => d.includes('作品を復元しました')).length;
+  await page.locator('input[type="file"][accept=".json,application/json"]').setInputFiles({
+    name: 'with-vectors.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(vectorBackup)),
+  });
+  await page.getByRole('button', { name: '作品をバックアップ', exact: true })
+    .waitFor({ state: 'hidden', timeout: 30000 });
+  const restoredVectors = onlyStickers(await waitWork(
+    (work) => onlyStickers(work).length === 5 &&
+      onlyStickers(work).slice(-2).every((el, i) => el.src === svgSources[i]),
+    'vector stickers restored',
+  ));
+  assert.deepEqual(restoredVectors.slice(-2).map((el) => el.src), svgSources);
+  assert.equal(
+    report.dialogs.filter((d) => d.includes('作品を復元しました')).length,
+    previousVectorSuccess + 1,
+  );
+  report.checks.push('Sunglasses and face-deco SVG data URLs roundtrip intact');
+
+  // A crafted SVG must not be able to inject active tags via JSON import.
+  await page.getByRole('button', { name: '作品のバックアップと復元' }).click();
+  const unsafeSvg = structuredClone(vectorBackup);
+  unsafeSvg.artwork.elements.at(-1).src =
+    'data:image/svg+xml;charset=UTF-8,' +
+    encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+  const previousUnsafeErrors = report.dialogs.filter((d) =>
+    d.includes('作品データの形式またはサイズが正しくありません')).length;
+  await page.locator('input[type="file"][accept=".json,application/json"]').setInputFiles({
+    name: 'unsafe-svg.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(unsafeSvg)),
+  });
+  const unsafeDeadline = Date.now() + 15000;
+  while (Date.now() < unsafeDeadline && report.dialogs.filter((d) =>
+    d.includes('作品データの形式またはサイズが正しくありません')).length === previousUnsafeErrors) {
+    await page.waitForTimeout(100);
+  }
+  assert.equal(
+    report.dialogs.filter((d) => d.includes('作品データの形式またはサイズが正しくありません')).length,
+    previousUnsafeErrors + 1,
+  );
+  assert.deepEqual(onlyStickers(await readWork()).slice(-2).map((el) => el.src), svgSources);
+  report.checks.push('Untrusted SVG script rejected without overwriting work');
+
   assert.deepEqual(report.errors, []);
   report.status = 'success';
 } catch (error) {

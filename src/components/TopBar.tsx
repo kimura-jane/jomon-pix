@@ -44,12 +44,53 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+// Generated SVG stickers may begin with encoded whitespace (%0A, %20).
+// Parse and restrict their markup instead of requiring "<svg" at byte zero
+// or accepting arbitrary active content from an imported JSON backup.
+const SAFE_SVG_TAGS = new Set([
+  'svg', 'g', 'path', 'circle', 'rect', 'ellipse', 'line',
+  'polygon', 'polyline', 'defs', 'lineargradient',
+  'radialgradient', 'stop', 'clippath', 'mask',
+]);
+
+function isSafeSvgSource(value: string): boolean {
+  if (value.length > 250_000 ||
+      !/^data:image\/svg\+xml(?:;charset=utf-8)?,/i.test(value)) return false;
+  let markup: string;
+  try {
+    markup = decodeURIComponent(value.slice(value.indexOf(',') + 1));
+  } catch {
+    return false;
+  }
+  if (!/^\s*<svg(?:\s|>)/i.test(markup) ||
+      /<!DOCTYPE|<!ENTITY|<\?(?!xml\b)/i.test(markup)) return false;
+  const svg = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  const root = svg.documentElement;
+  if (root.localName !== 'svg' ||
+      root.namespaceURI !== 'http://www.w3.org/2000/svg' ||
+      svg.getElementsByTagName('parsererror').length > 0) return false;
+
+  const elements = [root, ...Array.from(root.querySelectorAll('*'))];
+  if (elements.length > 2500) return false;
+  return elements.every((element) => {
+    if (!SAFE_SVG_TAGS.has(element.localName.toLowerCase()) ||
+        element.namespaceURI !== 'http://www.w3.org/2000/svg') return false;
+    return Array.from(element.attributes).every(({ name, value: attrValue }) => {
+      if (/^on/i.test(name) || /^(?:href|xlink:href|src|style)$/i.test(name))
+        return false;
+      // Only references to local gradient/mask IDs are permitted.
+      if (/url\s*\(/i.test(attrValue) &&
+          !/^url\(\s*['"]?#[a-zA-Z0-9_-]+['"]?\s*\)$/i.test(attrValue))
+        return false;
+      return true;
+    });
+  });
+}
+
 function isImageSource(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
+  return typeof value === 'string' &&
     (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(value) ||
-      /^data:image\/svg\+xml;charset=utf-8,%3csvg/i.test(value))
-  );
+      isSafeSvgSource(value));
 }
 
 // Backups may contain paths to stickers bundled with this app. Only permit
