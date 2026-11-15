@@ -64,7 +64,7 @@ function makePosition(
   const faceWidth = Math.hypot(right.x - left.x, right.y - left.y);
   const faceHeight = Math.hypot(chin.x - forehead.x, chin.y - forehead.y);
   if (!Number.isFinite(faceWidth) || !Number.isFinite(faceHeight) ||
-      faceWidth < 18 || faceHeight < 20) return null;
+      faceWidth < 7 || faceHeight < 8) return null;
 
   const theta = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
   // Avoid wildly rotated decorations on profiles or failed landmarks.
@@ -74,7 +74,9 @@ function makePosition(
   const down = { x: -sine, y: cosine };
 
   const { slot, width, anchorY = 0.5 } = layoutFor(sticker.id);
-  const size = Math.max(26, faceWidth * width);
+  // Group-photo faces are smaller than selfies; a fixed 26px minimum
+  // would cover adjacent faces when attaching ears or a nose.
+  const size = Math.max(12, faceWidth * width);
   let anchor: Point;
   if (slot === 'ears' || slot === 'head') anchor = forehead;
   else if (slot === 'eyes') anchor = eyes;
@@ -116,19 +118,118 @@ function imageFromSource(src: string): Promise<HTMLImageElement> {
   });
 }
 
-// Face candidates use the same left-to-right order as the photo. Each tap
-// chooses ONE of these faces; a detected group never duplicates a sticker.
-async function getFaceCandidates(photo: ImageEl): Promise<Landmark[][]> {
-  const img = await imageFromSource(photo.src);
-  const faces = await detectFaceLandmarks(img);
-  return faces
-    .filter((face) => face.length > 454 &&
-      makePosition(face, photo, {
-        id: 'face-cat-ears', label: 'reference', kind: 'svg',
-        src: 'data:image/svg+xml,reference',
-      }) !== null)
+// The full-frame model may only find the largest person in a group photo.
+// For small faces, scan four overlapping enlarged regions and map their
+// landmarks back onto the original image's normalized coordinates.
+// Every candidate remains individually selectable; repeated detections
+// across the overlapping regions are merged.
+type FaceCandidate = { face: Landmark[]; x: number; y: number; width: number };
+
+function faceCandidate(face: Landmark[], image: HTMLImageElement): FaceCandidate | null {
+  if (face.length <= 454) return null;
+  const nose = face[1];
+  const left = face[234];
+  const right = face[454];
+  if (!nose || !left || !right) return null;
+  const width = Math.hypot(
+    (right.x - left.x) * image.naturalWidth,
+    (right.y - left.y) * image.naturalHeight,
+  );
+  if (!Number.isFinite(width) || width < 15 ||
+      !Number.isFinite(nose.x) || !Number.isFinite(nose.y) ||
+      nose.x < 0 || nose.x > 1 || nose.y < 0 || nose.y > 1) return null;
+  return { face, x: nose.x, y: nose.y, width };
+}
+
+function uniqueFaceCandidates(faces: FaceCandidate[], image: HTMLImageElement): FaceCandidate[] {
+  const result: FaceCandidate[] = [];
+  // Prefer the higher-resolution crop detection when two overlap.
+  for (const candidate of faces) {
+    const duplicateIndex = result.findIndex((existing) => {
+      const distance = Math.hypot(
+        (existing.x - candidate.x) * image.naturalWidth,
+        (existing.y - candidate.y) * image.naturalHeight,
+      );
+      return distance < Math.max(10, Math.min(existing.width, candidate.width) * 0.48);
+    });
+    if (duplicateIndex === -1) result.push(candidate);
+    else if (candidate.width > result[duplicateIndex].width) result[duplicateIndex] = candidate;
+  }
+  return result;
+}
+
+async function scanFaceCandidates(photo: ImageEl): Promise<Landmark[][]> {
+  const image = await imageFromSource(photo.src);
+  const firstPass = (await detectFaceLandmarks(image))
+    .map((face) => faceCandidate(face, image))
+    .filter((candidate): candidate is FaceCandidate => candidate !== null);
+  const collected = [...firstPass];
+  const largestRatio = firstPass.length
+    ? Math.max(...firstPass.map((candidate) => candidate.width)) / image.naturalWidth
+    : 0;
+
+  // Full-frame detection is sufficient for a large, isolated face.
+  // Avoid repeated CPU inference for ordinary selfies on iPhone.
+  if (image.naturalWidth >= 500 && firstPass.length < MAX_FACE_TARGETS &&
+      (firstPass.length !== 1 || largestRatio < 0.27)) {
+    const sourceWidth = image.naturalWidth;
+    const sourceHeight = image.naturalHeight;
+    // 55% tiles overlap by 10% of the photograph on each axis.
+    for (const topRatio of [0, 0.45]) {
+      for (const leftRatio of [0, 0.45]) {
+        const left = Math.round(sourceWidth * leftRatio);
+        const top = Math.round(sourceHeight * topRatio);
+        const width = Math.min(sourceWidth - left, Math.ceil(sourceWidth * 0.55));
+        const height = Math.min(sourceHeight - top, Math.ceil(sourceHeight * 0.55));
+        const tile = document.createElement('canvas');
+        tile.width = width;
+        tile.height = height;
+        const ctx = tile.getContext('2d');
+        if (!ctx) continue;
+        ctx.drawImage(image, left, top, width, height, 0, 0, width, height);
+        // Give the UI a chance to show "顔の位置を確認中…" between passes.
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        const found = await detectFaceLandmarks(tile);
+        for (const face of found) {
+          const mapped = face.map((point) => ({
+            x: (left + point.x * width) / sourceWidth,
+            y: (top + point.y * height) / sourceHeight,
+          }));
+          const candidate = faceCandidate(mapped, image);
+          if (candidate) collected.push(candidate);
+        }
+        tile.width = 0;
+        tile.height = 0;
+      }
+    }
+  }
+
+  return uniqueFaceCandidates(collected, image)
+    .map(({ face }) => face)
+    .filter((face) => makePosition(face, photo, {
+      id: 'face-cat-ears', label: 'reference', kind: 'svg',
+      src: 'data:image/svg+xml,reference',
+    }) !== null)
     .sort((a, b) => a[1].x - b[1].x)
     .slice(0, MAX_FACE_TARGETS);
+}
+
+// Reuse exactly the same detected faces when the user places a sticker:
+// recounting every tile on each tap would be slow and could change face order.
+let cachedFaces: { src: string; width: number; height: number;
+  promise: Promise<Landmark[][]> } | null = null;
+
+function getFaceCandidates(photo: ImageEl): Promise<Landmark[][]> {
+  if (cachedFaces?.src === photo.src &&
+      cachedFaces.width === photo.width && cachedFaces.height === photo.height) {
+    return cachedFaces.promise;
+  }
+  const promise = scanFaceCandidates(photo).catch((error: unknown) => {
+    if (cachedFaces?.promise === promise) cachedFaces = null;
+    throw error;
+  });
+  cachedFaces = { src: photo.src, width: photo.width, height: photo.height, promise };
+  return promise;
 }
 
 export async function countAutoFaceTargets(photo: ImageEl): Promise<number> {
