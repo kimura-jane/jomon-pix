@@ -74,23 +74,31 @@ try {
       value: () => false, configurable: true,
     });
   });
+  // Read the policy in a separate page so opening and closing its modal
+  // cannot change selection or editor state used by backup roundtrip checks.
+  const policyPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  try {
+    await policyPage.goto(`http://127.0.0.1:${port}${base}`, { waitUntil: 'networkidle' });
+    const privacyResponse = await policyPage.request.get(
+      `http://127.0.0.1:${port}${base}privacy-policy.html`,
+    );
+    assert.equal(privacyResponse.status(), 200);
+    const privacyHtml = await privacyResponse.text();
+    assert(privacyHtml.includes('運営者：縄文'));
+    assert(privacyHtml.includes('jomon@jomonkusama.com'));
+    assert(privacyHtml.includes('Google Fonts'));
+    assert(privacyHtml.includes('IMG.LY'));
+    await policyPage.getByRole('button', { name: 'プライバシーポリシー' }).click();
+    const privacyFrame = policyPage.frameLocator('iframe[title="プライバシーポリシー"]');
+    await privacyFrame.getByRole('heading', { name: 'プライバシーポリシー' }).waitFor();
+    await privacyFrame.getByText('jomon@jomonkusama.com').waitFor();
+    await policyPage.getByRole('dialog', { name: 'プライバシーポリシー' })
+      .getByRole('button', { name: '閉じる' }).click();
+    report.checks.push('Privacy policy accessible in app and published on both asset bases');
+  } finally {
+    await policyPage.close();
+  }
   await page.goto(`http://127.0.0.1:${port}${base}`, { waitUntil: 'networkidle' });
-  const privacyResponse = await page.request.get(
-    `http://127.0.0.1:${port}${base}privacy-policy.html`,
-  );
-  assert.equal(privacyResponse.status(), 200);
-  const privacyHtml = await privacyResponse.text();
-  assert(privacyHtml.includes('運営者：縄文'));
-  assert(privacyHtml.includes('jomon@jomonkusama.com'));
-  assert(privacyHtml.includes('Google Fonts'));
-  assert(privacyHtml.includes('IMG.LY'));
-  await page.getByRole('button', { name: 'プライバシーポリシー' }).click();
-  const privacyFrame = page.frameLocator('iframe[title="プライバシーポリシー"]');
-  await privacyFrame.getByRole('heading', { name: 'プライバシーポリシー' }).waitFor();
-  await privacyFrame.getByText('jomon@jomonkusama.com').waitFor();
-  await page.getByRole('dialog', { name: 'プライバシーポリシー' })
-    .getByRole('button', { name: '閉じる' }).click();
-  report.checks.push('Privacy policy accessible in app and published on both asset bases');
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
 
   for (const [category, name] of [
