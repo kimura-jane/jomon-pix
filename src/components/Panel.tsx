@@ -95,24 +95,19 @@ const STAMP_GROUPS: {
     label: 'サングラス',
     items: SUNGLASSES_STICKERS,
   },
-  ...STICKER_CATEGORIES.map((category) => {
-    if (category.label === '犬') {
-      // 犬はinu由来の透明NFTスタンプ20匹だけにする。
-      return { label: category.label, items: TAF_DOG_STICKERS };
-    }
-
-    if (category.label === '埴輪') {
-      // 実物の古墳時代の埴輪写真のみを表示。旧SVGは保存済み作品用に保持。
-      return { label: category.label, items: REAL_HANIWA_STICKERS };
-    }
-
-    if (category.label === '土偶') {
-      // 実物の縄文土偶写真（復元品1点を含む）のみを表示。
-      return { label: category.label, items: REAL_DOGU_STICKERS };
-    }
-
-    return { label: category.label, items: category.items };
-  }),
+  {
+    label: '犬',
+    items: TAF_DOG_STICKERS,
+  },
+  {
+    // One shared picker for 10 real haniwa + 10 real dogu stickers.
+    // The assets, IDs, and paths remain unchanged for saved artworks.
+    label: '縄文',
+    items: [...REAL_HANIWA_STICKERS, ...REAL_DOGU_STICKERS],
+  },
+  ...STICKER_CATEGORIES
+    .filter((category) => !['犬', '埴輪', '土偶'].includes(category.label))
+    .map((category) => ({ label: category.label, items: category.items })),
 ];
 
 function Seg({
@@ -1430,8 +1425,7 @@ function StampTab({
           '顔デコ',
           'サングラス',
           '犬',
-          '埴輪',
-          '土偶',
+          '縄文',
           '絵文字',
           ...(!isNativeApp() ? ['マイスタンプ'] : []),
         ]}
