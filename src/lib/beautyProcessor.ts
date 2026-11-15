@@ -23,7 +23,7 @@ export function beautySignature(settings?: BeautySettings): string {
 }
 
 let landmarkerPromise: Promise<import('@mediapipe/tasks-vision').FaceLandmarker> | undefined;
-const faceCache = new WeakMap<HTMLImageElement, Landmark[][]>();
+const faceCache = new WeakMap<HTMLImageElement | HTMLCanvasElement, Landmark[][]>();
 
 async function getLandmarker() {
   if (!landmarkerPromise) {
@@ -68,7 +68,7 @@ async function getLandmarker() {
   return landmarkerPromise;
 }
 
-async function facePoints(image: HTMLImageElement): Promise<Landmark[][]> {
+async function facePoints(image: HTMLImageElement | HTMLCanvasElement): Promise<Landmark[][]> {
   const cached = faceCache.get(image);
   if (cached) return cached;
   const landmarker = await getLandmarker();
@@ -82,7 +82,7 @@ async function facePoints(image: HTMLImageElement): Promise<Landmark[][]> {
 // Share the same locally-hosted face model between Beauty and Face Deco.
 // Reuse its in-memory results to avoid loading two copies on iPhone.
 export async function detectFaceLandmarks(
-  image: HTMLImageElement,
+  image: HTMLImageElement | HTMLCanvasElement,
 ): Promise<Landmark[][]> {
   return facePoints(image);
 }
