@@ -19,13 +19,43 @@ page.on('request', (req) => {
   }
 });
 
+const readWork = () => page.evaluate(async () => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('jomon-pix-projects-v1', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  try {
+    const raw = await new Promise((resolve, reject) => {
+      const tx = db.transaction('work', 'readonly');
+      let stored;
+      const request = tx.objectStore('work').get('jomon-pix-work');
+      request.onsuccess = () => { stored = request.result; };
+      tx.oncomplete = () => resolve(stored);
+      tx.onerror = () => reject(tx.error);
+    });
+    return typeof raw === 'string' ? JSON.parse(raw).state : null;
+  } finally {
+    db.close();
+  }
+});
+const waitWork = async (predicate, label) => {
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    const state = await readWork();
+    if (state && predicate(state)) return state;
+    await page.waitForTimeout(250);
+  }
+  throw new Error('Saved work did not reach expected state: ' + label);
+};
+
 try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/', { waitUntil: 'networkidle' });
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/beauty-portrait.jpg');
   await page.waitForTimeout(450);
   await page.getByRole('button', { name: 'ビューティー' }).click();
-  await page.getByText('美肌・毛穴ぼかし').first().waitFor();
+  await page.getByRole('slider', { name: '美肌' }).waitFor();
   report.checks.push('Beauty panel available with photo');
   await page.waitForTimeout(400);
   // Capture the actual Konva pixels before moving any slider, not merely
@@ -40,11 +70,11 @@ try {
     };
   });
 
-  const smooth = page.getByRole('slider', { name: '美肌・毛穴ぼかし' });
+  const smooth = page.getByRole('slider', { name: '美肌' });
   await smooth.focus();
   await page.keyboard.press('End');
   assert.equal(await smooth.inputValue(), '100');
-  await page.getByText('顔の加工を表示しています。').waitFor({ timeout: 60000 });
+  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 60000 });
   report.checks.push('Local face landmarker recognized real portrait');
   await page.waitForTimeout(250);
   const visualDelta = await page.evaluate(() => {
@@ -83,7 +113,7 @@ try {
     return changed;
   });
   const compare = page.locator('button').filter({
-    hasText: /長押しで加工前と比較|加工前を表示中/,
+    hasText: /長押しで比較|加工前を表示中/,
   });
   await compare.dispatchEvent('pointerdown', { pointerType: 'touch' });
   await page.waitForTimeout(200);
@@ -100,28 +130,34 @@ try {
   report.checks.push('Press-and-hold before/after comparison toggles original pixels');
   report.compareDelta = { beforePixels, afterPixels };
 
-  const state = await page.evaluate(() => JSON.parse(localStorage.getItem('jomon-pix-work')).state);
+  const state = await waitWork(
+    (work) => work.elements.some((el) => el.type === 'image' && el.beauty?.smooth === 100),
+    'beauty smooth saved in IndexedDB',
+  );
   assert.equal(state.elements.find((e) => e.type === 'image').beauty.smooth, 100);
   report.checks.push('Settings persist without replacing source image');
 
   await page.getByRole('slider', { name: '小顔' }).focus();
   await page.keyboard.press('End');
-  await page.getByText('顔の加工を表示しています。').waitFor({ timeout: 45000 });
-  const state2 = await page.evaluate(() => JSON.parse(localStorage.getItem('jomon-pix-work')).state);
+  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 45000 });
+  const state2 = await waitWork(
+    (work) => work.elements.some((el) => el.type === 'image' && el.beauty?.slim === 100),
+    'beauty slim saved in IndexedDB',
+  );
   assert.equal(state2.elements.find((e) => e.type === 'image').beauty.slim, 100);
   report.checks.push('Jaw narrowing preview and persisted value');
 
   await page.getByRole('slider', { name: '目の大きさ' }).focus();
   await page.keyboard.press('End');
-  await page.getByText('顔の加工を表示しています。').waitFor({ timeout: 45000 });
+  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 45000 });
   report.checks.push('Eye enlargement preview');
 
-  await page.getByRole('slider', { name: 'ナチュラルリップ' }).focus();
+  await page.getByRole('slider', { name: 'リップ' }).focus();
   await page.keyboard.press('End');
-  await page.getByText('顔の加工を表示しています。').waitFor({ timeout: 45000 });
+  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 45000 });
   report.checks.push('Makeup preview');
 
-  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('button', { name: '画像保存', exact: true }).click();
   await page.getByRole('heading', { name: 'できあがり！' })
     .waitFor({ timeout: 40000 });
   await page.waitForFunction(() => {
@@ -134,8 +170,11 @@ try {
   report.checks.push('PNG export with face effects');
 
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
-  await page.getByRole('button', { name: 'ビューティーをすべて解除' }).click();
-  const state3 = await page.evaluate(() => JSON.parse(localStorage.getItem('jomon-pix-work')).state);
+  await page.getByRole('button', { name: '加工をリセット' }).click();
+  const state3 = await waitWork(
+    (work) => work.elements.some((el) => el.type === 'image' && !el.beauty),
+    'beauty reset saved in IndexedDB',
+  );
   assert(!state3.elements.find((e) => e.type === 'image').beauty);
   report.checks.push('Non-destructive beauty reset');
 

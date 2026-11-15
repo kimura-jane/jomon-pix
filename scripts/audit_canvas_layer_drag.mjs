@@ -72,8 +72,9 @@ try {
     'Layer panel must follow the pointer, independently of layer selection');
   report.checks.push('Layer position changes by dragging its handle');
 
-  // Simulate Safari TouchEvents on the full-size top header, not just a tiny
-  // glyph. This exercises the actual React touch handlers on WebKit.
+  // Exercise React's touch handlers in both engines without constructing
+  // Touch objects (which WebKit may reject with Illegal constructor).
+  // These synthetic touch-shaped DOM events are NOT proof of actual iPhone touch.
   const beforeTouch = await grip.boundingBox();
   assert(beforeTouch);
   await page.evaluate(() => {
@@ -82,25 +83,27 @@ try {
     const r = handle.getBoundingClientRect();
     const x = r.x + r.width / 2;
     const y = r.y + r.height / 2;
-    const makeTouch = (px, py) =>
-      new Touch({ identifier: 7, target: handle, clientX: px, clientY: py });
-    const fire = (kind, touch, active) =>
-      handle.dispatchEvent(new TouchEvent(kind, {
-        bubbles: true, cancelable: true,
-        touches: active ? [touch] : [],
-        targetTouches: active ? [touch] : [],
-        changedTouches: [touch],
-      }));
-    fire('touchstart', makeTouch(x, y), true);
-    fire('touchmove', makeTouch(x + 40, y + 24), true);
-    fire('touchend', makeTouch(x + 40, y + 24), false);
+    const fire = (kind, px, py, active) => {
+      const touch = { identifier: 7, target: handle, clientX: px, clientY: py };
+      const event = new Event(kind, { bubbles: true, cancelable: true });
+      Object.defineProperties(event, {
+        touches: { value: active ? [touch] : [] },
+        targetTouches: { value: active ? [touch] : [] },
+        changedTouches: { value: [touch] },
+      });
+      handle.dispatchEvent(event);
+    };
+    fire('touchstart', x, y, true);
+    fire('touchmove', x + 40, y + 24, true);
+    fire('touchend', x + 40, y + 24, false);
   });
   await page.waitForTimeout(200);
   const afterTouch = await grip.boundingBox();
   assert(afterTouch && afterTouch.x > beforeTouch.x + 22 &&
     afterTouch.y > beforeTouch.y + 12,
     'Touch drag must move the layer panel in iPhone-style browsers');
-  report.checks.push('Touch drag moves the full-size layer header in Chromium and WebKit');
+  report.checks.push('Synthetic touch-shaped events move React layer header in both engines');
+  report.manualVerificationRequired = 'Finger drag must still be checked on a physical iPhone';
 
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('jomon-pix-floating-layers-v1') ?? 'null'));

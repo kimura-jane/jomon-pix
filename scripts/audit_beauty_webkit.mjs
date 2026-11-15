@@ -43,7 +43,7 @@ try {
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/beauty-portrait.jpg');
   await page.getByRole('button', { name: 'ビューティー' }).click();
-  const skin = page.getByRole('slider', { name: '美肌・毛穴ぼかし' });
+  const skin = page.getByRole('slider', { name: '美肌' });
   await skin.focus();
   await page.keyboard.press('End');
   assert.equal(await skin.inputValue(), '100');
@@ -62,7 +62,7 @@ try {
   assert(faceResult.includes('顔の加工を表示'), 'Face processing failed on WebKit: ' + faceResult);
   results.firstPreviewMs = Date.now() - start;
   results.steps.push('local FaceLandmarker initialized on WebKit');
-  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('button', { name: '画像保存', exact: true }).click();
   await page.getByRole('heading', { name: 'できあがり！' }).waitFor({ timeout: 45000 });
   await page.waitForFunction(() => {
     const img = document.querySelector('img[alt="完成画像"]');
@@ -70,7 +70,7 @@ try {
   }, { timeout: 15000 });
   results.steps.push('PNG export');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
-  await page.getByRole('button', { name: 'ビューティーをすべて解除' }).click();
+  await page.getByRole('button', { name: '加工をリセット' }).click();
   results.steps.push('reset');
   assert.equal(results.transmittedPhotos, false);
   assert.equal(results.errors.length, 0, results.errors.join('\n'));

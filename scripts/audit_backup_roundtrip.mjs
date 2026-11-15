@@ -79,8 +79,8 @@ try {
 
   for (const [category, name] of [
     ['犬', 'TAF DOG #01を追加'],
-    ['埴輪', '武人埴輪・立像を追加'],
-    ['土偶', '小型土偶を追加'],
+    ['縄文', '武人埴輪・立像を追加'],
+    ['縄文', '小型土偶を追加'],
   ]) {
     await page.getByRole('button', { name: category, exact: true }).click();
     await page.getByRole('button', { name, exact: true }).click();
@@ -106,9 +106,14 @@ try {
   // Restore both Web and native path variants into either build. Import must
   // preserve element IDs and labels, and map asset paths to this build's base.
   for (const prefix of ['/jomon-pix/', '/']) {
+    // Leave the saved state in versioned form for the rejection test below.
+    for (const legacyDog of [true, false]) {
+    const suffixes = legacyDog
+      ? ['taf-dog/taf_dog_01.webp', ...expectedSuffixes.slice(1)]
+      : expectedSuffixes;
     const altered = structuredClone(backup);
     altered.artwork.elements.forEach((element, i) => {
-      element.src = prefix + 'stickers/' + expectedSuffixes[i];
+      element.src = prefix + 'stickers/' + suffixes[i];
     });
     const previousSuccesses = report.dialogs.filter((d) => d.includes('作品を復元しました')).length;
     await page.locator('input[type="file"][accept=".json,application/json"]')
@@ -122,7 +127,7 @@ try {
     const restored = onlyStickers(await waitWork(
       (work) => onlyStickers(work).length === 3 &&
         onlyStickers(work).every((el, i) =>
-          el.src === base + 'stickers/' + expectedSuffixes[i]),
+          el.src === base + 'stickers/' + suffixes[i]),
       'cross-platform imported sticker paths',
     ));
     assert.deepEqual(restored.map((el) => el.id), original.map((el) => el.id));
@@ -131,8 +136,9 @@ try {
       report.dialogs.filter((d) => d.includes('作品を復元しました')).length,
       previousSuccesses + 1,
     );
-    report.checks.push(`Restored ${prefix} paths into ${base} build`);
+    report.checks.push(`Restored ${prefix} ${legacyDog ? 'legacy' : 'versioned'} paths into ${base} build`);
     await page.getByRole('button', { name: '作品のバックアップと復元' }).click();
+    }
   }
 
   // Never accept an arbitrary relative file path from an untrusted backup.
