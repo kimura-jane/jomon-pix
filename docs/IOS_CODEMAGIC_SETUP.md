@@ -47,7 +47,7 @@ Codemagic regenerates or syncs the iOS platform with
 
 ## App Store Connect privacy policy
 
-Public URL: https://kimura-jane.github.io/jomon-pix/privacy-policy.html
+Public URL: https://jomon-policy.onrender.com/
 
 - Operator: 縄文
 - Contact: jomon@jomonkusama.com

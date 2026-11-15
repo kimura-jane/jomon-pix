@@ -3,7 +3,7 @@
 写真編集アプリ JOMON pix。
 
 - Web版: https://kimura-jane.github.io/jomon-pix/
-- プライバシーポリシー: https://kimura-jane.github.io/jomon-pix/privacy-policy.html
+- プライバシーポリシー: https://jomon-policy.onrender.com/
 - 運営者: 縄文
 - お問い合わせ: jomon@jomonkusama.com
 
