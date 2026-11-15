@@ -52,6 +52,8 @@ jobs:
           test -f ios/App/Podfile
           test -f ios/App/App/Info.plist
           test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+          test -f dist/privacy-policy.html
+          grep -q 'jomon@jomonkusama.com' dist/privacy-policy.html
           test -f dist/mediapipe/face_landmarker.task
           test -f dist/mediapipe/vision_wasm_internal.wasm || find dist/mediapipe -name '*.wasm' | grep -q .
           python3 - <<'PY'

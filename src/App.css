@@ -25,6 +25,9 @@ button { font-family: inherit; color: inherit; }
 .logo { font-family: 'Dela Gothic One', sans-serif; font-size: 20px; letter-spacing: 0.5px;
   background: linear-gradient(90deg, var(--pink), var(--purple)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .saved { font-size: 11px; color: var(--sub); background: var(--glass); padding: 4px 10px; border-radius: 99px; }
+.privacy-link { flex: none; font-size: 11px; color: #77566f; padding: 6px 3px;
+  border: 0; background: transparent; text-decoration: underline;
+  text-underline-offset: 3px; cursor: pointer; }
 .bar { display: flex; align-items: center; gap: 6px; background: var(--glass); backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px); border-radius: 22px; padding: 6px; box-shadow: 0 6px 24px rgba(255, 79, 163, 0.12); }
 .tabs { flex: 1; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }

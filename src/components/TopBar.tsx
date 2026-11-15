@@ -328,6 +328,7 @@ export function TopBar() {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
   const [workOpen, setWorkOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const [workBusy, setWorkBusy] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -483,6 +484,12 @@ export function TopBar() {
             ⚠ 保存失敗
           </span>
         )}
+
+        <button type="button" className="privacy-link"
+          aria-label="プライバシーポリシー"
+          onClick={() => setPrivacyOpen(true)}>
+          プライバシー
+        </button>
       </div>
 
       <div className="bar">
@@ -545,6 +552,24 @@ export function TopBar() {
       )}
 
       {blob && <SaveModal blob={blob} onClose={() => setBlob(null)} />}
+
+      {privacyOpen && createPortal(
+        <div className="modal-bg" role="presentation"
+          onClick={() => setPrivacyOpen(false)}>
+          <div className="modal" role="dialog" aria-modal="true"
+            aria-label="プライバシーポリシー"
+            onClick={(event) => event.stopPropagation()}
+            style={{ height: 'min(86dvh, 800px)', maxWidth: 720, minHeight: 0 }}>
+            <iframe title="プライバシーポリシー"
+              src={`${import.meta.env.BASE_URL}privacy-policy.html`}
+              style={{ width: '100%', flex: 1, minHeight: 0, border: 0,
+                borderRadius: 12, background: '#fdf8fb' }} />
+            <button type="button" className="btn big ghost"
+              onClick={() => setPrivacyOpen(false)}>閉じる</button>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {workOpen && createPortal(
         <div className="modal-bg" onClick={() => {

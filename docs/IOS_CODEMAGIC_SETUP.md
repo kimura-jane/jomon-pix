@@ -45,6 +45,17 @@ Codemagic regenerates or syncs the iOS platform with
 /stickers load from the app bundle. `npm run build` keeps the website's
 `/jomon-pix/` base unchanged.
 
+## App Store Connect privacy policy
+
+Public URL: https://kimura-jane.github.io/jomon-pix/privacy-policy.html
+
+- Operator: 縄文
+- Contact: jomon@jomonkusama.com
+- Enter this URL in **App Store Connect > App Privacy > Privacy Policy**.
+- A privacy button in the editor opens the same policy without leaving the app.
+- The repository change does **not** update App Store Connect metadata or
+  its data collection questionnaire. Complete those separately and accurately.
+
 ## Image export / restoration
 
 The iOS app writes a temporary PNG or JSON to its local cache and opens the
