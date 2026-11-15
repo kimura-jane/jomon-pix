@@ -8,7 +8,7 @@ normally at https://kimura-jane.github.io/jomon-pix/.
 
 - Display name: **JOMON pix**
 - iOS Bundle ID: **com.jomonpix.app** (not registered automatically)
-- App version: **1.0.1** (read from `package.json` during signing)
+- App version: **1.0.2** (read from `package.json` during signing)
 - Native framework: Capacitor **7.6.10**; iOS minimum **15**
 - Git repository: **kimura-jane/jomon-pix**, nothing else may be modified
 
