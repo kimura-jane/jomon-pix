@@ -1881,10 +1881,10 @@ function EditTab({
                   s.update(el.id, {
                     src: await removeBg(el.src),
                   });
-                } catch {
-                  alert(
-                    '背景削除に失敗しました',
-                  );
+                } catch (error) {
+                  alert(error instanceof Error && navigator.onLine === false
+                    ? error.message
+                    : '背景削除に失敗しました。通信状態や端末の空きメモリを確認してください。');
                 } finally {
                   setBusy(false);
                 }
