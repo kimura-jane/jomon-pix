@@ -1518,15 +1518,18 @@ function StampTab({
                   )}
                   {faceInfo.count > 1 && (
                     <div className="row" role="group" aria-label="スタンプを付ける顔を選ぶ"
-                      style={{ flexWrap: 'wrap', gap: 7 }}>
+                      style={{ flexWrap: 'nowrap', overflowX: 'auto', gap: 7, paddingBottom: 5 }}>
                       {Array.from({ length: faceInfo.count }, (_, i) => (
                         <button type="button" className="chip" key={i}
                           aria-pressed={selectedFaceIndex === i}
                           disabled={autoBusy}
                           onClick={() => setSelectedFaceIndex(i)}
-                          style={selectedFaceIndex === i
-                            ? { borderColor: '#ec54a5', background: '#ffeaf6' }
-                            : {}}>
+                          style={{
+                            flex: '0 0 auto',
+                            ...(selectedFaceIndex === i
+                              ? { borderColor: '#ec54a5', background: '#ffeaf6' }
+                              : {}),
+                          }}>
                           左から{i + 1}人目
                         </button>
                       ))}
