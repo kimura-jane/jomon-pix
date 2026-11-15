@@ -246,41 +246,73 @@ function FloatingLayers({
     return () => observer.disconnect();
   }, [elements.some((element) => element.type !== 'line')]);
 
-  const startLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+  // Safari's finger gestures use TouchEvents, while desktop mouse/pen
+  // uses PointerEvents. Both move the SAME panel and never drag the image.
+  const beginLayerDragAt = (clientX: number, clientY: number, id: number) => {
     const panel = panelRef.current;
     const parent = panel?.parentElement;
     if (!panel || !parent) return;
     const rect = panel.getBoundingClientRect();
     const container = parent.getBoundingClientRect();
     const origin = clampLayerPosition(rect.left - container.left, rect.top - container.top);
-    dragRef.current = {
-      id: event.pointerId, clientX: event.clientX, clientY: event.clientY,
-      x: origin.x, y: origin.y,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
+    dragRef.current = { id, clientX, clientY, x: origin.x, y: origin.y };
   };
 
-  const moveLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const moveLayerDragTo = (clientX: number, clientY: number, id: number) => {
     const drag = dragRef.current;
-    if (!drag || event.pointerId !== drag.id) return;
+    if (!drag || drag.id !== id) return;
     const next = clampLayerPosition(
-      drag.x + event.clientX - drag.clientX,
-      drag.y + event.clientY - drag.clientY,
+      drag.x + clientX - drag.clientX,
+      drag.y + clientY - drag.clientY,
     );
     positionRef.current = next;
     setPosition(next);
-    event.preventDefault();
   };
 
-  const stopLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (dragRef.current?.id !== event.pointerId) return;
+  const finishLayerDrag = (id: number) => {
+    if (dragRef.current?.id !== id) return;
     dragRef.current = null;
     if (positionRef.current) saveLayerPosition(positionRef.current);
+  };
+
+  const startLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    // Touch is handled independently to work reliably in Safari / WKWebView.
+    if (event.pointerType === 'touch' ||
+        (event.pointerType === 'mouse' && event.button !== 0)) return;
+    beginLayerDragAt(event.clientX, event.clientY, event.pointerId);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const moveLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'touch') return;
+    moveLayerDragTo(event.clientX, event.clientY, event.pointerId);
+  };
+  const stopLayerDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'touch') return;
+    finishLayerDrag(event.pointerId);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+  };
+
+  const startTouchDrag = (event: React.TouchEvent<HTMLButtonElement>) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    beginLayerDragAt(touch.clientX, touch.clientY, -touch.identifier - 1);
+    event.stopPropagation();
+  };
+  const moveTouchDrag = (event: React.TouchEvent<HTMLButtonElement>) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    moveLayerDragTo(touch.clientX, touch.clientY, -touch.identifier - 1);
+    event.stopPropagation();
+  };
+  const stopTouchDrag = (event: React.TouchEvent<HTMLButtonElement>) => {
+    for (const touch of Array.from(event.changedTouches)) {
+      finishLayerDrag(-touch.identifier - 1);
+    }
+    event.stopPropagation();
   };
 
   // 写真と連動する文字・スタンプは、右の簡易一覧では親写真にまとめる。
@@ -328,7 +360,7 @@ function FloatingLayers({
         left: position?.x,
         right: position ? undefined : 8,
         zIndex: 8,
-        width: 72,
+        width: 88,
         maxHeight: 'calc(100% - 72px)',
         display: 'flex',
         flexDirection: 'column',
@@ -342,49 +374,59 @@ function FloatingLayers({
         pointerEvents: 'auto',
       }}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く'}
-        aria-expanded={open}
-        title={open ? 'レイヤーを閉じる' : 'レイヤーを開く'}
-        style={{
-          border: 0,
-          borderRadius: 9,
-          minHeight: 28,
-          padding: '4px 2px',
-          background: '#fff0f7',
-          color: '#d63383',
-          fontSize: 10,
-          fontWeight: 700,
-          touchAction: 'manipulation',
-        }}
-      >
-        {open ? '重なり順 ▴' : 'レイヤー ▾'}
-      </button>
-
-      <button
-        type="button"
-        aria-label="重なり順パネルを移動"
-        title="ドラッグして移動"
-        onPointerDown={startLayerDrag}
-        onPointerMove={moveLayerDrag}
-        onPointerUp={stopLayerDrag}
-        onPointerCancel={stopLayerDrag}
-        style={{
-          border: 0,
-          borderRadius: 8,
-          minHeight: 22,
-          padding: 0,
-          background: '#fff0f7',
-          color: '#c13781',
-          fontSize: 17,
-          lineHeight: '22px',
-          cursor: 'grab',
-          touchAction: 'none',
-          userSelect: 'none',
-        }}
-      >⠿</button>
+      <div style={{ display: 'flex', gap: 3, minHeight: 44 }}>
+        <button
+          type="button"
+          aria-label="重なり順パネルを移動"
+          title="指でドラッグして移動"
+          onPointerDown={startLayerDrag}
+          onPointerMove={moveLayerDrag}
+          onPointerUp={stopLayerDrag}
+          onPointerCancel={stopLayerDrag}
+          onTouchStart={startTouchDrag}
+          onTouchMove={moveTouchDrag}
+          onTouchEnd={stopTouchDrag}
+          onTouchCancel={stopTouchDrag}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: 0,
+            borderRadius: 9,
+            padding: '3px 1px',
+            background: '#fff0f7',
+            color: '#c13781',
+            fontSize: 10,
+            fontWeight: 700,
+            cursor: 'grab',
+            touchAction: 'none',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+        >
+          <span aria-hidden="true" style={{ display: 'block', fontSize: 18, lineHeight: 1 }}>⠿</span>
+          重なり順
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く'}
+          aria-expanded={open}
+          style={{
+            width: 23,
+            flexShrink: 0,
+            border: 0,
+            borderRadius: 9,
+            padding: 0,
+            background: '#fff0f7',
+            color: '#c13781',
+            fontSize: 14,
+            fontWeight: 700,
+            touchAction: 'manipulation',
+          }}
+        >
+          {open ? '▴' : '▾'}
+        </button>
+      </div>
 
       {open && (
         <>
