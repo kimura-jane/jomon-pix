@@ -91,13 +91,16 @@ with tempfile.TemporaryDirectory(prefix="jomon-ios-version-") as folder:
     # unsigned project's Info.plist and the signed IPA verification rule.
     package_path = root / "package.json"
     package = json.loads(package_path.read_text(encoding="utf-8"))
-    package["version"] = "1.0.1"
+    old_version = package["version"]
+    major, minor, patch = (int(part) for part in old_version.split("."))
+    next_version = f"{major}.{minor}.{patch + 1}"
+    package["version"] = next_version
     package_path.write_text(json.dumps(package), encoding="utf-8")
     module.set_build_number(root, "8")
     with info_file.open("rb") as handle:
         updated = plistlib.load(handle)
-    assert updated["CFBundleShortVersionString"] == "1.0.1"
+    assert updated["CFBundleShortVersionString"] == next_version
     validate_ipa(root, version="8", expected="8", ok=True)
-    validate_ipa(root, version="8", expected="8", ok=False, marketing="1.0.0")
+    validate_ipa(root, version="8", expected="8", ok=False, marketing=old_version)
 
 print("All iOS CFBundleVersion regression checks passed.")
