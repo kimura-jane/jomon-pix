@@ -178,6 +178,43 @@ try {
   assert.equal(manual.parentImageId, targetPhoto.id);
   report.checks.push('Manual placement remains selectable for a single stamp');
 
+  // A 3x2 group made from the same public test portrait produces multiple
+  // smaller faces. The tiled detector must not stop at one large face.
+  const groupData = await page.evaluate(async (base64) => {
+    const source = new Image();
+    source.src = 'data:image/jpeg;base64,' + base64;
+    await source.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = source.naturalWidth * 3;
+    canvas.height = source.naturalHeight * 2;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas 2D is unavailable');
+    for (let row = 0; row < 2; row++) {
+      for (let column = 0; column < 3; column++) {
+        ctx.drawImage(source, column * source.naturalWidth,
+          row * source.naturalHeight);
+      }
+    }
+    return canvas.toDataURL('image/jpeg', 0.94);
+  }, portrait64);
+  await page.locator('button.tab').first().click();
+  await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
+    name: 'six-person-group.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from(groupData.split(',')[1], 'base64'),
+  });
+  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.getByRole('status').filter({
+    hasText: /顔を(?:[3-9]|10)人認識しました/,
+  }).waitFor({ timeout: 120000 });
+  const thirdFace = page.getByRole('button', { name: '左から3人目', exact: true });
+  assert.equal(await thirdFace.count(), 1);
+  await thirdFace.click();
+  await page.getByRole('button', { name: 'ねこ耳を自動配置' }).click();
+  await waitForState((saved) => stickers(saved).length === 5,
+    'small faces in six-person group');
+  report.checks.push('Small faces in a group photo are individually detected and editable');
+
   assert.deepEqual(report.errors, []);
   assert.deepEqual(report.unexpectedPosts, []);
   report.status = 'success';
