@@ -109,6 +109,12 @@ try {
     .waitFor({ timeout: 15000 });
   await page.reload({ waitUntil: 'networkidle' });
   await grip.waitFor({ timeout: 15000 });
+  await page.waitForFunction(({ x, y }) => {
+    const handle = document.querySelector('button[aria-label="重なり順パネルを移動"]');
+    if (!handle) return false;
+    const r = handle.getBoundingClientRect();
+    return Math.abs(r.x - x) < 8 && Math.abs(r.y - y) < 8;
+  }, { x: afterTouch.x, y: afterTouch.y }, { timeout: 15000 });
   const restored = await grip.boundingBox();
   assert(restored && near(restored.x, afterTouch.x) && near(restored.y, afterTouch.y),
     'Drag position should survive a reload');
