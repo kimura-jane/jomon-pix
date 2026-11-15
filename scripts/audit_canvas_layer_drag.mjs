@@ -72,6 +72,38 @@ try {
     'Layer panel must follow the pointer, independently of layer selection');
   report.checks.push('Layer position changes by dragging its handle');
 
+  // Simulate Safari TouchEvents on the full-size top header, not just a tiny
+  // glyph. This exercises the actual React touch handlers on WebKit.
+  const beforeTouch = await grip.boundingBox();
+  assert(beforeTouch);
+  await page.evaluate(() => {
+    const handle = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="重なり順パネルを移動"]',
+    );
+    if (!handle) throw new Error('Missing draggable header');
+    const r = handle.getBoundingClientRect();
+    const x = r.x + r.width / 2;
+    const y = r.y + r.height / 2;
+    const makeTouch = (px: number, py: number) =>
+      new Touch({ identifier: 7, target: handle, clientX: px, clientY: py });
+    const fire = (kind: string, touch: Touch, active: boolean) =>
+      handle.dispatchEvent(new TouchEvent(kind, {
+        bubbles: true, cancelable: true,
+        touches: active ? [touch] : [],
+        targetTouches: active ? [touch] : [],
+        changedTouches: [touch],
+      }));
+    fire('touchstart', makeTouch(x, y), true);
+    fire('touchmove', makeTouch(x + 40, y + 24), true);
+    fire('touchend', makeTouch(x + 40, y + 24), false);
+  });
+  await page.waitForTimeout(200);
+  const afterTouch = await grip.boundingBox();
+  assert(afterTouch && afterTouch.x > beforeTouch.x + 22 &&
+    afterTouch.y > beforeTouch.y + 12,
+    'Touch drag must move the layer panel in iPhone-style browsers');
+  report.checks.push('Touch drag moves the full-size layer header in Chromium and WebKit');
+
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('jomon-pix-floating-layers-v1') ?? 'null'));
   assert(stored && stored.x >= 0 && stored.x <= 1 && stored.y >= 0 && stored.y <= 1);
