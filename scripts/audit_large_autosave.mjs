@@ -156,6 +156,26 @@ try {
   report.checks.push('IndexedDB unavailable: failure is visible, existing legacy data remains intact');
   await deniedContext.close();
 
+  // Even a damaged historical project must not become a white screen or be
+  // silently deleted. Render errors are contained by the app boundary.
+  const corruptedContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const corruptedPage = await corruptedContext.newPage();
+  await corruptedPage.goto(baseURL, { waitUntil: 'networkidle' });
+  const damaged = JSON.parse(legacyJSON);
+  damaged.state.elements = [null];
+  const damagedJSON = JSON.stringify(damaged);
+  await corruptedPage.evaluate((raw) => localStorage.setItem('jomon-pix-work', raw), damagedJSON);
+  await corruptedPage.reload({ waitUntil: 'networkidle' });
+  await corruptedPage.getByRole('alert')
+    .getByText('画面を表示できませんでした').waitFor({ timeout: 15000 });
+  assert.equal(
+    await corruptedPage.evaluate(() => localStorage.getItem('jomon-pix-work')),
+    damagedJSON,
+    'Render errors must not delete the legacy recovery copy',
+  );
+  report.checks.push('Malformed legacy work shows a recovery screen and keeps its source data');
+  await corruptedContext.close();
+
   assert.deepEqual(report.errors, []);
   report.status = 'success';
 } catch (error) {
