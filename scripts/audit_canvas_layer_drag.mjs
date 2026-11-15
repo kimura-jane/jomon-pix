@@ -26,12 +26,18 @@ try {
   const portrait = page.getByRole('button', { name: /9:16/ });
   await landscape.click();
   await page.getByText('1600 × 900 px').waitFor();
+  const wide = await page.locator('.stage-card').boundingBox();
+  assert(wide && near(wide.width / wide.height, 16 / 9, 0.02),
+    '16:9 must change the visible canvas shape, not just the label');
   assert.equal(await landscape.count(), 1);
   assert.equal(await page.getByRole('button', { name: '写真に合わせる' }).count(), 0);
   report.checks.push('16:9 is selectable, old photo-fit choice is gone');
 
   await portrait.click();
   await page.getByText('900 × 1600 px').waitFor();
+  const tall = await page.locator('.stage-card').boundingBox();
+  assert(tall && near(tall.width / tall.height, 9 / 16, 0.02),
+    '9:16 must change the visible canvas shape');
   await landscape.click();
   await page.getByText('1600 × 900 px').waitFor();
   report.checks.push('16:9 and 9:16 switching updates canvas dimensions');
@@ -69,6 +75,8 @@ try {
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('jomon-pix-floating-layers-v1') ?? 'null'));
   assert(stored && stored.x >= 0 && stored.x <= 1 && stored.y >= 0 && stored.y <= 1);
+  await page.getByRole('status').filter({ hasText: '自動保存' })
+    .waitFor({ timeout: 15000 });
   await page.reload({ waitUntil: 'networkidle' });
   await grip.waitFor({ timeout: 15000 });
   const restored = await grip.boundingBox();
