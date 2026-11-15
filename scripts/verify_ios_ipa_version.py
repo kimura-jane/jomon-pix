@@ -2,6 +2,7 @@
 """Fail the Codemagic build before publishing if the generated IPA is invalid."""
 from __future__ import annotations
 
+import json
 import os
 import plistlib
 import re
@@ -14,6 +15,11 @@ if not re.fullmatch(r"[1-9][0-9]{0,8}", build):
     sys.exit(f"Invalid Codemagic BUILD_NUMBER: {build!r}")
 
 base = Path(os.environ.get("CM_BUILD_DIR", ".")).resolve()
+expected_marketing = json.loads((base / "package.json").read_text(encoding="utf-8")).get("version")
+if not isinstance(expected_marketing, str) or not re.fullmatch(
+    r"[0-9]+\.[0-9]+\.[0-9]+", expected_marketing
+):
+    sys.exit(f"Invalid package.json marketing version: {expected_marketing!r}")
 paths = sorted((base / "ios/App/build/ios/ipa").glob("*.ipa"))
 if not paths:
     paths = sorted((base / "build/ios/ipa").glob("*.ipa"))
@@ -38,10 +44,10 @@ if version != build or not re.fullmatch(r"\d+(?:\.\d+){0,2}", version):
         f"IPA rejected before upload: CFBundleVersion={version!r}, "
         f"expected numeric BUILD_NUMBER={build!r}"
     )
-if marketing != "1.0.0" or identifier != "com.jomonpix.app":
+if marketing != expected_marketing or identifier != "com.jomonpix.app":
     sys.exit(
         f"IPA mismatch: CFBundleShortVersionString={marketing!r}, "
-        f"CFBundleIdentifier={identifier!r}"
+        f"expected version={expected_marketing!r}, CFBundleIdentifier={identifier!r}"
     )
 print(
     f"Verified signed IPA: {ipa.name}, "

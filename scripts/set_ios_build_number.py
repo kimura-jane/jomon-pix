@@ -6,6 +6,7 @@ must never be allowed into either CFBundleVersion or CURRENT_PROJECT_VERSION.
 """
 from __future__ import annotations
 
+import json
 import plistlib
 import re
 import sys
@@ -18,6 +19,10 @@ def set_build_number(root: Path, number: str) -> None:
             f"Invalid iOS build number {number!r}; expected 1–9 digits, "
             "starting with 1–9 (Codemagic BUILD_NUMBER)."
         )
+
+    version = json.loads((root / "package.json").read_text(encoding="utf-8")).get("version")
+    if not isinstance(version, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+        raise ValueError(f"Invalid package.json marketing version: {version!r}")
 
     project = root / "ios/App/App.xcodeproj/project.pbxproj"
     info_path = root / "ios/App/App/Info.plist"
@@ -38,7 +43,7 @@ def set_build_number(root: Path, number: str) -> None:
     # An explicit string, not an Xcode variable expansion, guarantees
     # CFBundleVersion in the archived IPA is numeric.
     info["CFBundleVersion"] = number
-    info["CFBundleShortVersionString"] = "1.0.0"
+    info["CFBundleShortVersionString"] = version
 
     # Verify before touching any files.
     assert re.search(rf"\bCURRENT_PROJECT_VERSION = {re.escape(number)};", updated)

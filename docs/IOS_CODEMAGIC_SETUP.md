@@ -8,7 +8,7 @@ normally at https://kimura-jane.github.io/jomon-pix/.
 
 - Display name: **JOMON pix**
 - iOS Bundle ID: **com.jomonpix.app** (not registered automatically)
-- App version: **1.0.0** (first build)
+- App version: **1.0.0** (first build, read from `package.json` during signing)
 - Native framework: Capacitor **7.6.10**; iOS minimum **15**
 - Git repository: **kimura-jane/jomon-pix**, nothing else may be modified
 
@@ -69,6 +69,17 @@ IndexedDB has a much larger typical quota, but is still subject to device
 free-space limits or WebKit storage eviction. A save is reported as complete
 only after the underlying database transaction commits. Use the JSON
 backup / restore buttons to move editable artwork between web and iOS.
+
+## Release version checks
+
+- `package.json` is the single source of truth for the iOS marketing version.
+  `prepare-ios.sh`, the build-number setter and IPA verification read this value.
+- Before an update is uploaded, set the next App Store version in `package.json`;
+  the repository does not automatically select it from App Store Connect.
+- Codemagic `BUILD_NUMBER` must be higher than the existing build number
+  for the same App Store version. Check App Store Connect first.
+- The IPA is only uploaded when `ios-ipa` is **manually** started.
+  This workflow does not request App Store review.
 
 ## Checks to perform on a physical iPhone
 

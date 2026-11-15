@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import plistlib
 import shutil
@@ -24,19 +25,23 @@ spec.loader.exec_module(module)
 def clone_ios_files(root: Path) -> None:
     project = "ios/App/App.xcodeproj/project.pbxproj"
     info = "ios/App/App/Info.plist"
-    for name in (project, info):
+    for name in (project, info, "package.json"):
         destination = root / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, destination)
 
 
-def validate_ipa(root: Path, version: str, expected: str, ok: bool) -> None:
+def validate_ipa(
+    root: Path, version: str, expected: str, ok: bool,
+    marketing: str | None = None,
+) -> None:
     appdir = root / "ios/App/build/ios/ipa"
     appdir.mkdir(parents=True, exist_ok=True)
     with (root / "ios/App/App/Info.plist").open("rb") as f:
         info = plistlib.load(f)
     info["CFBundleVersion"] = version
-    info["CFBundleShortVersionString"] = "1.0.0"
+    package_version = json.loads((root / "package.json").read_text(encoding="utf-8"))["version"]
+    info["CFBundleShortVersionString"] = marketing or package_version
     info["CFBundleIdentifier"] = "com.jomonpix.app"
     with zipfile.ZipFile(appdir / "App.ipa", "w") as archive:
         archive.writestr("Payload/App.app/Info.plist", plistlib.dumps(info))
@@ -75,8 +80,24 @@ with tempfile.TemporaryDirectory(prefix="jomon-ios-version-") as folder:
     with info_file.open("rb") as f:
         info = plistlib.load(f)
     assert info["CFBundleVersion"] == "7"
-    assert info["CFBundleShortVersionString"] == "1.0.0"
+    assert info["CFBundleShortVersionString"] == json.loads(
+        (root / "package.json").read_text(encoding="utf-8")
+    )["version"]
     validate_ipa(root, version="YES", expected="7", ok=False)
     validate_ipa(root, version="7", expected="7", ok=True)
+    validate_ipa(root, version="7", expected="7", ok=False, marketing="9.9.9")
+
+    # Changing package.json to a new App Store version must update both the
+    # unsigned project's Info.plist and the signed IPA verification rule.
+    package_path = root / "package.json"
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+    package["version"] = "1.0.1"
+    package_path.write_text(json.dumps(package), encoding="utf-8")
+    module.set_build_number(root, "8")
+    with info_file.open("rb") as handle:
+        updated = plistlib.load(handle)
+    assert updated["CFBundleShortVersionString"] == "1.0.1"
+    validate_ipa(root, version="8", expected="8", ok=True)
+    validate_ipa(root, version="8", expected="8", ok=False, marketing="1.0.0")
 
 print("All iOS CFBundleVersion regression checks passed.")
