@@ -96,8 +96,10 @@ def select_resources(manifest: dict) -> dict:
         total = 0
         for chunk in chunks:
             name, offsets = chunk.get('name'), chunk.get('offsets')
-            if not isinstance(name, str) or not re.fullmatch('[0-9a-f]{64}', name):
+            if not isinstance(name, str) or not re.fullmatch(r'[0-9a-f]{64}(?:\.bin)?', name):
                 raise ValueError(f'Unexpected model chunk name: {name}')
+            if name.endswith('.bin') and chunk.get('hash') != name[:-4]:
+                raise ValueError(f'Invalid packaged iOS chunk hash: {name}')
             if not isinstance(offsets, list) or len(offsets) != 2 or (
                 not all(isinstance(n, int) for n in offsets)
             ) or offsets[0] < 0 or offsets[1] <= offsets[0]:
@@ -113,19 +115,26 @@ def bundle_model(dest: Path, lock: Path, url: str = IMG_LY_DATA_URL):
     source = target / '_resources-download.json'
     download(urljoin(url, 'resources.json'), source)
     selected = select_resources(json.loads(source.read_text(encoding='utf-8')))
+    # Capacitor 7.6.10 Router.swift routes EVERY extensionless URL to
+    # index.html. The upstream IMG.LY SHA256 filenames have no extension.
+    # Rename local files to SHA256.bin and rewrite the manifest accordingly.
+    # Keep the original SHA256 for verifying bytes downloaded from the CDN.
     chunks = {}
     for item in selected.values():
         for chunk in item['chunks']:
             size = chunk['offsets'][1] - chunk['offsets'][0]
-            name = chunk['name']
-            if name in chunks and chunks[name] != size:
+            digest = chunk['name']
+            if digest in chunks and chunks[digest] != size:
                 raise ValueError('Duplicate chunk size mismatch')
-            chunks[name] = size
+            chunks[digest] = size
+            chunk['hash'] = digest
+            chunk['name'] = f'{digest}.bin'
     print(f'Bundling IMG.LY CPU model/WASM: {len(chunks)} files, '
           f'{sum(chunks.values()) // (1024*1024)} MiB', flush=True)
     with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = [pool.submit(download, urljoin(url, name), target / name,
-                               size, name) for name, size in chunks.items()]
+        futures = [pool.submit(download, urljoin(url, digest),
+                               target / f'{digest}.bin', size, digest)
+                   for digest, size in chunks.items()]
         for future in as_completed(futures):
             future.result()
     (target / 'resources.json').write_text(
@@ -184,11 +193,17 @@ def verify(dest: Path, lock: Path):
     parent = dest / 'offline-background'
     selected = select_resources(json.loads((parent / 'resources.json').read_text(encoding='utf-8')))
     for item in selected.values():
-        for c in item['chunks']:
-            path = parent / c['name']
+        for chunk in item['chunks']:
+            # Regressions here break offline loading on iOS, even when files
+            # are physically included: extensionless paths serve index.html.
+            digest = chunk.get('hash')
+            name = chunk['name']
+            if name != f'{digest}.bin':
+                raise ValueError(f'Native IMG.LY chunk not iOS-routable: {name}')
+            path = parent / name
             if (not path.is_file() or
-                path.stat().st_size != c['offsets'][1] - c['offsets'][0] or
-                hash_file(path) != c['name']):
+                path.stat().st_size != chunk['offsets'][1] - chunk['offsets'][0] or
+                hash_file(path) != digest):
                 raise ValueError(f'Native IMG.LY asset missing or damaged: {path}')
     if not (parent / 'IMG-LY-LICENSE.md').is_file():
         raise ValueError('Missing AGPL notice')

@@ -99,7 +99,12 @@ stickers, NFT dogs, archaeology photos and MediaPipe face detection assets.
 For the NEXT iOS build, `scripts/prepare-ios.sh` additionally runs
 `scripts/bundle_native_offline.py` after the native Vite build and before
 Capacitor sync. This pins IMG.LY **1.7.0** / medium `isnet_fp16` and downloads
-its exact model chunks + all CPU WASM variations at build time. It also bundles
+its exact model chunks + all CPU WASM variations at build time. IMG.LY's
+original asset names are bare SHA256 strings. Capacitor 7.6.10's Router.swift
+rewrites extensionless paths to index.html, making the bundled AI unreadable.
+The script now renames every chunk to SHA256.bin and rewrites resources.json
+accordingly. Build verification rejects any extensionless resource path.
+It also bundles
 all **15 Google Fonts families** and their OFL license texts, replacing the
 Google Fonts network links ONLY in the native HTML. Missing/corrupt resources,
 mismatched versions and missing licenses fail the build. The website's build
@@ -108,9 +113,11 @@ continues to use its current external font and background-model loading.
 Because IMG.LY's `@imgly/background-removal` is licensed **AGPL**, review
 the source/notice and App Store distribution obligations before releasing.
 The fonts are under SIL OFL (license texts are packaged into the IPA).
-Large models/fonts make the IPA significantly bigger. No real iPhone airplane-
-mode background-removal test has been performed yet. Keep the app's marketing
-claims provisional until a new native build passes that test.
+Large models/fonts make the IPA significantly bigger. The previous 1.0.2
+build FAILED airplane-mode background removal on a physical iPhone; the defect
+is now identified in Capacitor's extensionless route handling. This correction
+has not yet passed an updated physical-iPhone test. Do not advertise fully
+offline AI until a new build passes on device.
 
 Do NOT start Codemagic, upload to App Store Connect or change the app's
 marketing version without an explicit release instruction.

@@ -18,7 +18,17 @@ export async function removeBg(src: string): Promise<string> {
     blob = await removeBackground(src, config);
   } catch (error) {
     if (Capacitor.isNativePlatform()) {
-      throw new Error('端末内のAI背景削除に失敗しました。空きメモリを確認して再試行してください。');
+      // Keep detailed errors on-device, never upload logs or photos.
+      console.error('[JOMON pix] Native offline background AI failed:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      const code = /resource|fetch|size|404|network/i.test(message)
+        ? 'BG-DATA'
+        : /wasm|session|memory|allocate|abort/i.test(message)
+          ? 'BG-RUNTIME'
+          : 'BG-OTHER';
+      throw new Error(
+        `端末内AIの背景削除に失敗しました（${code}）。元の写真は変更していません。`,
+      );
     }
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       throw new Error('Web版の背景削除にはAIモデルの取得が必要です。通信に接続して再試行してください。');

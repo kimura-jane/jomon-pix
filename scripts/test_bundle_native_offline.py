@@ -61,6 +61,27 @@ class OfflineBundleTests(unittest.TestCase):
         self.assertNotIn('fonts.googleapis.com', (self.dist / 'index.html').read_text())
         self.assertEqual((self.dist / 'offline-fonts/native.css').read_text().count('@font-face'), len(FONTS))
 
+    def test_capacitor_ios_router_can_serve_every_model_chunk(self):
+        self.prepare()
+        manifest = json.loads((self.dist / 'offline-background/resources.json').read_text())
+        for entry in manifest.values():
+            for chunk in entry['chunks']:
+                name = chunk['name']
+                self.assertEqual(name, chunk['hash'] + '.bin')
+                self.assertEqual(Path(name).suffix, '.bin')
+                self.assertTrue((self.dist / 'offline-background' / name).is_file())
+                self.assertFalse((self.dist / 'offline-background' / chunk['hash']).exists())
+
+    def test_old_extensionless_chunk_urls_are_rejected(self):
+        self.prepare()
+        manifest_file = self.dist / 'offline-background/resources.json'
+        manifest = json.loads(manifest_file.read_text())
+        for chunk in manifest['/models/isnet_fp16']['chunks']:
+            chunk['name'] = chunk['hash']
+        manifest_file.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, 'not iOS-routable'):
+            verify(self.dist, self.lock)
+
     def test_corrupted_model_rejected(self):
         self.prepare()
         manifest = json.loads((self.dist / 'offline-background/resources.json').read_text())
