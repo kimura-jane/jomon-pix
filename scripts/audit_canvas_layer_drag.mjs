@@ -77,16 +77,14 @@ try {
   const beforeTouch = await grip.boundingBox();
   assert(beforeTouch);
   await page.evaluate(() => {
-    const handle = document.querySelector<HTMLButtonElement>(
-      'button[aria-label="重なり順パネルを移動"]',
-    );
+    const handle = document.querySelector('button[aria-label="重なり順パネルを移動"]');
     if (!handle) throw new Error('Missing draggable header');
     const r = handle.getBoundingClientRect();
     const x = r.x + r.width / 2;
     const y = r.y + r.height / 2;
-    const makeTouch = (px: number, py: number) =>
+    const makeTouch = (px, py) =>
       new Touch({ identifier: 7, target: handle, clientX: px, clientY: py });
-    const fire = (kind: string, touch: Touch, active: boolean) =>
+    const fire = (kind, touch, active) =>
       handle.dispatchEvent(new TouchEvent(kind, {
         bubbles: true, cancelable: true,
         touches: active ? [touch] : [],
@@ -112,7 +110,7 @@ try {
   await page.reload({ waitUntil: 'networkidle' });
   await grip.waitFor({ timeout: 15000 });
   const restored = await grip.boundingBox();
-  assert(restored && near(restored.x, moved.x) && near(restored.y, moved.y),
+  assert(restored && near(restored.x, afterTouch.x) && near(restored.y, afterTouch.y),
     'Drag position should survive a reload');
   report.checks.push('Draggable layer position survives reload');
 
