@@ -1,7 +1,7 @@
 import type { ImageEl, StickerEl } from '../types';
 import { newId } from '../store';
 import type { LibrarySticker } from './stickers';
-import { detectFaceLandmarks, type Landmark } from './beautyProcessor';
+import { detectFaceLandmarks, MAX_FACE_TARGETS, type Landmark } from './beautyProcessor';
 
 type Point = { x: number; y: number };
 type FaceSlot = 'ears' | 'head' | 'eyes' | 'nose' | 'whiskers' | 'cheeks' | 'mouth' | 'face';
@@ -128,7 +128,7 @@ async function getFaceCandidates(photo: ImageEl): Promise<Landmark[][]> {
         src: 'data:image/svg+xml,reference',
       }) !== null)
     .sort((a, b) => a[1].x - b[1].x)
-    .slice(0, 4);
+    .slice(0, MAX_FACE_TARGETS);
 }
 
 export async function countAutoFaceTargets(photo: ImageEl): Promise<number> {
