@@ -1,6 +1,8 @@
 import type { BeautySettings } from '../types';
 
 export type Landmark = { x: number; y: number };
+// Shared detection limit for automatic face stickers and multi-face beauty.
+export const MAX_FACE_TARGETS = 10;
 type PixelPoint = { x: number; y: number };
 
 export const DEFAULT_BEAUTY: BeautySettings = {
@@ -51,7 +53,7 @@ async function getLandmarker() {
           },
           runningMode: 'IMAGE',
           // Group photos must apply beauty to every visible face, not just one.
-        numFaces: 4,
+          numFaces: MAX_FACE_TARGETS,
           outputFaceBlendshapes: false,
         });
       } catch (error) {
