@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test-webkit:
@@ -26,7 +26,7 @@ jobs:
           node-version: '22'
       - name: Install application and WebKit test browser
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           npx playwright install --with-deps webkit
       - name: Get official test portrait without committing the source
@@ -44,14 +44,10 @@ jobs:
             sleep 2
           done
           node scripts/audit_beauty_webkit.mjs
-      - name: Record successful compatibility result
-        if: success()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/audit/beauty-webkit-smoke.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Verify beauty in iPhone-like WebKit browser"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+      - name: Upload QA results without committing to main
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beauty-webkit-qa
+          path: docs/audit/beauty-webkit-smoke.json
+          if-no-files-found: warn

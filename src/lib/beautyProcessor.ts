@@ -410,7 +410,8 @@ export async function renderBeauty(
   const canvas = makeCanvas(w, h);
   ctx2d(canvas).drawImage(source, 0, 0, w, h);
 
-  // Process up to four faces; group photos are not silently left unchanged.
+  // Process every detectable face that is at least 28px in the preview.
+  // Smaller faces can be counted by Face Deco but are intentionally skipped here.
   for (const face of usableFaces) {
     const width = Math.abs(face[454].x - face[234].x) * w;
     const height = Math.abs(face[152].y - face[10].y) * h;

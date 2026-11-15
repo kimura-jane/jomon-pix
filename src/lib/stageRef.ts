@@ -169,6 +169,10 @@ export async function exportBlob(): Promise<Blob> {
     );
   }
 
+  // Export after web fonts settle, so text does not unexpectedly change
+  // between the editor and the saved PNG.
+  if (document.fonts) await document.fonts.ready;
+
   // 写真と画像スタンプがすべて読み込まれるまで待機
   await waitForImages(stage);
 

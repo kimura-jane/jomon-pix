@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   preview-browser-test:
@@ -27,7 +27,7 @@ jobs:
           node-version: '22'
       - name: Install browser test environment
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           npx playwright install --with-deps chromium webkit
       - name: Verify TypeScript and production bundle
@@ -43,14 +43,10 @@ jobs:
           done
           node scripts/audit_frame_previews.mjs chromium
           node scripts/audit_frame_previews.mjs webkit
-      - name: Commit QA reports only to jomon-pix
-        if: success()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/audit/frame-previews-*.json docs/audit/frame-previews-*.png
-          if ! git diff --cached --quiet; then
-            git commit -m "Verify all 22 frame previews on Chromium and WebKit"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+      - name: Upload QA results without committing to main
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frame-previews-qa
+          path: docs/audit/frame-previews-*
+          if-no-files-found: warn

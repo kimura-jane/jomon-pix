@@ -47,13 +47,14 @@ function isFiniteNumber(value: unknown): value is number {
 function isImageSource(value: unknown): value is string {
   return (
     typeof value === 'string' &&
-    (/^data:image\//i.test(value) || /^https?:\/\//i.test(value))
+    (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(value) ||
+      /^data:image\/svg\+xml;charset=utf-8,%3csvg/i.test(value))
   );
 }
 
 // Backups may contain paths to stickers bundled with this app. Only permit
 // known local asset layouts, never arbitrary local files or traversal paths.
-const BUNDLED_STICKER = /^\/(?:jomon-pix\/)?stickers\/(?:taf-dog\/v[23]\/taf_dog_(?:0[1-9]|1[0-9]|20)|archaeology\/v1\/(?:haniwa\/h(?:0[1-9]|10)|dogu\/d(?:0[1-9]|10)))\.webp$/;
+const BUNDLED_STICKER = /^\/(?:jomon-pix\/)?stickers\/(?:taf-dog\/(?:v[23]\/)?taf_dog_(?:0[1-9]|1[0-9]|20)|archaeology\/v1\/(?:haniwa\/h(?:0[1-9]|10)|dogu\/d(?:0[1-9]|10)))\.webp$/;
 
 function isStickerSource(value: unknown): value is string {
   return isImageSource(value) ||
@@ -90,6 +91,25 @@ function isBeautySettings(value: unknown): boolean {
     );
 }
 
+function isImageStroke(value: unknown): boolean {
+  return isRecord(value) &&
+    typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 200 &&
+    Array.isArray(value.points) && value.points.length >= 4 &&
+    value.points.length <= 10000 && value.points.length % 2 === 0 &&
+    value.points.every(isFiniteNumber) &&
+    typeof value.color === 'string' && value.color.length <= 100 &&
+    isFiniteNumber(value.width) && value.width > 0 && value.width <= 1000 &&
+    isFiniteNumber(value.opacity) && value.opacity >= 0 && value.opacity <= 1 &&
+    ['pen', 'marker', 'dashed', 'neon', 'dotted', 'rainbow', 'sparkle']
+      .includes(String(value.penStyle));
+}
+
+function isParentReference(value: Record<string, unknown>): boolean {
+  return value.parentImageId === undefined ||
+    (typeof value.parentImageId === 'string' &&
+      value.parentImageId.length > 0 && value.parentImageId.length <= 200);
+}
+
 function isCanvasElement(value: unknown): value is CanvasEl {
   if (!isRecord(value)) return false;
 
@@ -121,7 +141,10 @@ function isCanvasElement(value: unknown): value is CanvasEl {
           String(value.filter),
         ) &&
         (value.frame === undefined || isImageFrame(value.frame)) &&
-        (value.beauty === undefined || isBeautySettings(value.beauty))
+        (value.beauty === undefined || isBeautySettings(value.beauty)) &&
+        (value.drawings === undefined ||
+          (Array.isArray(value.drawings) && value.drawings.length <= 1000 &&
+            value.drawings.every(isImageStroke)))
       );
 
     case 'text':
@@ -135,7 +158,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         typeof value.glow === 'string' &&
         isFiniteNumber(value.letterSpacing) &&
         typeof value.vertical === 'boolean' &&
-        ['left', 'center', 'right'].includes(String(value.align))
+        ['left', 'center', 'right'].includes(String(value.align)) &&
+        isParentReference(value)
       );
 
     case 'sticker':
@@ -143,7 +167,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         typeof value.emoji === 'string' &&
         isFiniteNumber(value.size) && value.size > 0 &&
         (value.src === undefined || isStickerSource(value.src)) &&
-        (value.label === undefined || typeof value.label === 'string')
+        (value.label === undefined || typeof value.label === 'string') &&
+        isParentReference(value)
       );
 
     case 'line':
@@ -200,15 +225,24 @@ function parseBackup(raw: string): Artwork {
     throw new Error('作品データに重複した要素IDがあります。');
   }
 
+  // Remove stale photo attachments when an older backup references a photo
+  // that was already deleted. Keep its sticker/text as a standalone layer.
+  const imageIds = new Set((artwork.elements as CanvasEl[])
+    .filter((element) => element.type === 'image').map((element) => element.id));
+  const elements = (artwork.elements as CanvasEl[]).map((element) => {
+    const normalized = element.type === 'sticker'
+      ? { ...element, src: normalizeStickerSource(element.src) }
+      : { ...element };
+    if ((normalized.type === 'text' || normalized.type === 'sticker') &&
+        normalized.parentImageId && !imageIds.has(normalized.parentImageId)) {
+      delete normalized.parentImageId;
+    }
+    return normalized;
+  });
+
   // Backups created before scenes/templates existed default to no decoration.
-  // Explicitly restore defaults so opening an old backup cannot inherit
-  // a newer project's background or social overlay.
   return {
-    elements: (artwork.elements as CanvasEl[]).map((element) =>
-      element.type === 'sticker'
-        ? { ...element, src: normalizeStickerSource(element.src) }
-        : element
-    ),
+    elements,
     bgColor: artwork.bgColor as string,
     sceneBackground: (artwork.sceneBackground ?? 'none') as SceneId,
     socialTemplate: (artwork.socialTemplate ?? 'none') as SocialId,

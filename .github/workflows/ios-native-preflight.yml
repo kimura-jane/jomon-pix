@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: jomon-pix-ios-native-scaffold
@@ -37,7 +37,7 @@ jobs:
           node-version: '22'
       - name: Install pinned iOS dependencies and validate React/TypeScript
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
       - name: Generate Capacitor Xcode project and native web bundle
@@ -79,15 +79,9 @@ jobs:
           assert info['CFBundleDisplayName']=='JOMON pix'
           print('PNG icon and iOS Info.plist validated')
           PY
-      - name: Commit generated iOS project and npm lockfile to jomon-pix only
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json ios/
-          if git diff --cached --quiet; then
-            echo "No generated changes"
-          else
-            git commit -m "Generate iOS native Xcode scaffold and lockfile for Codemagic"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+      - name: Upload generated iOS scaffold for manual review (no push)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-preflight-generated
+          path: ios/
+          if-no-files-found: error

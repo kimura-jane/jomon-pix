@@ -149,7 +149,7 @@ const SAVE_DELAY_MS = 180;
 let databasePromise: Promise<IDBDatabase> | null = null;
 function openDatabase(): Promise<IDBDatabase> {
   if (!databasePromise) {
-    databasePromise = new Promise((resolve, reject) => {
+    databasePromise = new Promise<IDBDatabase>((resolve, reject) => {
       if (typeof indexedDB === 'undefined') {
         reject(new Error('IndexedDB is unavailable on this device'));
         return;
@@ -174,6 +174,10 @@ function openDatabase(): Promise<IDBDatabase> {
       };
       request.onerror = () => reject(request.error ?? new Error('IndexedDB open failed'));
       request.onblocked = () => reject(new Error('IndexedDB was blocked by another tab'));
+    }).catch((error: unknown) => {
+      // Never cache a rejected connection attempt; later saves can retry.
+      databasePromise = null;
+      throw error;
     });
   }
   return databasePromise;

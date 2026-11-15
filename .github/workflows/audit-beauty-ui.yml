@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   browser-test:
@@ -26,7 +26,7 @@ jobs:
           node-version: '22'
       - name: Install and provision test browser
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           npx playwright install chromium
       - name: Acquire official MediaPipe sample portrait for runtime test only
@@ -45,14 +45,10 @@ jobs:
             sleep 2
           done
           node scripts/audit_beauty_ui.mjs
-      - name: Commit non-image runtime audit results to jomon-pix only
-        if: success()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/audit/beauty-smoke-results.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Verify on-device face beauty and image export in Chromium"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+      - name: Upload QA results without committing to main
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beauty-chromium-qa
+          path: docs/audit/beauty-smoke-results.json
+          if-no-files-found: warn
