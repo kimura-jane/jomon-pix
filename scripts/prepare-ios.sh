@@ -13,7 +13,14 @@ else
   npm run build:native
 fi
 
+# Fail closed if the complete local AI model, WASM and Japanese fonts
+# cannot be included in this iOS app. No CDN request is needed at runtime.
+python3 scripts/bundle_native_offline.py
+
 npx cap sync ios
+
+# Verify that Capacitor actually copied ALL resources into the .app web bundle.
+python3 scripts/bundle_native_offline.py --out ios/App/App/public --verify-only
 
 # Keep the generated Info.plist privacy descriptions and display name correct.
 python3 - <<'PY'

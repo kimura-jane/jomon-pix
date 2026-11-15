@@ -581,6 +581,8 @@ const DOGU_STICKERS: LibrarySticker[] = [
 ];
 
 const EMOJI_STICKERS: LibrarySticker[] = [
+  { id: 'emoji-panda', label: 'パンダ', kind: 'emoji', emoji: '🐼' },
+  { id: 'emoji-pawprints', label: '肉球', kind: 'emoji', emoji: '🐾' },
   { id: 'emoji-heart', label: 'ハート', kind: 'emoji', emoji: '💖' },
   { id: 'emoji-sparkle', label: 'キラキラ', kind: 'emoji', emoji: '✨' },
   { id: 'emoji-sakura', label: 'さくら', kind: 'emoji', emoji: '🌸' },

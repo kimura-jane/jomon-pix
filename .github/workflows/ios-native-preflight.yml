@@ -7,6 +7,10 @@ on:
       - capacitor.config.ts
       - codemagic.yaml
       - scripts/prepare-ios.sh
+      - scripts/bundle_native_offline.py
+      - scripts/test_bundle_native_offline.py
+      - src/lib/removeBg.ts
+      - src/lib/stickers.ts
       - scripts/generate-ios-icon.py
       - src/components/SaveModal.tsx
       - src/components/TopBar.tsx
@@ -27,7 +31,7 @@ concurrency:
 jobs:
   check-and-scaffold:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +44,8 @@ jobs:
           npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
+      - name: Offline-model and font bundler regression tests (no network)
+        run: python3 scripts/test_bundle_native_offline.py
       - name: Generate Capacitor Xcode project and native web bundle
         run: bash scripts/prepare-ios.sh
       - name: Regression test numeric build version and IPA Info.plist
@@ -53,6 +59,8 @@ jobs:
           test -f ios/App/App/Info.plist
           test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
           test -f dist/privacy-policy.html
+          python3 scripts/bundle_native_offline.py --out dist --verify-only
+          python3 scripts/bundle_native_offline.py --out ios/App/App/public --verify-only
           grep -q 'jomon@jomonkusama.com' dist/privacy-policy.html
           test -f dist/mediapipe/face_landmarker.task
           test -f dist/mediapipe/vision_wasm_internal.wasm || find dist/mediapipe -name '*.wasm' | grep -q .
@@ -85,5 +93,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-preflight-generated
-          path: ios/
+          path: |
+            ios/
+            !ios/App/App/public/offline-background/
+            !ios/App/App/public/offline-fonts/
           if-no-files-found: error

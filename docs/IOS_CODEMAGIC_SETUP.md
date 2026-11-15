@@ -92,6 +92,29 @@ backup / restore buttons to move editable artwork between web and iOS.
 - The IPA is only uploaded when `ios-ipa` is **manually** started.
   This workflow does not request App Store review.
 
+## On-device offline editing (new-build requirement)
+
+The iOS app uses a local Capacitor WKWebView and bundles frames, backgrounds,
+stickers, NFT dogs, archaeology photos and MediaPipe face detection assets.
+For the NEXT iOS build, `scripts/prepare-ios.sh` additionally runs
+`scripts/bundle_native_offline.py` after the native Vite build and before
+Capacitor sync. This pins IMG.LY **1.7.0** / medium `isnet_fp16` and downloads
+its exact model chunks + all CPU WASM variations at build time. It also bundles
+all **15 Google Fonts families** and their OFL license texts, replacing the
+Google Fonts network links ONLY in the native HTML. Missing/corrupt resources,
+mismatched versions and missing licenses fail the build. The website's build
+continues to use its current external font and background-model loading.
+
+Because IMG.LY's `@imgly/background-removal` is licensed **AGPL**, review
+the source/notice and App Store distribution obligations before releasing.
+The fonts are under SIL OFL (license texts are packaged into the IPA).
+Large models/fonts make the IPA significantly bigger. No real iPhone airplane-
+mode background-removal test has been performed yet. Keep the app's marketing
+claims provisional until a new native build passes that test.
+
+Do NOT start Codemagic, upload to App Store Connect or change the app's
+marketing version without an explicit release instruction.
+
 ## Checks to perform on a physical iPhone
 
 - Photo picker and background removal
@@ -100,8 +123,11 @@ backup / restore buttons to move editable artwork between web and iOS.
 - PNG share -> Save Image / Save to Files
 - Editable JSON backup -> Files, then import
 - Background/foreground and restart: local project remains editable
-- Offline launch: bundled editor/stickers/model load; some optional
-  external image processing/fonts may still need network access
+- Turn on Airplane Mode (Wi-Fi and cellular OFF), cold-launch the app and test
+  every tool, **especially first-ever background removal** and
+  background-only mosaic without a previously populated model cache
+- Check all 15 fonts while completely offline; save and reopen text edits
+- For Web/PWA: offline remains unverified; do not advertise full offline Web use
 
 The unsigned simulator workflow is only a compilation check. Neither
 workflow claims device verification or App Store acceptance.
