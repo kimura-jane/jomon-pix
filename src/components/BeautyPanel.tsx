@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEditor } from '../store';
 import type { ImageEl, BeautySettings } from '../types';
 import { BEAUTY_FIELDS, DEFAULT_BEAUTY } from '../lib/beautyProcessor';
@@ -50,7 +51,7 @@ export function BeautyPanel() {
     return (
       <div className="soon">
         <div style={{ fontSize: 35 }}>💄</div>
-        <p>先に写真を追加してください。</p>
+        <p>{t("先に写真を追加してください。")}</p>
       </div>
     );
   }
@@ -61,7 +62,7 @@ export function BeautyPanel() {
       {photos.length > 1 && (
         <>
           <p className="hint-s" style={{ fontWeight: 700, margin: '9px 0 4px' }}>
-            写真を選択
+            {t("写真を選択")}
           </p>
           <div style={{
             display: 'flex', overflowX: 'auto',
@@ -92,12 +93,12 @@ export function BeautyPanel() {
       )}
 
       {!photo ? (
-        <p className="hint-s">写真を選択</p>
+        <p className="hint-s">{t("写真を選択")}</p>
       ) : (
         <>
           {photo.locked && (
             <p className="hint-s" style={{ fontWeight: 700 }}>
-              写真のロックを解除してください。
+              {t("写真のロックを解除してください。")}
             </p>
           )}
           {status && status.state !== 'idle' && (
@@ -140,7 +141,7 @@ export function BeautyPanel() {
                 onKeyUp={() => setComparing(photo.id, false)}
                 onBlur={() => setComparing(photo.id, false)}
               >
-                {comparing ? '加工前を表示中' : '長押しで比較'}
+                {t(comparing ? '加工前を表示中' : '長押しで比較')}
               </button>
             </div>
           )}
@@ -176,7 +177,7 @@ export function BeautyPanel() {
           <button type="button" className="big-btn light"
             disabled={!hasValue || photo.locked}
             onClick={() => editor.update(photo.id, { beauty: undefined })}>
-            加工をリセット
+            {t("加工をリセット")}
           </button>
         </>
       )}
