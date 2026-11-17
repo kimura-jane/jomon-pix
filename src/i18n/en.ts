@@ -44,7 +44,7 @@ export const en: Record<string, string> = {
   '作品を端末に保存できなかったため、読み込みを取り消しました。': 'Import cancelled because the project could not be saved on this device.',
   '作品データの形式またはサイズが正しくありません。': 'The project format or size is invalid.',
   '作品データに重複した要素IDがあります。': 'The project has duplicate element IDs.',
-  'JOMON pixの対応する作品ファイルではありません。': 'This is not a supported JOMON PIX project file.',
+  'JOMON PIXの対応する作品ファイルではありません。': 'This is not a supported JOMON PIX project file.',
   '画像の作成に失敗しました': 'Could not create the image.',
   'バックアップを作成できませんでした。': 'Could not create the backup.',
   '作品ファイルが大きすぎます（上限100MB）。': 'Project file exceeds the 100 MB limit.',
@@ -476,4 +476,8 @@ export const en: Record<string, string> = {
   "おいわい": "Celebration",
   "埴輪": "Haniwa",
   "土偶": "Dogu",
+  "保存済みの作品を読み込めませんでした。既存データを保護するため、自動保存を停止しています。": "Could not read the saved project. Autosave is stopped to protect existing data.",
+  "端末の保存容量またはアプリの保存上限に達しました。変更内容を自動保存できませんでした。": "Device storage or the app's storage limit was reached. Changes could not be autosaved.",
+  "自動保存に失敗しました。変更内容が端末に保存されていない可能性があります。": "Autosave failed. Your latest changes may not be saved on this device.",
+  "最新の作品を読み込めませんでした。以前のバックアップを表示中です。データ保護のため自動保存は停止しています。": "Could not read the latest project. An older recovery copy is displayed and autosave is stopped to protect data.",
 };
