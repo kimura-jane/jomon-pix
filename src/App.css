@@ -21,8 +21,8 @@ button { font-family: inherit; color: inherit; }
 
 /* 上の列 */
 .top { padding: max(10px, env(safe-area-inset-top, 0px)) 12px 6px; display: flex; flex-direction: column; gap: 8px; }
-.brand { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
-.brand-actions { display: flex; align-items: center; gap: 5px; flex: none; }
+.brand { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.brand-actions { display: flex; align-items: center; gap: 5px; flex: none; margin-left: auto; }
 .language-switch { display: inline-flex; align-items: center; gap: 1px; background: rgba(255, 255, 255, 0.85); padding: 2px; border-radius: 11px; white-space: nowrap; border: 1px solid var(--line); }
 .language-switch button { border: 0; background: transparent; border-radius: 8px; padding: 5px 6px; color: var(--sub); font-size: 11px; cursor: pointer; }
 .language-switch button.on { color: #9d286d; background: #fbe4f1; font-weight: 800; }
