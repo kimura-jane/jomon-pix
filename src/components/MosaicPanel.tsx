@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor } from '../store';
@@ -296,7 +297,7 @@ function MosaicDialog({
           const extracted = await removeBg(photo.src);
           foreground = await loadProcessedImage(extracted);
         } catch (error) {
-          console.error('[JOMON pix] 背景だけモザイク: 被写体の検出に失敗', error);
+          console.error('[JOMON PIX] 背景だけモザイク: 被写体の検出に失敗', error);
           throw new Error(
             isNativeApp()
               ? '被写体の自動判定に失敗しました。端末の空きメモリを確認して再試行してください。元の写真は変更していません。'
@@ -332,7 +333,7 @@ function MosaicDialog({
       className="modal-bg"
       role="dialog"
       aria-modal="true"
-      aria-label="モザイク加工"
+      aria-label={t("モザイク加工")}
       style={{ zIndex: 100, padding: 10 }}
     >
       <div
@@ -344,7 +345,7 @@ function MosaicDialog({
           gap: 10,
         }}
       >
-        <h3>▦ モザイク加工</h3>
+        <h3>{t("▦ モザイク加工")}</h3>
         <div
           className="seg"
           style={{
@@ -362,17 +363,17 @@ function MosaicDialog({
               disabled={working}
               onClick={() => changeMode(option.id)}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
         {mode !== 'all' && (
           <p className="hint-s" style={{ margin: 0 }}>
-            {mode === 'rectangle' ? 'ドラッグで範囲指定'
+            {t(mode === 'rectangle' ? 'ドラッグで範囲指定'
               : mode === 'brush' ? '指で塗る'
               : isNativeApp()
                 ? '端末内AIで背景を判定します。'
-                : '初回はAIモデルを取得します。※AIの判定には誤差があります。'}
+                : '初回はAIモデルを取得します。※AIの判定には誤差があります。')}
           </p>
         )}
 
@@ -408,7 +409,7 @@ function MosaicDialog({
             >
               <img
                 src={photo.src}
-                alt="モザイク対象の写真"
+                alt={t("モザイク対象の写真")}
                 draggable={false}
                 style={{
                   width: '100%',
@@ -471,7 +472,7 @@ function MosaicDialog({
               </svg>
             </div>
           ) : (
-            <p className="hint-s">写真を読み込み中…</p>
+            <p className="hint-s">{t("写真を読み込み中…")}</p>
           )}
         </div>
 
@@ -510,13 +511,13 @@ function MosaicDialog({
             disabled={working}
             onClick={reset}
           >
-            指定した範囲をクリア
+            {t("指定した範囲をクリア")}
           </button>
         )}
 
         {error && (
           <p role="alert" style={{ margin: 0, color: '#c02660', fontSize: 13 }}>
-            {error}
+            {t(error)}
           </p>
         )}
 
@@ -528,7 +529,7 @@ function MosaicDialog({
             disabled={working}
             onClick={onClose}
           >
-            キャンセル
+            {t("キャンセル")}
           </button>
           <button
             type="button"
@@ -580,19 +581,19 @@ export function MosaicPanel() {
             className={mode === option.id ? 'on' : ''}
             onClick={() => setMode(option.id)}
           >
-            {option.label}
+            {t(option.label)}
           </button>
         ))}
       </div>
       {photos.length === 0 ? (
         <p className="hint-s">
-          先に写真を追加してください。
+          {t("先に写真を追加してください。")}
         </p>
       ) : (
         <>
           {photos.length > 1 && (
             <>
-              <div className="label">写真を選択</div>
+              <div className="label">{t("写真を選択")}</div>
               <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
                 {photos.map((photo) => (
                   <button
