@@ -6,6 +6,7 @@ import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
 import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
 import type { CanvasEl, Tab } from '../types';
+import { t, useLanguage } from '../i18n';
 import { SCENE_IDS, SOCIAL_IDS, type SceneId, type SocialId } from '../lib/scenePresets';
 
 const TABS: { id: Tab; ic: string; label: string }[] = [
@@ -238,7 +239,7 @@ function parseBackup(raw: string): Artwork {
     parsed.formatVersion !== 1 ||
     !isRecord(parsed.artwork)
   ) {
-    throw new Error('JOMON pixの対応する作品ファイルではありません。');
+    throw new Error(t('JOMON pixの対応する作品ファイルではありません。'));
   }
 
   const artwork = parsed.artwork;
@@ -258,12 +259,12 @@ function parseBackup(raw: string): Artwork {
     artwork.canvasWidth > 6000 || artwork.canvasHeight > 6000 ||
     artwork.canvasWidth * artwork.canvasHeight > 10000000
   ) {
-    throw new Error('作品データの形式またはサイズが正しくありません。');
+    throw new Error(t('作品データの形式またはサイズが正しくありません。'));
   }
 
   const ids = (artwork.elements as CanvasEl[]).map((el) => el.id);
   if (new Set(ids).size !== ids.length) {
-    throw new Error('作品データに重複した要素IDがあります。');
+    throw new Error(t('作品データに重複した要素IDがあります。'));
   }
 
   // Remove stale photo attachments when an older backup references a photo
@@ -318,6 +319,8 @@ function createBackupFile(): File {
 }
 
 export function TopBar() {
+  const language = useLanguage((state) => state.language);
+  const setLanguage = useLanguage((state) => state.setLanguage);
   const {
     tab, setTab, undo, redo, past, future, select,
   } = useEditor();
@@ -333,8 +336,7 @@ export function TopBar() {
   const importRef = useRef<HTMLInputElement>(null);
 
   const hasSaveError = autosaveStatus === 'failed';
-  const isReadError = hasSaveError &&
-    (autosaveError?.includes('読み込めませんでした') ?? false);
+  const isReadError = hasSaveError && useAutosaveStatus.getState().readFailure;
 
   const save = async () => {
     if (busy) return;
@@ -346,7 +348,7 @@ export function TopBar() {
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       setBlob(await exportBlob());
     } catch (error) {
-      alert(error instanceof Error ? error.message : '画像の作成に失敗しました');
+      alert(t(error instanceof Error ? error.message : '画像の作成に失敗しました'));
     } finally {
       setBusy(false);
     }
@@ -387,7 +389,7 @@ export function TopBar() {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'バックアップを作成できませんでした。');
+      alert(t(error instanceof Error ? error.message : 'バックアップを作成できませんでした。'));
     } finally {
       setWorkBusy(false);
     }
@@ -399,16 +401,16 @@ export function TopBar() {
 
     try {
       if (file.size > 100 * 1024 * 1024) {
-        throw new Error('作品ファイルが大きすぎます（上限100MB）。');
+        throw new Error(t('作品ファイルが大きすぎます（上限100MB）。'));
       }
 
       const artwork = parseBackup(await file.text());
 
-      const confirmed = window.confirm(
-        '現在の作品は読み込む作品で置き換わります。\n' +
-        '現在の作品を残したい場合は、先に「作品をバックアップ」を実行してください。\n\n' +
-        '読み込みを続けますか？',
-      );
+      const confirmed = window.confirm([
+        t('現在の作品は読み込む作品で置き換わります。'),
+        t('現在の作品を残したい場合は、先に「作品をバックアップ」を実行してください。'),
+        t('読み込みを続けますか？'),
+      ].join('\n\n'));
       if (!confirmed) return;
 
       // 操作途中の履歴を閉じてから復元する。
@@ -444,13 +446,13 @@ export function TopBar() {
           future: previous.future,
           savedAt: previous.savedAt,
         });
-        throw new Error('作品を端末に保存できなかったため、読み込みを取り消しました。');
+        throw new Error(t('作品を端末に保存できなかったため、読み込みを取り消しました。'));
       }
 
       setWorkOpen(false);
-      alert('作品を復元しました。');
+      alert(t('作品を復元しました。'));
     } catch (error) {
-      alert(error instanceof Error ? error.message : '作品を読み込めませんでした。');
+      alert(t(error instanceof Error ? error.message : '作品を読み込めませんでした。'));
     } finally {
       setWorkBusy(false);
     }
@@ -459,13 +461,30 @@ export function TopBar() {
   return (
     <header className="top">
       <div className="brand">
-        <span className="logo">JOMON pix</span>
-
+        <span className="logo">JOMON PIX</span>
+        <div className="brand-actions">
+          <div className="language-switch" role="group" aria-label={t('表示言語')}>
+            <button type="button" className={language === 'ja' ? 'on' : ''}
+              aria-pressed={language === 'ja'}
+              onClick={() => setLanguage('ja')}>{t("日本語")}</button>
+            <span className="language-divider" aria-hidden="true">|</span>
+            <button type="button" className={language === 'en' ? 'on' : ''}
+              aria-pressed={language === 'en'}
+              onClick={() => setLanguage('en')}>English</button>
+          </div>
+          <button type="button" className="privacy-link"
+            aria-label={t('プライバシーポリシー')}
+            onClick={() => setPrivacyOpen(true)}>
+            {t('プライバシー')}
+          </button>
+        </div>
+      </div>
+      <div className="autosave-status-row">
         {autosaveStatus === 'saving' && (
           <span className="saved" role="status" style={{
             color: '#855789', background: '#f6e9fb',
           }}>
-            保存中…
+            {t("保存中…")}
           </span>
         )}
 
@@ -473,7 +492,7 @@ export function TopBar() {
           <span className="saved" role="status" style={{
             color: '#177245', background: '#e6f8ed', fontWeight: 700,
           }}>
-            ✓ 自動保存
+            {t("✓ 自動保存")}
           </span>
         )}
 
@@ -481,28 +500,23 @@ export function TopBar() {
           <span className="saved" style={{
             color: '#b42318', background: '#ffebeb', fontWeight: 700,
           }}>
-            ⚠ 保存失敗
+            {t("⚠ 保存失敗")}
           </span>
         )}
 
-        <button type="button" className="privacy-link"
-          aria-label="プライバシーポリシー"
-          onClick={() => setPrivacyOpen(true)}>
-          プライバシー
-        </button>
       </div>
 
       <div className="bar">
         <button type="button" className={`tab ${tab === 'image' ? 'on' : ''}`}
           onClick={() => setTab('image')}>
-          <span className="ic">🖼</span>画像
+          <span className="ic">🏠</span>ホーム
         </button>
 
         <div className="sep" />
         <button type="button" className="icon-btn" onClick={undo}
-          disabled={!past.length} aria-label="戻す">↶</button>
+          disabled={!past.length} aria-label={t("戻す")}>↶</button>
         <button type="button" className="icon-btn" onClick={redo}
-          disabled={!future.length} aria-label="やり直す">↷</button>
+          disabled={!future.length} aria-label={t("やり直す")}>↷</button>
         <div className="sep" />
 
         <div className="tabs">
@@ -510,19 +524,19 @@ export function TopBar() {
             <button key={item.id} type="button"
               className={`tab ${tab === item.id ? 'on' : ''}`}
               onClick={() => setTab(item.id)}>
-              <span className="ic">{item.ic}</span>{item.label}
+              <span className="ic">{item.ic}</span>{t(item.label)}
             </button>
           ))}
         </div>
 
         <button type="button" className="icon-btn"
-          aria-label="作品のバックアップと復元" title="作品のバックアップと復元"
+          aria-label={t("作品のバックアップと復元")} title={t("作品のバックアップと復元")}
           onClick={() => setWorkOpen(true)}>
           📁
         </button>
 
         <button type="button" className="save" onClick={save} disabled={busy}>
-          {busy ? '作成中…' : '画像保存'}
+          {t(busy ? '作成中…' : '画像保存')}
         </button>
       </div>
 
@@ -533,19 +547,19 @@ export function TopBar() {
           fontSize: 12, lineHeight: 1.6, overflowWrap: 'anywhere',
         }}>
           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
-            ⚠ 自動保存に失敗しました
+            {t("⚠ 自動保存に失敗しました")}
           </div>
-          <div>{autosaveError || '作品を自動保存できませんでした。'}</div>
+          <div>{t(autosaveError || '作品を自動保存できませんでした。')}</div>
           {isReadError ? (
             <div style={{ marginTop: 6, fontSize: 11 }}>
-              既存の作品データを保護するため、この画面では自動保存を停止しています。
-              ブラウザのデータを削除したり、新しい作品を作ったりしないでください。
+              {t("既存の作品データを保護するため、この画面では自動保存を停止しています。")}
+              {t("ブラウザのデータを削除したり、新しい作品を作ったりしないでください。")}
             </div>
           ) : (
             <div style={{ marginTop: 6, fontSize: 11 }}>
-              このまま画面を閉じると、変更内容が失われる可能性があります。
-              上の「画像保存」からPNG画像を書き出すか、📁から作品をバックアップしてください。
-              PNGは再編集用のバックアップではありません。
+              {t("このまま画面を閉じると、変更内容が失われる可能性があります。")}
+              {t("上の「画像保存」からPNG画像を書き出すか、📁から作品をバックアップしてください。")}
+              {t("PNGは再編集用のバックアップではありません。")}
             </div>
           )}
         </div>
@@ -557,15 +571,15 @@ export function TopBar() {
         <div className="modal-bg" role="presentation"
           onClick={() => setPrivacyOpen(false)}>
           <div className="modal" role="dialog" aria-modal="true"
-            aria-label="プライバシーポリシー"
+            aria-label={t("プライバシーポリシー")}
             onClick={(event) => event.stopPropagation()}
             style={{ height: 'min(86dvh, 800px)', maxWidth: 720, minHeight: 0 }}>
-            <iframe title="プライバシーポリシー"
-              src={`${import.meta.env.BASE_URL}privacy-policy.html`}
+            <iframe title={t("プライバシーポリシー")}
+              src={`${import.meta.env.BASE_URL}${language === 'ja' ? 'privacy-policy.html' : 'privacy-policy-en.html'}`}
               style={{ width: '100%', flex: 1, minHeight: 0, border: 0,
                 borderRadius: 12, background: '#fdf8fb' }} />
             <button type="button" className="btn big ghost"
-              onClick={() => setPrivacyOpen(false)}>閉じる</button>
+              onClick={() => setPrivacyOpen(false)}>{t("閉じる")}</button>
           </div>
         </div>,
         document.body,
@@ -577,17 +591,17 @@ export function TopBar() {
         }}>
           <div className="modal" onClick={(event) => event.stopPropagation()}
             style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
-            <h3>作品のバックアップ</h3>
-             <p className="hint">編集できる状態で作品を保存・復元</p>
+            <h3>{t("作品のバックアップ")}</h3>
+             <p className="hint">{t("編集できる状態で作品を保存・復元")}</p>
 
             <button type="button" className="btn primary big"
               disabled={workBusy} onClick={exportWork}>
-              {workBusy ? '処理中…' : '作品をバックアップ'}
+              {t(workBusy ? '処理中…' : '作品をバックアップ')}
             </button>
 
             <button type="button" className="btn big"
               disabled={workBusy} onClick={() => importRef.current?.click()}>
-              バックアップを読み込む
+              {t("バックアップを読み込む")}
             </button>
 
             <input type="file" ref={importRef} accept=".json,application/json"
@@ -599,11 +613,11 @@ export function TopBar() {
               }}
             />
 
-            <p className="hint">※復元すると今の作品が置き換わります。バックアップには写真も含まれます。</p>
+            <p className="hint">{t("※復元すると今の作品が置き換わります。バックアップには写真も含まれます。")}</p>
 
             <button type="button" className="btn big ghost" disabled={workBusy}
               onClick={() => setWorkOpen(false)}>
-              閉じる
+              {t("閉じる")}
             </button>
           </div>
         </div>,
