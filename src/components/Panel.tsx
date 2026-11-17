@@ -35,7 +35,7 @@ import {
 } from '../lib/fonts';
 import { PENS } from '../lib/pens';
 import { SCENE_PRESETS, SOCIAL_PRESETS } from '../lib/scenePresets';
-import { t, photoLabel } from '../i18n';
+import { t, photoLabel, recognizedFaces, faceFromLeft } from '../i18n';
 import type {
   CanvasEl,
   FilterPreset,
@@ -1512,7 +1512,7 @@ function StampTab({
                 faceInfo.src === activePhotoSrc && faceInfo.count > 0 && (
                 <div style={{ marginBottom: 9 }}>
                   <p role="status" className="hint-s" style={{ margin: '6px 0', fontWeight: 700 }}>
-                    {t('顔を')}{faceInfo.count}{t('人認識しました')}
+                    {recognizedFaces(faceInfo.count)}
                   </p>
                   {faceInfo.count > 1 && (
                     <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>{t("顔を選択")}</p>
@@ -1531,7 +1531,7 @@ function StampTab({
                               ? { borderColor: '#ec54a5', background: '#ffeaf6' }
                               : {}),
                           }}>
-                          {t('左から')}{i + 1}{t('人目')}
+                          {faceFromLeft(i + 1)}
                         </button>
                       ))}
                     </div>
