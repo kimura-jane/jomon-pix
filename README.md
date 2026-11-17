@@ -14,7 +14,9 @@ iOSのビルド手順は [docs/IOS_CODEMAGIC_SETUP.md](docs/IOS_CODEMAGIC_SETUP.
 The hosted Web edition is `https://kimura-jane.github.io/jomon-pix/`.
 The Pages workflow runs `scripts/build_pwa.py` after Vite builds, creates
 192px, 512px and Android maskable PNG icons from the **existing user-selected iOS icon**, then
-generates a scoped `sw.js` that caches the HTML, bundled JS/CSS, icons,\nframes, sticker images and backgrounds. An automated Chromium audit checks\nreal offline restart with core visual assets.
+generates a scoped `sw.js` that caches the HTML, bundled JS/CSS, icons,
+frames, sticker images and backgrounds. An automated Chromium audit checks
+real offline restart with core visual assets.
 The website's manifest is `/jomon-pix/manifest.webmanifest`.
 
 - The first visit requires an internet connection and the Service Worker must
@@ -36,4 +38,5 @@ The website's manifest is `/jomon-pix/manifest.webmanifest`.
 - The iOS native app still uses Codemagic/Capacitor and is unaffected by
   the website Service Worker.
 
-- PWA regression tests: `python3 scripts/test_pwa.py`; actual browser test in\n  `.github/workflows/audit-pwa-android.yml` (no Play upload or signing).\n
+- PWA regression tests: `python3 scripts/test_pwa.py`; actual browser test in
+  `.github/workflows/audit-pwa-android.yml` (no Play upload or signing).
