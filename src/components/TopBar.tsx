@@ -509,7 +509,7 @@ export function TopBar() {
       <div className="bar">
         <button type="button" className={`tab ${tab === 'image' ? 'on' : ''}`}
           onClick={() => setTab('image')}>
-          <span className="ic">🏠</span>ホーム
+          <span className="ic">🏠</span>{t('ホーム')}
         </button>
 
         <div className="sep" />
