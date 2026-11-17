@@ -276,7 +276,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
             { label: '9:16', ratio: 9 / 16 },
           ].map((item) => (
             <button
-              key={t(item.label)}
+              key={item.label}
               className={`chip ${
                 preset === item.label ? 'on' : ''
               }`}
@@ -308,7 +308,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
               padding: '5px 0',
             }}
           >
-            <span style={{ width: 24 }}>{label}</span>
+            <span style={{ width: 24 }}>{t(label)}</span>
 
             <input
               type="range"
