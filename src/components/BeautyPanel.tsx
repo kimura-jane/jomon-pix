@@ -156,13 +156,13 @@ export function BeautyPanel() {
                   display: 'flex', alignItems: 'center',
                   justifyContent: 'space-between', gap: 5,
                 }}>
-                  <strong style={{ fontSize: 13 }}>{control.label}</strong>
+                  <strong style={{ fontSize: 13 }}>{t(control.label)}</strong>
                   <span style={{ fontSize: 13, color: '#e34f9b' }}>
                     {beauty[control.key]}%
                   </span>
                 </div>
                 <HistorySlider
-                  label={control.label}
+                  label={t(control.label)}
                   min={0}
                   max={100}
                   step={1}
