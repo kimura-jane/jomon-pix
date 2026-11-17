@@ -410,7 +410,7 @@ function FloatingLayers({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く'}
+          aria-label={t(open ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く')}
           aria-expanded={open}
           style={{
             width: 23,
@@ -453,7 +453,7 @@ function FloatingLayers({
                     child.parentImageId === el.id,
                   ).length
                 : 0;
-              const name = LAYER_LABEL[el.type];
+              const name = t(LAYER_LABEL[el.type]);
               const description = attachedCount > 0
                 ? `${name}（スタンプ・文字 ${attachedCount}個付き）`
                 : name;
