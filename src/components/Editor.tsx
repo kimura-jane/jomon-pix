@@ -455,7 +455,7 @@ function FloatingLayers({
                 : 0;
               const name = t(LAYER_LABEL[el.type]);
               const description = attachedCount > 0
-                ? `${name}（スタンプ・文字 ${attachedCount}個付き）`
+                ? `${name} +${attachedCount}`
                 : name;
               return (
                 <button
