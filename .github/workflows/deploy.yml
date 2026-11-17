@@ -30,6 +30,7 @@ jobs:
       - name: Create installable PWABuilder assets and offline app shell
         run: |
           python3 -m pip install --quiet Pillow==11.3.0
+          python3 scripts/test_pwa.py
           python3 scripts/build_pwa.py --out dist
       - uses: actions/configure-pages@v5
       - name: Upload Pages artifact

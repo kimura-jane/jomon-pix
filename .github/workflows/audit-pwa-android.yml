@@ -1,0 +1,49 @@
+name: Audit JOMON PIX Android PWA offline launch
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/build_pwa.py
+      - scripts/test_pwa.py
+      - scripts/audit_pwa_offline.mjs
+      - public/manifest.webmanifest
+      - src/main.tsx
+      - .github/workflows/audit-pwa-android.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-web-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install tools
+        run: |
+          npm ci --no-audit --no-fund
+          python3 -m pip install --quiet Pillow==11.3.0
+      - name: PWA build regression tests
+        run: python3 scripts/test_pwa.py
+      - name: Build and package PWA
+        run: |
+          npm run typecheck
+          npm run build
+          python3 scripts/build_pwa.py --out dist
+      - name: Install Chrome test browser
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test real offline launch and embedded visual assets in Chromium
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/jomon-pwa-test.log 2>&1 &
+          for n in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_pwa_offline.mjs
