@@ -318,7 +318,7 @@ function MosaicDialog({
       state.update(photo.id, { src: result });
       const saved = useAutosaveStatus.getState();
       if (saved.status === 'failed') {
-        alert('加工は反映されましたが、自動保存できません。画像サイズや保存容量を確認してください。');
+        alert(t('加工は反映されましたが、自動保存できません。画像サイズや保存容量を確認してください。'));
       }
       onClose();
     } catch (e) {
@@ -477,7 +477,7 @@ function MosaicDialog({
         </div>
 
         <label className="slider">
-          モザイクの粗さ {tileSize}px
+          {t('モザイクの粗さ')} {tileSize}px
           <input
             type="range"
             min={8}
@@ -491,7 +491,7 @@ function MosaicDialog({
 
         {mode === 'brush' && (
           <label className="slider">
-            ブラシの太さ {brushPercent}%
+            {t('ブラシの太さ')} {brushPercent}%
             <input
               type="range"
               min={2}
@@ -540,9 +540,9 @@ function MosaicDialog({
               (mode === 'brush' && !strokes.length)}
             onClick={apply}
           >
-            {working
+            {t(working
               ? mode === 'background' ? '被写体を判定中…' : '加工中…'
-              : mode === 'background' ? '背景だけにモザイク' : 'モザイクを適用'}
+              : mode === 'background' ? '背景だけにモザイク' : 'モザイクを適用')}
           </button>
         </div>
 
@@ -629,11 +629,11 @@ export function MosaicPanel() {
             disabled={!target}
             onClick={() => setOpen(true)}
           >
-            {mode === 'all'
+            {t(mode === 'all'
               ? '▦ 全体にモザイク'
               : mode === 'background'
                 ? '▦ 背景だけモザイク'
-                : '▦ 範囲を指定'}
+                : '▦ 範囲を指定')}
           </button>
         </>
       )}
