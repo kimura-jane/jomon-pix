@@ -21,7 +21,21 @@ button { font-family: inherit; color: inherit; }
 
 /* 上の列 */
 .top { padding: max(10px, env(safe-area-inset-top, 0px)) 12px 6px; display: flex; flex-direction: column; gap: 8px; }
-.brand { display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+.brand-actions { display: flex; align-items: center; gap: 5px; flex: none; }
+.language-switch { display: inline-flex; align-items: center; gap: 1px; background: rgba(255, 255, 255, 0.85); padding: 2px; border-radius: 11px; white-space: nowrap; border: 1px solid var(--line); }
+.language-switch button { border: 0; background: transparent; border-radius: 8px; padding: 5px 6px; color: var(--sub); font-size: 11px; cursor: pointer; }
+.language-switch button.on { color: #9d286d; background: #fbe4f1; font-weight: 800; }
+.language-divider { font-size: 10px; color: #b3a3af; }
+.autosave-status-row { display: flex; justify-content: flex-end; }
+.autosave-status-row:empty { display: none; }
+@media (max-width: 375px) {
+  .logo { font-size: 16px; letter-spacing: 0; }
+  .brand-actions { gap: 2px; }
+  .language-switch button { font-size: 10px; padding: 5px 4px; }
+  .privacy-link { font-size: 10px; padding: 6px 2px; }
+}
+
 .logo { font-family: 'Dela Gothic One', sans-serif; font-size: 20px; letter-spacing: 0.5px;
   background: linear-gradient(90deg, var(--pink), var(--purple)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .saved { font-size: 11px; color: var(--sub); background: var(--glass); padding: 4px 10px; border-radius: 99px; }
