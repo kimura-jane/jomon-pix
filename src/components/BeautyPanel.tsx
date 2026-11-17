@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { t, photoLabel } from '../i18n';
 import { useEditor } from '../store';
 import type { ImageEl, BeautySettings } from '../types';
 import { BEAUTY_FIELDS, DEFAULT_BEAUTY } from '../lib/beautyProcessor';
@@ -84,7 +84,7 @@ export function BeautyPanel() {
                     borderRadius: 6, display: 'block',
                   }} />
                 <span style={{ fontSize: 11 }}>
-                  {getPhotoLabel(editor.elements, item.id)}{item.locked ? ' 🔒' : ''}
+                  {photoLabel(getPhotoLabel(editor.elements, item.id))}{item.locked ? ' 🔒' : ''}
                 </span>
               </button>
             ))}
