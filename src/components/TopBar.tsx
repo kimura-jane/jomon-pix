@@ -239,7 +239,7 @@ function parseBackup(raw: string): Artwork {
     parsed.formatVersion !== 1 ||
     !isRecord(parsed.artwork)
   ) {
-    throw new Error(t('JOMON pixの対応する作品ファイルではありません。'));
+    throw new Error(t('JOMON PIXの対応する作品ファイルではありません。'));
   }
 
   const artwork = parsed.artwork;
