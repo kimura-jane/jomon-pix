@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 
 import { useEffect, useRef, useState } from 'react';
 import Konva from 'konva';
@@ -377,8 +378,8 @@ function FloatingLayers({
       <div style={{ display: 'flex', gap: 3, minHeight: 44 }}>
         <button
           type="button"
-          aria-label="重なり順パネルを移動"
-          title="指でドラッグして移動"
+          aria-label={t("重なり順パネルを移動")}
+          title={t("指でドラッグして移動")}
           onPointerDown={startLayerDrag}
           onPointerMove={moveLayerDrag}
           onPointerUp={stopLayerDrag}
@@ -404,7 +405,7 @@ function FloatingLayers({
           }}
         >
           <span aria-hidden="true" style={{ display: 'block', fontSize: 18, lineHeight: 1 }}>⠿</span>
-          重なり順
+          {t("重なり順")}
         </button>
         <button
           type="button"
@@ -432,7 +433,7 @@ function FloatingLayers({
         <>
           <div
             role="list"
-            aria-label="レイヤー一覧（上ほど手前）"
+            aria-label={t("レイヤー一覧（上ほど手前）")}
             style={{
               overflowY: 'auto',
               minHeight: 0,
@@ -462,9 +463,9 @@ function FloatingLayers({
                   role="listitem"
                   key={el.id}
                   onClick={() => choose(el)}
-                  aria-label={`${description}、${index + 1}番目（最前面から）、${el.hidden ? '非表示' : '表示中'}`}
+                  aria-label={`${description}, ${index + 1} ${t('番目（最前面から）')}, ${t(el.hidden ? '非表示' : '表示中')}`}
                   aria-pressed={active}
-                  title={`${index === 0 ? '最前面' : `前から${index + 1}番目`}・${name}${el.locked ? '・ロック中' : ''}`}
+                  title={`${index === 0 ? t('最前面') : `${t('前から')}${index + 1}${t('番目')}`} · ${name}${el.locked ? ` · ${t('ロック中')}` : ''}`}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -506,8 +507,8 @@ function FloatingLayers({
             }}
           >
             {([
-              ['up', '↑', '手前へ移動'],
-              ['down', '↓', '奥へ移動'],
+              ['up', '↑', t('手前へ移動')],
+              ['down', '↓', t('奥へ移動')],
             ] as const).map(([dir, icon, label]) => (
               <button
                 type="button"
@@ -1132,7 +1133,7 @@ export function Editor() {
           style={zoomButtonStyle}
           onClick={() => changeZoom(0.25)}
           disabled={zoom >= MAX_ZOOM}
-          aria-label="拡大"
+          aria-label={t("拡大")}
         >
           ＋
         </button>
@@ -1142,7 +1143,7 @@ export function Editor() {
           style={zoomButtonStyle}
           onClick={() => changeZoom(-0.25)}
           disabled={zoom <= MIN_ZOOM}
-          aria-label="縮小"
+          aria-label={t("縮小")}
         >
           −
         </button>
@@ -1151,7 +1152,7 @@ export function Editor() {
           type="button"
           style={zoomButtonStyle}
           onClick={fitCanvas}
-          aria-label="全体表示"
+          aria-label={t("全体表示")}
         >
           ⤢
         </button>
