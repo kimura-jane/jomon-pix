@@ -35,6 +35,7 @@ import {
 } from '../lib/fonts';
 import { PENS } from '../lib/pens';
 import { SCENE_PRESETS, SOCIAL_PRESETS } from '../lib/scenePresets';
+import { t } from '../i18n';
 import type {
   CanvasEl,
   FilterPreset,
@@ -128,7 +129,7 @@ function Seg({
           className={value === item ? 'on' : ''}
           onClick={() => onChange(item)}
         >
-          {item}
+          {t(item)}
         </button>
       ))}
     </div>
@@ -147,7 +148,7 @@ function Soon({
       <span className="em">{em}</span>
       {children}
       <br />
-      準備中だよ
+      {t("準備中だよ")}
     </div>
   );
 }
@@ -172,7 +173,7 @@ function Dots({
           }`}
           style={{ background: color }}
           onClick={() => onPick(color)}
-          aria-label={`色 ${color}`}
+          aria-label={`${t('色')} ${color}`}
         />
       ))}
     </div>
@@ -238,7 +239,7 @@ function PhotoAttachmentControls({
       }}
     >
       <div className="label" style={{ margin: '0 0 6px' }}>
-        一緒に動かす写真を選ぶ
+        {t("一緒に動かす写真を選ぶ")}
       </div>
       <div className="row" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
         {photos.map((photo, index) => (
@@ -281,7 +282,7 @@ function PhotoAttachmentControls({
             onClick={() => s.detachFromImage(el.id)}
             style={{ flexShrink: 0, fontSize: 11 }}
           >
-            くっつけない
+            {t("くっつけない")}
           </button>
         )}
       </div>
@@ -314,7 +315,7 @@ function ImageTab() {
               await addImageFromFile(file);
             }
           } catch {
-            alert('写真を追加できませんでした');
+            alert(t('写真を追加できませんでした'));
           }
         }}
       />
@@ -323,20 +324,20 @@ function ImageTab() {
         className="big-btn"
         onClick={() => ref.current?.click()}
       >
-        ＋ 写真を追加
+        {t("＋ 写真を追加")}
       </button>
 
       <button
         className="big-btn light"
         onClick={() => {
           if (
-            confirm('今の作品を消して新しく作る？')
+            confirm(t('今の作品を消して新しく作る？'))
           ) {
             clear();
           }
         }}
       >
-        ✨ 新しく作る
+        {t("✨ 新しく作る")}
       </button>
 
     </>
@@ -374,7 +375,7 @@ function TextTab({
 
       {sub === '吹き出し' ? (
         <Soon em="💬">
-          丸・ギザギザ・もくもく・LINE風の吹き出し
+          {t("丸・ギザギザ・もくもく・LINE風の吹き出し")}
         </Soon>
       ) : (
         <>
@@ -383,7 +384,7 @@ function TextTab({
               className="big-btn"
               onClick={() => addText()}
             >
-              ＋ 文字を入れる
+              {t("＋ 文字を入れる")}
             </button>
           )}
 
@@ -402,13 +403,13 @@ function TextTab({
           )}
 
           <div className="label">
-            スタイル
+            {t("スタイル")}
           </div>
 
           <div className="row">
             {TEXT_PRESETS.map((preset) => (
               <button
-                key={preset.label}
+                key={t(preset.label)}
                 className="chip"
                 disabled={!!el?.locked}
                 style={{
@@ -421,7 +422,7 @@ function TextTab({
                     : addText(preset.style)
                 }
               >
-                {preset.label}
+                {t(preset.label)}
               </button>
             ))}
           </div>
@@ -429,12 +430,12 @@ function TextTab({
           {el && (
             <>
               <div className="label">
-                フォント
+                {t("フォント")}
               </div>
 
               <Seg
                 items={FONT_GROUPS}
-                value={group}
+                value={t(group)}
                 onChange={setGroup}
               />
 
@@ -461,12 +462,12 @@ function TextTab({
                       })
                     }
                   >
-                    {font.label}
+                    {t(font.label)}
                   </button>
                 ))}
               </div>
 
-              <div className="label">色</div>
+              <div className="label">{t("色")}</div>
 
               <Dots
                 value={el.fill}
@@ -477,7 +478,7 @@ function TextTab({
               />
 
               <div className="label">
-                ふちどり
+                {t("ふちどり")}
               </div>
 
               <Dots
@@ -493,7 +494,7 @@ function TextTab({
               />
 
               <HistorySlider
-                label={`ふちどりの太さ ${el.strokeWidth}px`}
+                label={`${t('ふちどりの太さ')} ${el.strokeWidth}px`}
                 min={0}
                 max={30}
                 step={1}
@@ -506,7 +507,7 @@ function TextTab({
               />
 
               <div className="label">
-                光る
+                {t("光る")}
               </div>
 
               <Dots
@@ -525,7 +526,7 @@ function TextTab({
               />
 
               <div className="label">
-                形
+                {t("形")}
               </div>
 
               <div className="row">
@@ -538,7 +539,7 @@ function TextTab({
                     up({ vertical: false })
                   }
                 >
-                  横書き
+                  {t("横書き")}
                 </button>
 
                 <button
@@ -550,7 +551,7 @@ function TextTab({
                     up({ vertical: true })
                   }
                 >
-                  縦書き
+                  {t("縦書き")}
                 </button>
 
                 {(
@@ -582,7 +583,7 @@ function TextTab({
               </div>
 
               <HistorySlider
-                label={`大きさ ${el.fontSize}px`}
+                label={`${t('大きさ')} ${el.fontSize}px`}
                 min={16}
                 max={200}
                 value={el.fontSize}
@@ -594,7 +595,7 @@ function TextTab({
               />
 
               <HistorySlider
-                label={`字間 ${el.letterSpacing}`}
+                label={`${t('字間')} ${el.letterSpacing}`}
                 min={-5}
                 max={40}
                 value={el.letterSpacing}
@@ -606,7 +607,7 @@ function TextTab({
               />
 
               <HistorySlider
-                label={`透明度 ${Math.round(el.opacity * 100)}%`}
+                label={`${t('透明度')} ${Math.round(el.opacity * 100)}%`}
                 min={0}
                 max={100}
                 step={5}
@@ -624,7 +625,7 @@ function TextTab({
                 className="big-btn light"
                 onClick={() => addText()}
               >
-                ＋ もう1つ文字を入れる
+                {t("＋ もう1つ文字を入れる")}
               </button>
             </>
           )}
@@ -659,10 +660,10 @@ function PenTab() {
 
   return (
     <>
-      <div className="label">ペンを描く写真</div>
+      <div className="label">{t("ペンを描く写真")}</div>
       {photos.length === 0 ? (
         <p className="hint-s">
-          先に写真を追加してください。
+          {t("先に写真を追加してください。")}
         </p>
       ) : (
         <>
@@ -679,8 +680,8 @@ function PenTab() {
                 key={photo.id}
                 type="button"
                 onClick={() => select(photo.id)}
-                title={getPhotoLabel(elements, photo.id) + 'を描画対象にする'}
-                aria-label={getPhotoLabel(elements, photo.id) + 'を描画対象にする'}
+                title={`${getPhotoLabel(elements, photo.id)} ${t("を描画対象にする")}`}
+                aria-label={`${getPhotoLabel(elements, photo.id)} ${t("を描画対象にする")}`}
                 aria-pressed={photo.id === (selectedPhoto ?? fallbackPhoto)?.id}
                 style={{
                   flex: '0 0 auto',
@@ -740,9 +741,9 @@ function PenTab() {
               'かわいい',
             ] as const
           ).map((group) => (
-            <div key={group}>
+            <div key={t(group)}>
               <div className="label">
-                {group}
+                {t(group)}
               </div>
 
               <div className="row">
@@ -763,7 +764,7 @@ function PenTab() {
                       })
                     }
                   >
-                    {p.label}
+                    {t(p.label)}
                   </button>
                 ))}
               </div>
@@ -771,7 +772,7 @@ function PenTab() {
           ))}
 
           <div className="label">
-            色
+            {t("色")}
           </div>
 
           <Dots
@@ -783,7 +784,7 @@ function PenTab() {
           />
 
           <Slider
-            label={`太さ ${pen.width}px`}
+            label={`${t('太さ')} ${pen.width}px`}
             min={2}
             max={40}
             value={pen.width}
@@ -793,7 +794,7 @@ function PenTab() {
           />
 
           <Slider
-            label={`透明度 ${opacityPercent}%`}
+            label={`${t('透明度')} ${opacityPercent}%`}
             min={0}
             max={100}
             step={5}
@@ -1116,7 +1117,7 @@ function StampTab({
           }}
         >
           <div className="label" style={{ margin: '0 0 8px' }}>
-            配置済みスタンプを選択
+            {t("配置済みスタンプを選択")}
           </div>
           <div
             style={{
@@ -1139,7 +1140,7 @@ function StampTab({
                 <button
                   key={sticker.id}
                   type="button"
-                  aria-label={`配置済みスタンプ${index + 1}を選択`}
+                  aria-label={`${t("配置済みスタンプを選択")} ${index + 1}`}
                   aria-pressed={selected}
                   onClick={() => s.select(sticker.id)}
                   style={{
@@ -1219,7 +1220,7 @@ function StampTab({
                 fontSize: 13,
               }}
             >
-              選択中のスタンプ
+              {t("選択中のスタンプ")}
             </strong>
 
             <button
@@ -1233,7 +1234,7 @@ function StampTab({
                 s.select(null)
               }
             >
-              完了
+              {t("完了")}
             </button>
           </div>
 
@@ -1251,7 +1252,7 @@ function StampTab({
                 fontSize: 12,
               }}
             >
-              大きさ
+              {t("大きさ")}
             </span>
 
             <strong
@@ -1280,7 +1281,7 @@ function StampTab({
               !!selectedSticker.locked ||
               !!selectedSticker.hidden
             }
-            aria-label="スタンプの大きさ"
+            aria-label={t("スタンプの大きさ")}
 
             // タッチ・マウス・ペン操作
             onPointerDown={beginSizeChange}
@@ -1357,7 +1358,7 @@ function StampTab({
                 )
               }
             >
-              − 小さく
+              {t("− 小さく")}
             </button>
 
             <button
@@ -1373,7 +1374,7 @@ function StampTab({
                 )
               }
             >
-              ＋ 大きく
+              {t("＋ 大きく")}
             </button>
 
             <button
@@ -1387,7 +1388,7 @@ function StampTab({
                 changeSize(42)
               }
             >
-              標準
+              {t("標準")}
             </button>
 
             <button
@@ -1399,7 +1400,7 @@ function StampTab({
                 )
               }
             >
-              ⧉ 複製
+              {t("⧉ 複製")}
             </button>
 
             <button
@@ -1411,7 +1412,7 @@ function StampTab({
                 )
               }
             >
-              🗑 削除
+              {t("🗑 削除")}
             </button>
           </div>
 
@@ -1451,7 +1452,7 @@ function StampTab({
               onClick={() => { setAutoFace(true); setAutoMessage(''); }}
               style={autoFace ? { borderColor: '#ec54a5', background: '#ffeaf6' } : {}}
             >
-              自動配置
+              {t("自動配置")}
             </button>
             <button
               type="button"
@@ -1461,7 +1462,7 @@ function StampTab({
               onClick={() => { setAutoFace(false); setAutoMessage(''); }}
               style={!autoFace ? { borderColor: '#ec54a5', background: '#ffeaf6' } : {}}
             >
-              手動配置
+              {t("手動配置")}
             </button>
           </div>
           {autoFace ? (
@@ -1469,7 +1470,7 @@ function StampTab({
               {availablePhotos.length > 1 && (
                 <>
                   <p className="hint-s" style={{ margin: '5px 0' }}>
-                    写真を選択
+                    {t("写真を選択")}
                   </p>
                   <div style={{
                     display: 'flex', gap: 8, overflowX: 'auto',
@@ -1479,7 +1480,7 @@ function StampTab({
                       const selectedPhoto = findAttachmentPhoto(s.elements, s.selectedId, true);
                       return (
                         <button type="button" key={photo.id}
-                          aria-label={`${getPhotoLabel(s.elements, photo.id)}を顔デコ対象にする`}
+                          aria-label={`${getPhotoLabel(s.elements, photo.id)} ${t("を顔デコ対象にする")}`}
                           aria-pressed={selectedPhoto?.id === photo.id}
                           onClick={() => { s.select(photo.id); setAutoMessage(''); }}
                           style={{
@@ -1501,23 +1502,23 @@ function StampTab({
               )}
               {autoGuide && (
                 <p role="status" className="hint-s" style={{ margin: '8px 0 0' }}>
-                  {autoGuide}
+                  {t(autoGuide)}
                 </p>
               )}
               {faceBusy && (
-                <p role="status" className="hint-s">顔の位置を確認中…</p>
+                <p role="status" className="hint-s">{t("顔の位置を確認中…")}</p>
               )}
               {!faceBusy && faceInfo && faceInfo.photoId === activePhotoId &&
                 faceInfo.src === activePhotoSrc && faceInfo.count > 0 && (
                 <div style={{ marginBottom: 9 }}>
                   <p role="status" className="hint-s" style={{ margin: '6px 0', fontWeight: 700 }}>
-                    顔を{faceInfo.count}人認識しました
+                    {t('顔を')}{faceInfo.count}{t('人認識しました')}
                   </p>
                   {faceInfo.count > 1 && (
-                    <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>顔を選択</p>
+                    <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>{t("顔を選択")}</p>
                   )}
                   {faceInfo.count > 1 && (
-                    <div className="row" role="group" aria-label="スタンプを付ける顔を選ぶ"
+                    <div className="row" role="group" aria-label={t("スタンプを付ける顔を選ぶ")}
                       style={{ flexWrap: 'nowrap', overflowX: 'auto', gap: 7, paddingBottom: 5 }}>
                       {Array.from({ length: faceInfo.count }, (_, i) => (
                         <button type="button" className="chip" key={i}
@@ -1530,7 +1531,7 @@ function StampTab({
                               ? { borderColor: '#ec54a5', background: '#ffeaf6' }
                               : {}),
                           }}>
-                          左から{i + 1}人目
+                          {t('左から')}{i + 1}{t('人目')}
                         </button>
                       ))}
                     </div>
@@ -1541,7 +1542,7 @@ function StampTab({
           ) : null}
           {autoBusy && (
             <p className="hint-s" role="status" style={{ margin: '8px 0 0' }}>
-              顔認識を実行中…
+              {t("顔認識を実行中…")}
             </p>
           )}
           {autoMessage && (
@@ -1549,14 +1550,14 @@ function StampTab({
               style={{
                 margin: '8px 0 0', padding: 8, background: '#ffffff',
                 borderRadius: 8,
-              }}>{autoMessage}</p>
+              }}>{t(autoMessage)}</p>
           )}
         </div>
       )}
 
       {sub === 'マイスタンプ' && (
         <Soon em="📷">
-          カメラロール → 背景を自動で消す → 登録
+          {t("カメラロール → 背景を自動で消す → 登録")}
         </Soon>
       )}
 
@@ -1576,11 +1577,11 @@ function StampTab({
                 key={sticker.id}
                 type="button"
                 className="cell"
-                title={sticker.label}
+                title={t(sticker.label)}
                 aria-label={
                   sub === '顔デコ' && autoFace
-                    ? `${sticker.label}を自動配置`
-                    : `${sticker.label}を追加`
+                    ? `${t(sticker.label)}を自動配置`
+                    : `${t(sticker.label)}を追加`
                 }
                 disabled={autoBusy || (sub === '顔デコ' && autoFace &&
                   (faceBusy || !faceInfo || faceInfo.count < 1 ||
@@ -1634,7 +1635,7 @@ function StampTab({
           {extraEmoji.length > 0 && (
             <>
               <div className="label">
-                その他
+                {t("その他")}
               </div>
 
               <div
@@ -1651,7 +1652,7 @@ function StampTab({
                       type="button"
                       className="cell"
                       aria-label={
-                        `${emoji}を追加`
+                        `${emoji} ${t("を追加")}`
                       }
                       onClick={() =>
                         addSticker(emoji)
@@ -1705,9 +1706,7 @@ function EditTab({
       );
 
     if (!success) {
-      alert(
-        '写真がありません。先に写真を追加してください。',
-      );
+      alert(t('写真がありません。先に写真を追加してください。'));
     }
   };
 
@@ -1726,7 +1725,7 @@ function EditTab({
 
       {sub === '配置' && (
         <>
-          {off && <p className="hint-s">編集するものを選択</p>}
+          {off && <p className="hint-s">{t("編集するものを選択")}</p>}
 
           <div className="row">
             <button
@@ -1737,7 +1736,7 @@ function EditTab({
                 s.move(el.id, 'front')
               }
             >
-              ⤒ 最前面
+              {t("⤒ 最前面")}
             </button>
 
             <button
@@ -1748,7 +1747,7 @@ function EditTab({
                 s.move(el.id, 'up')
               }
             >
-              ↑ 1つ前へ
+              {t("↑ 1つ前へ")}
             </button>
 
             <button
@@ -1759,7 +1758,7 @@ function EditTab({
                 s.move(el.id, 'down')
               }
             >
-              ↓ 1つ後ろへ
+              {t("↓ 1つ後ろへ")}
             </button>
 
             <button
@@ -1770,7 +1769,7 @@ function EditTab({
                 s.move(el.id, 'back')
               }
             >
-              ⤓ 最背面
+              {t("⤓ 最背面")}
             </button>
 
             <button
@@ -1783,7 +1782,7 @@ function EditTab({
                 })
               }
             >
-              ⇋ 左右反転
+              {t("⇋ 左右反転")}
             </button>
 
             <button
@@ -1796,7 +1795,7 @@ function EditTab({
                 })
               }
             >
-              ⇵ 上下反転
+              {t("⇵ 上下反転")}
             </button>
 
             <button
@@ -1807,7 +1806,7 @@ function EditTab({
                 s.duplicate(el.id)
               }
             >
-              ⧉ 複製
+              {t("⧉ 複製")}
             </button>
 
             <button
@@ -1833,7 +1832,7 @@ function EditTab({
                 s.remove(el.id)
               }
             >
-              🗑 削除
+              {t("🗑 削除")}
             </button>
           </div>
 
@@ -1843,7 +1842,7 @@ function EditTab({
 
           {el && (
             <HistorySlider
-              label={`透明度 ${Math.round(el.opacity * 100)}%`}
+              label={`${t('透明度')} ${Math.round(el.opacity * 100)}%`}
               min={0}
               max={100}
               step={5}
@@ -1868,7 +1867,7 @@ function EditTab({
                 setCropOpen(true)
               }
             >
-              ✂ 写真をトリミング
+              {t("✂ 写真をトリミング")}
             </button>
 
             <button
@@ -1898,7 +1897,7 @@ function EditTab({
           </>
         ) : (
           <p className="hint-s">
-            写真を選ぶと使えるよ
+            {t("写真を選ぶと使えるよ")}
           </p>
         ))}
 
@@ -1925,14 +1924,14 @@ function EditTab({
           </div>
         ) : (
           <p className="hint-s">
-            写真を選ぶと使えるよ
+            {t("写真を選ぶと使えるよ")}
           </p>
         ))}
 
       {sub === 'キャンバス' && (
         <>
           <div className="label">
-            キャンバスのサイズ
+            {t("キャンバスのサイズ")}
           </div>
 
           <div className="row">
@@ -1952,7 +1951,7 @@ function EditTab({
                     )
                   }
                 >
-                  {preset.label}
+                  {t(preset.label)}
                 </button>
               ),
             )}
@@ -1967,11 +1966,11 @@ function EditTab({
               setCanvasCropOpen(true)
             }
           >
-            ✂ キャンバスを切り抜く
+            {t("✂ キャンバスを切り抜く")}
           </button>
 
           <div className="label">
-            背景色
+            {t("背景色")}
           </div>
 
           <Dots
@@ -2011,18 +2010,18 @@ function EditTab({
 // レイヤー名
 function layerName(el: CanvasEl) {
   if (el.type === 'text') {
-    return el.text || '文字';
+    return el.text || t('文字');
   }
 
   if (el.type === 'sticker') {
-    return 'スタンプ';
+    return t('スタンプ');
   }
 
   if (el.type === 'line') {
-    return 'ペン';
+    return t('ペン');
   }
 
-  return '写真';
+  return t('写真');
 }
 
 // 写真に直接追従するフレーム。独立したレイヤーは増やさない。
@@ -2044,7 +2043,7 @@ const FRAME_COLORS = [
   
 type FramePreviewGroup = 'scene' | 'social' | 'border';
 
-// Every thumbnail is captured from JOMON pix's REAL Konva renderer with
+// Every thumbnail is captured from JOMON PIX's REAL Konva renderer with
 // the same original illustrated portrait. No external image is downloaded.
 function FrameReferenceImage({
   group,
@@ -2058,8 +2057,8 @@ function FrameReferenceImage({
   return (
     <img
       className="frame-reference"
-      src={`${import.meta.env.BASE_URL}frame-previews/${group}-${id}.png`}
-      alt={`${label}の仕上がり参考画像`}
+      src={`${import.meta.env.BASE_URL}frame-previews/${t(group)}-${id}.png`}
+      alt={`${t(label)} ${t("仕上がり参考画像")}`}
       loading="lazy"
       decoding="async"
       draggable={false}
@@ -2100,14 +2099,14 @@ function BorderFrameTab() {
     <>
       {photos.length === 0 && (
         <p className="hint-s" role="status">
-          先に写真を追加してください。
+          {t("先に写真を追加してください。")}
         </p>
       )}
 
       {photos.length > 1 && (
         <>
           <p className="hint-s" style={{ fontWeight: 700, marginTop: 10 }}>
-            写真を選択
+            {t("写真を選択")}
           </p>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 0 10px' }}>
             {photos.map((item, index) => (
@@ -2137,10 +2136,10 @@ function BorderFrameTab() {
       )}
 
       {photos.length > 1 && !photo && (
-        <p className="hint-s">写真を選択</p>
+        <p className="hint-s">{t("写真を選択")}</p>
       )}
       {photo?.locked && (
-        <p className="hint-s">写真のロックを解除してください。</p>
+        <p className="hint-s">{t("写真のロックを解除してください。")}</p>
       )}
 
       <div style={{
@@ -2166,8 +2165,8 @@ function BorderFrameTab() {
               cursor: locked ? 'not-allowed' : 'pointer',
             }}
           >
-            <FrameReferenceImage group="border" id={item.id} label={item.label} />
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</div>
+            <FrameReferenceImage group="border" id={item.id} label={t(item.label)} />
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{t(item.label)}</div>
           </button>
         ))}
       </div>
@@ -2175,7 +2174,7 @@ function BorderFrameTab() {
       {photo && style !== 'none' && (
         <>
           <HistorySlider
-            label={`太さ ${size}%`}
+            label={`${t('太さ')} ${size}%`}
             min={2}
             max={18}
             step={1}
@@ -2190,13 +2189,13 @@ function BorderFrameTab() {
           {style !== 'film' && style !== 'polaroid' && (
             <>
               <p className="hint-s" style={{ marginTop: 12, fontWeight: 700 }}>
-                フレームの色
+                {t("フレームの色")}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '6px 0' }}>
                 {FRAME_COLORS.map((swatch) => (
                   <button key={swatch} type="button"
                     title={swatch}
-                    aria-label={`フレームの色 ${swatch}`}
+                    aria-label={`${t('フレームの色')} ${swatch}`}
                     aria-pressed={color === swatch}
                     disabled={!!photo.locked}
                     onClick={() => s.update(photo.id, {
@@ -2219,7 +2218,7 @@ function BorderFrameTab() {
             disabled={!!photo.locked}
             style={{ marginTop: 10 }}
             onClick={() => apply('none')}>
-            フレームを外す
+            {t("フレームを外す")}
           </button>
         </>
       )}
@@ -2251,11 +2250,11 @@ function SceneFrameTab() {
       const transparentSource = await removeBg(originalSource);
       const latest = useEditor.getState().elements.find((item) => item.id === photo.id);
       if (latest?.type !== 'image' || latest.src !== originalSource) {
-        throw new Error('写真が変更されました。切り抜きは適用していません。');
+        throw new Error(t('写真が変更されました。切り抜きは適用していません。'));
       }
       useEditor.getState().update(photo.id, { src: transparentSource });
     } catch (error) {
-      alert(error instanceof Error ? error.message : '写真の背景を削除できませんでした。');
+      alert(t(error instanceof Error ? error.message : '写真の背景を削除できませんでした。'));
     } finally {
       setBusy(false);
     }
@@ -2279,8 +2278,8 @@ function SceneFrameTab() {
                 borderRadius: 14, background: chosen ? '#fff0fa' : '#ffffff',
                 color: '#413341', cursor: 'pointer',
               }}>
-              <FrameReferenceImage group="scene" id={item.id} label={item.label} />
-              <div style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>{item.label}</div>
+              <FrameReferenceImage group="scene" id={item.id} label={t(item.label)} />
+              <div style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>{t(item.label)}</div>
             </button>
           );
         })}
@@ -2293,13 +2292,13 @@ function SceneFrameTab() {
         }}>
           {images.length > 1 && (
             <p className="hint-s" style={{ margin: 0 }}>
-              切り抜く写真を選択
+              {t("切り抜く写真を選択")}
             </p>
           )}
           <button type="button" className="chip"
             disabled={!photo || photo.locked || busy}
             onClick={() => { void separatePerson(); }}>
-            {busy ? '切り抜き中…' : '写真の背景を消す'}
+            {t(busy ? '切り抜き中…' : '写真の背景を消す')}
           </button>
         </div>
       )}
@@ -2330,11 +2329,11 @@ function SocialFrameTab() {
                 background: selected ? '#fff0fa' : '#ffffff',
                 cursor: 'pointer',
               }}>
-              <FrameReferenceImage group="social" id={item.id} label={item.label} />
+              <FrameReferenceImage group="social" id={item.id} label={t(item.label)} />
               <span style={{
                 display: 'block', marginBottom: 5,
                 fontSize: 12, fontWeight: 800,
-              }}>{item.label}</span>
+              }}>{t(item.label)}</span>
             </button>
           );
         })}
@@ -2345,9 +2344,9 @@ function SocialFrameTab() {
       }}>
         <button className="chip" type="button"
           onClick={() => editor.setCanvasPreset('9:16')}>
-          縦9:16に変更
+          {t("縦9:16に変更")}
         </button>
-        <p className="hint-s" style={{ marginBottom: 0 }}>※配信画面風の画像加工です</p>
+        <p className="hint-s" style={{ marginBottom: 0 }}>{t("※配信画面風の画像加工です")}</p>
       </div>
     </>
   );
@@ -2378,7 +2377,7 @@ function LayerTab() {
   if (!elements.length) {
     return (
       <p className="hint-s">
-        まだ何もないよ
+        {t("まだ何もないよ")}
       </p>
     );
   }
