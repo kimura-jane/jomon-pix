@@ -19,7 +19,7 @@ export async function removeBg(src: string): Promise<string> {
   } catch (error) {
     if (Capacitor.isNativePlatform()) {
       // Keep detailed errors on-device, never upload logs or photos.
-      console.error('[JOMON pix] Native offline background AI failed:', error);
+      console.error('[JOMON PIX] Native offline background AI failed:', error);
       const message = error instanceof Error ? error.message : String(error);
       const code = /resource|fetch|size|404|network/i.test(message)
         ? 'BG-DATA'
