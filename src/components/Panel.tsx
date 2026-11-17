@@ -409,7 +409,7 @@ function TextTab({
           <div className="row">
             {TEXT_PRESETS.map((preset) => (
               <button
-                key={t(preset.label)}
+                key={preset.label}
                 className="chip"
                 disabled={!!el?.locked}
                 style={{
@@ -435,7 +435,7 @@ function TextTab({
 
               <Seg
                 items={FONT_GROUPS}
-                value={t(group)}
+                value={group}
                 onChange={setGroup}
               />
 
@@ -741,7 +741,7 @@ function PenTab() {
               'かわいい',
             ] as const
           ).map((group) => (
-            <div key={t(group)}>
+            <div key={group}>
               <div className="label">
                 {t(group)}
               </div>
@@ -1580,8 +1580,8 @@ function StampTab({
                 title={t(sticker.label)}
                 aria-label={
                   sub === '顔デコ' && autoFace
-                    ? `${t(sticker.label)}を自動配置`
-                    : `${t(sticker.label)}を追加`
+                    ? `${t(sticker.label)} ${t('を自動配置')}`
+                    : `${t(sticker.label)} ${t('を追加')}`
                 }
                 disabled={autoBusy || (sub === '顔デコ' && autoFace &&
                   (faceBusy || !faceInfo || faceInfo.count < 1 ||
@@ -2057,7 +2057,7 @@ function FrameReferenceImage({
   return (
     <img
       className="frame-reference"
-      src={`${import.meta.env.BASE_URL}frame-previews/${t(group)}-${id}.png`}
+      src={`${import.meta.env.BASE_URL}frame-previews/${group}-${id}.png`}
       alt={`${t(label)} ${t("仕上がり参考画像")}`}
       loading="lazy"
       decoding="async"
