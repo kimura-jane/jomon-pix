@@ -389,8 +389,8 @@ export function CanvasCropModal({ onClose }: Props) {
                 fontSize: 13,
               }}
             >
-              <span style={{ width: 24 }}>
-                {label}
+              <span style={{ width: 55 }}>
+                {t(label)}
               </span>
 
               <input
