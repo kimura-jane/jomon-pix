@@ -599,7 +599,7 @@ export function MosaicPanel() {
                   <button
                     key={photo.id}
                     type="button"
-                    aria-label={photoLabel(getPhotoLabel(elements, photo.id)) + 'を選択'}
+                    aria-label={`${photoLabel(getPhotoLabel(elements, photo.id))} ${t('を選択')}`}
                     aria-pressed={photo.id === target?.id}
                     onClick={() => select(photo.id)}
                     style={{
