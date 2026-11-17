@@ -69,3 +69,16 @@ export function photoLabel(label: string): string {
   const result = /^写真(\d+)?$/.exec(label);
   return result ? (result[1] ? `Photo ${result[1]}` : 'Photo') : label;
 }
+
+/** Face-count labels are presentation only, independent of the detection data. */
+export function recognizedFaces(count: number): string {
+  return useLanguage.getState().language === 'ja'
+    ? `顔を${count}人認識しました`
+    : `Detected ${count} ${count === 1 ? 'face' : 'faces'}`;
+}
+
+export function faceFromLeft(index: number): string {
+  return useLanguage.getState().language === 'ja'
+    ? `左から${index}人目`
+    : `Face ${index} from left`;
+}
