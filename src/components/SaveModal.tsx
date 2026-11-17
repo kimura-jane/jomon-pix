@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 
 import { useEffect, useMemo, useState } from 'react';
 import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
@@ -55,8 +56,8 @@ export function SaveModal({ blob, onClose }: Props) {
     } catch (e) {
       const message = e instanceof Error ? e.message : '';
       if (!/abort|cancel|dismiss/i.test(message)) {
-        alert('共有できませんでした。' +
-          (native ? 'もう一度お試しください。' : '画像を長押しして保存してください。'));
+        alert(t('共有できませんでした。') + ' ' +
+          t(native ? 'もう一度お試しください。' : '画像を長押しして保存してください。'));
       }
     } finally {
       setSaving(false);
@@ -97,13 +98,13 @@ export function SaveModal({ blob, onClose }: Props) {
             'max(18px, env(safe-area-inset-bottom))',
         }}
       >
-        <h3>できあがり！</h3>
+        <h3>{t("できあがり！")}</h3>
 
         {url && (
           <img
             className="preview"
             src={url}
-            alt="完成画像"
+            alt={t("完成画像")}
             onLoad={(event) => {
               const img = event.currentTarget;
 
@@ -126,7 +127,7 @@ export function SaveModal({ blob, onClose }: Props) {
 
         {imageSize && (
           <p className="hint">
-            サイズ：
+            {t("サイズ：")}
             {imageSize.width} × {imageSize.height} px
           </p>
         )}
@@ -140,11 +141,11 @@ export function SaveModal({ blob, onClose }: Props) {
             disabled={saving}
             style={{ flexShrink: 0 }}
           >
-            {saving ? '準備中…' : '📷 写真に保存・共有'}
+            {t(saving ? '準備中…' : '📷 写真に保存・共有')}
           </button>
         )}
 
-        {native && <p className="hint">共有画面で「画像を保存」を選択</p>}
+        {native && <p className="hint">{t("共有画面で「画像を保存」を選択")}</p>}
 
         {!native && (
           <button
@@ -153,7 +154,7 @@ export function SaveModal({ blob, onClose }: Props) {
             onClick={download}
             style={{ flexShrink: 0 }}
           >
-            ⬇ ファイルに保存
+            {t("⬇ ファイルに保存")}
           </button>
         )}
 
@@ -163,7 +164,7 @@ export function SaveModal({ blob, onClose }: Props) {
           onClick={onClose}
           style={{ flexShrink: 0 }}
         >
-          閉じる
+          {t("閉じる")}
         </button>
       </div>
     </div>
