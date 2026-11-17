@@ -1,0 +1,27 @@
+{
+  "id": "/jomon-pix/",
+  "name": "JOMON PIX",
+  "short_name": "JOMON PIX",
+  "description": "写真を端末で加工。スタンプ・文字入れ・フレーム・顔デコ・モザイクを楽しめる写真編集アプリ。",
+  "lang": "ja",
+  "start_url": "/jomon-pix/",
+  "scope": "/jomon-pix/",
+  "display": "standalone",
+  "background_color": "#fff6fb",
+  "theme_color": "#ec4899",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "pwa-icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
