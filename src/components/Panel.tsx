@@ -573,11 +573,11 @@ function TextTab({
                       up({ align })
                     }
                   >
-                    {align === 'left'
+                    {t(align === 'left'
                       ? '左'
                       : align === 'center'
                         ? '中央'
-                        : '右'}
+                        : '右')}
                   </button>
                 ))}
               </div>
@@ -1881,17 +1881,17 @@ function EditTab({
                     src: await removeBg(el.src),
                   });
                 } catch (error) {
-                  alert(error instanceof Error
+                  alert(t(error instanceof Error
                     ? error.message
-                    : '背景削除に失敗しました。端末の空きメモリを確認してください。');
+                    : '背景削除に失敗しました。端末の空きメモリを確認してください。'));
                 } finally {
                   setBusy(false);
                 }
               }}
             >
-              {busy
+              {t(busy
                 ? '背景を消しています…'
-                : '✂️ 背景を消す'}
+                : '✂️ 背景を消す')}
             </button>
 
           </>
