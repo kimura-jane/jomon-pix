@@ -93,19 +93,21 @@ type AutosaveState = {
   status: AutosaveStatus;
   lastSavedAt: number;
   errorMessage: string | null;
+  readFailure: boolean;
 };
 
 export const useAutosaveStatus = create<AutosaveState>(() => ({
   status: 'idle',
   lastSavedAt: 0,
   errorMessage: null,
+  readFailure: false,
 }));
 
 function markSaving() {
   if (storageReadFailed) return;
   const current = useAutosaveStatus.getState();
   if (current.status !== 'saving') {
-    useAutosaveStatus.setState({ status: 'saving', errorMessage: null });
+    useAutosaveStatus.setState({ status: 'saving', errorMessage: null, readFailure: false });
   }
 }
 
@@ -115,6 +117,7 @@ function markSaved() {
     status: 'saved',
     lastSavedAt: Date.now(),
     errorMessage: null,
+    readFailure: false,
   });
 }
 
@@ -132,7 +135,7 @@ function markSaveFailed(error: unknown, reading: boolean) {
 
   const previous = useAutosaveStatus.getState();
   if (previous.status !== 'failed' || previous.errorMessage !== message) {
-    useAutosaveStatus.setState({ status: 'failed', errorMessage: message });
+    useAutosaveStatus.setState({ status: 'failed', errorMessage: message, readFailure: reading });
     console.warn('[JOMON pix] ' + message, error);
   }
 }
@@ -323,6 +326,7 @@ const workStorage: PersistStorage<PersistedWork> = {
             useAutosaveStatus.setState({
               status: 'failed',
               errorMessage: '最新の作品を読み込めませんでした。以前のバックアップを表示中です。データ保護のため自動保存は停止しています。',
+              readFailure: true,
             });
             return parsed;
           }
