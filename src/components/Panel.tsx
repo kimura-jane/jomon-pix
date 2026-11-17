@@ -35,7 +35,7 @@ import {
 } from '../lib/fonts';
 import { PENS } from '../lib/pens';
 import { SCENE_PRESETS, SOCIAL_PRESETS } from '../lib/scenePresets';
-import { t } from '../i18n';
+import { t, photoLabel } from '../i18n';
 import type {
   CanvasEl,
   FilterPreset,
@@ -248,7 +248,7 @@ function PhotoAttachmentControls({
             key={photo.id}
             disabled={!!el.locked}
             onClick={() => s.attachToImage(el.id, photo.id)}
-            aria-label={`${getPhotoLabel(s.elements, photo.id)}に紐づける`}
+            aria-label={`${photoLabel(getPhotoLabel(s.elements, photo.id))}に紐づける`}
             aria-pressed={el.parentImageId === photo.id}
             style={{
               flex: '0 0 auto',
@@ -270,7 +270,7 @@ function PhotoAttachmentControls({
               style={{ width: 46, height: 46, objectFit: 'contain' }}
             />
             <span style={{ fontSize: 10 }}>
-              {el.parentImageId === photo.id ? '✓ ' : ''}{getPhotoLabel(s.elements, photo.id)}
+              {el.parentImageId === photo.id ? '✓ ' : ''}{photoLabel(getPhotoLabel(s.elements, photo.id))}
             </span>
           </button>
         ))}
@@ -680,8 +680,8 @@ function PenTab() {
                 key={photo.id}
                 type="button"
                 onClick={() => select(photo.id)}
-                title={`${getPhotoLabel(elements, photo.id)} ${t("を描画対象にする")}`}
-                aria-label={`${getPhotoLabel(elements, photo.id)} ${t("を描画対象にする")}`}
+                title={`${photoLabel(getPhotoLabel(elements, photo.id))} ${t("を描画対象にする")}`}
+                aria-label={`${photoLabel(getPhotoLabel(elements, photo.id))} ${t("を描画対象にする")}`}
                 aria-pressed={photo.id === (selectedPhoto ?? fallbackPhoto)?.id}
                 style={{
                   flex: '0 0 auto',
@@ -711,7 +711,7 @@ function PenTab() {
                     borderRadius: 7,
                   }}
                 />
-                <span style={{ fontSize: 10 }}>{getPhotoLabel(elements, photo.id)}</span>
+                <span style={{ fontSize: 10 }}>{photoLabel(getPhotoLabel(elements, photo.id))}</span>
               </button>
             ))}
           </div>
@@ -1480,7 +1480,7 @@ function StampTab({
                       const selectedPhoto = findAttachmentPhoto(s.elements, s.selectedId, true);
                       return (
                         <button type="button" key={photo.id}
-                          aria-label={`${getPhotoLabel(s.elements, photo.id)} ${t("を顔デコ対象にする")}`}
+                          aria-label={`${photoLabel(getPhotoLabel(s.elements, photo.id))} ${t("を顔デコ対象にする")}`}
                           aria-pressed={selectedPhoto?.id === photo.id}
                           onClick={() => { s.select(photo.id); setAutoMessage(''); }}
                           style={{
@@ -1493,7 +1493,7 @@ function StampTab({
                           }}>
                           <img src={photo.src} alt="" draggable={false}
                             style={{ width: 65, height: 54, objectFit: 'cover', borderRadius: 7 }} />
-                          <span style={{ display: 'block', fontSize: 11 }}>{getPhotoLabel(s.elements, photo.id)}</span>
+                          <span style={{ display: 'block', fontSize: 11 }}>{photoLabel(getPhotoLabel(s.elements, photo.id))}</span>
                         </button>
                       );
                     })}
@@ -2124,10 +2124,10 @@ function BorderFrameTab() {
                   color: '#3a303c',
                 }}
               >
-                <img src={item.src} alt={getPhotoLabel(s.elements, item.id)}
+                <img src={item.src} alt={photoLabel(getPhotoLabel(s.elements, item.id))}
                   style={{ width: '100%', height: 54, objectFit: 'cover', borderRadius: 7 }} />
                 <span style={{ fontSize: 11 }}>
-                  {getPhotoLabel(s.elements, item.id)}{item.locked ? ' 🔒' : ''}
+                  {photoLabel(getPhotoLabel(s.elements, item.id))}{item.locked ? ' 🔒' : ''}
                 </span>
               </button>
             ))}
