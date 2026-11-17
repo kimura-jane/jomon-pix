@@ -3,9 +3,11 @@ import { TopBar } from './components/TopBar';
 import { Editor } from './components/Editor';
 import { Panel } from './components/Panel';
 import { useEditor } from './store';
+import { useLanguage, t } from './i18n';
 import './App.css';
 
 export default function App() {
+  const language = useLanguage((state) => state.language);
   const [hydrated, setHydrated] = useState(() => useEditor.persist.hasHydrated());
 
   useEffect(() => {
@@ -16,7 +18,7 @@ export default function App() {
     if (!useEditor.persist.hasHydrated()) {
       void useEditor.persist.rehydrate()
         .catch((error) => {
-          console.error('[JOMON pix] Unable to hydrate project', error);
+          console.error('[JOMON PIX] Unable to hydrate project', error);
         })
         .finally(() => setHydrated(true));
     } else {
@@ -48,13 +50,13 @@ export default function App() {
         alignItems: 'center', justifyContent: 'center',
         color: '#b94e94', fontWeight: 700, padding: 20,
       }}>
-        作品を読み込み中…
+        {t('作品を読み込み中…')}
       </div>
     );
   }
 
   return (
-    <div className="app">
+    <div className="app" lang={language}>
       <TopBar />
       <Editor />
       <Panel />
