@@ -1,9 +1,9 @@
-# JOMON pix — iPhone first (Capacitor 7 + Vite + React).
+# JOMON PIX — iPhone first (Capacitor 7 + Vite + React).
 # Manual build initiation only. Signed IPA builds upload to App Store Connect for internal TestFlight testing; no App Store review submission.
 # Bundle ID com.jomonpix.app must be registered in Apple Developer first.
 workflows:
   ios-simulator-check:
-    name: "JOMON pix — iOS compile check (no signing)"
+    name: "JOMON PIX — iOS compile check (no signing)"
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
@@ -36,7 +36,7 @@ workflows:
       - "/tmp/xcodebuild_logs/*.log"
 
   ios-ipa:
-    name: "JOMON pix — signed IPA + TestFlight upload (manual)"
+    name: "JOMON PIX — signed IPA + TestFlight upload (manual)"
     instance_type: mac_mini_m2
     max_build_duration: 120
     # IMPORTANT: Set this to the App Store Connect integration name
