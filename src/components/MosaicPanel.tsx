@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { t, photoLabel } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor } from '../store';
@@ -599,7 +599,7 @@ export function MosaicPanel() {
                   <button
                     key={photo.id}
                     type="button"
-                    aria-label={getPhotoLabel(elements, photo.id) + 'を選択'}
+                    aria-label={photoLabel(getPhotoLabel(elements, photo.id)) + 'を選択'}
                     aria-pressed={photo.id === target?.id}
                     onClick={() => select(photo.id)}
                     style={{
@@ -617,7 +617,7 @@ export function MosaicPanel() {
                       alt=""
                       style={{ display: 'block', width: 50, height: 50, objectFit: 'contain' }}
                     />
-                    <span style={{ fontSize: 10 }}>{getPhotoLabel(elements, photo.id)}</span>
+                    <span style={{ fontSize: 10 }}>{photoLabel(getPhotoLabel(elements, photo.id))}</span>
                   </button>
                 ))}
               </div>
