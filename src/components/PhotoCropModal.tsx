@@ -184,11 +184,9 @@ export function PhotoCropModal({ el, onClose }: Props) {
 
       onClose();
     } catch (error) {
-      alert(
-        error instanceof Error
+      alert(t(error instanceof Error
           ? error.message
-          : 'トリミングに失敗しました',
-      );
+          : 'トリミングに失敗しました'));
     } finally {
       setBusy(false);
     }
