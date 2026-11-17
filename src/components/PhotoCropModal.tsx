@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 
 import { useState } from 'react';
 import { useEditor } from '../store';
@@ -66,7 +67,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
 
   const chooseRatio = (label: string, ratio: number) => {
     if (!imageSize.width || !imageSize.height) {
-      alert('写真を読み込み中です');
+      alert(t('写真を読み込み中です'));
       return;
     }
 
@@ -86,7 +87,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
       next.left + next.right > 90 ||
       next.top + next.bottom > 90
     ) {
-      alert('この写真では、その比率に切り抜けません');
+      alert(t('この写真では、その比率に切り抜けません'));
       return;
     }
 
@@ -209,7 +210,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
           overflowY: 'auto',
         }}
       >
-        <h3>写真をトリミング</h3>
+        <h3>{t("写真をトリミング")}</h3>
 
         <div
           style={{
@@ -232,7 +233,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
           >
             <img
               src={el.src}
-              alt="トリミング対象"
+              alt={t("トリミング対象")}
               onLoad={(event) => {
                 const img = event.currentTarget;
                 setImageSize({
@@ -265,7 +266,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
           </div>
         </div>
 
-        <div className="label">比率</div>
+        <div className="label">{t("比率")}</div>
 
         <div className="row">
           {[
@@ -275,7 +276,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
             { label: '9:16', ratio: 9 / 16 },
           ].map((item) => (
             <button
-              key={item.label}
+              key={t(item.label)}
               className={`chip ${
                 preset === item.label ? 'on' : ''
               }`}
@@ -289,12 +290,12 @@ export function PhotoCropModal({ el, onClose }: Props) {
               }}
               disabled={busy}
             >
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </div>
 
-        <div className="label">範囲</div>
+        <div className="label">{t("範囲")}</div>
 
         {EDGE_LABELS.map(({ id, label }) => (
           <label
@@ -336,7 +337,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
           onClick={apply}
           disabled={busy || !imageSize.width}
         >
-          {busy ? '処理中…' : '切り抜く'}
+          {t(busy ? '処理中…' : '切り抜く')}
         </button>
 
         <button
@@ -344,7 +345,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
           onClick={onClose}
           disabled={busy}
         >
-          キャンセル
+          {t("キャンセル")}
         </button>
       </div>
     </div>
