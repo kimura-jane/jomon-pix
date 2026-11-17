@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 
 import { useEffect, useState } from 'react';
 import {
@@ -269,7 +270,7 @@ export function CanvasCropModal({ onClose }: Props) {
           overflowY: 'auto',
         }}
       >
-        <h3>キャンバスをトリミング</h3>
+        <h3>{t("キャンバスをトリミング")}</h3>
 
         <div
           style={{
@@ -295,7 +296,7 @@ export function CanvasCropModal({ onClose }: Props) {
             >
               <img
                 src={preview}
-                alt="作品全体のプレビュー"
+                alt={t("作品全体のプレビュー")}
                 style={{
                   display: 'block',
                   maxWidth: '100%',
@@ -321,7 +322,7 @@ export function CanvasCropModal({ onClose }: Props) {
             </div>
           ) : (
             <p className="hint">
-              {error || 'プレビューを作成中…'}
+              {t(error || 'プレビューを作成中…')}
             </p>
           )}
         </div>
@@ -331,17 +332,17 @@ export function CanvasCropModal({ onClose }: Props) {
           onClick={refreshPreview}
           disabled={busy}
         >
-          プレビューを更新
+          {t("プレビューを更新")}
         </button>
 
         <div className="label">
-          比率
+          {t("比率")}
         </div>
 
         <div className="row">
           {RATIOS.map((item) => (
             <button
-              key={item.label}
+              key={t(item.label)}
               className={`chip ${
                 preset === item.label
                   ? 'on'
@@ -355,13 +356,13 @@ export function CanvasCropModal({ onClose }: Props) {
                 )
               }
             >
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </div>
 
         <div className="label">
-          範囲
+          {t("範囲")}
         </div>
 
         {LABELS.map(({ id, label }) => {
@@ -425,7 +426,7 @@ export function CanvasCropModal({ onClose }: Props) {
         })}
 
         <p className="hint">
-          切り抜き後：
+          {t("切り抜き後：")}
           {crop.width} × {crop.height}
         </p>
 
@@ -434,9 +435,9 @@ export function CanvasCropModal({ onClose }: Props) {
           onClick={apply}
           disabled={!canApply}
         >
-          {busy
+          {t(busy
             ? '処理中…'
-            : '切り抜く'}
+            : '切り抜く')}
         </button>
 
         <button
@@ -444,7 +445,7 @@ export function CanvasCropModal({ onClose }: Props) {
           disabled={busy}
           onClick={onClose}
         >
-          キャンセル
+          {t("キャンセル")}
         </button>
       </div>
     </div>
