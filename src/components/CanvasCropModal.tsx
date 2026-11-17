@@ -342,7 +342,7 @@ export function CanvasCropModal({ onClose }: Props) {
         <div className="row">
           {RATIOS.map((item) => (
             <button
-              key={t(item.label)}
+              key={item.label}
               className={`chip ${
                 preset === item.label
                   ? 'on'
