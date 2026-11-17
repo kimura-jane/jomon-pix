@@ -197,9 +197,7 @@ export function CanvasCropModal({ onClose }: Props) {
       remainingWidth < MIN_SIZE ||
       remainingHeight < MIN_SIZE
     ) {
-      alert(
-        'このサイズでは、その比率に切り抜けません',
-      );
+      alert(t('このサイズでは、その比率に切り抜けません'));
       return;
     }
 
@@ -246,9 +244,7 @@ export function CanvasCropModal({ onClose }: Props) {
       onClose();
     } else {
       setBusy(false);
-      alert(
-        '切り抜き範囲が正しくありません',
-      );
+      alert(t('切り抜き範囲が正しくありません'));
     }
   };
 
