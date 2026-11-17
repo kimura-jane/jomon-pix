@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>JOMON pix</string>
+	<string>JOMON PIX</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,11 +27,11 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>写真を撮影してJOMON pixで加工するために使用します。</string>
+	<string>写真を撮影してJOMON PIXで加工するために使用します。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>加工した写真を端末に保存するために使用します。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>写真を選択してJOMON pixで加工するために使用します。</string>
+	<string>写真を選択してJOMON PIXで加工するために使用します。</string>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
