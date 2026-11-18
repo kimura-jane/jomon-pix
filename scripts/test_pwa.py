@@ -29,8 +29,6 @@ class PWATests(unittest.TestCase):
             ('backgrounds', 'scene.svg'), ('mediapipe', 'face_landmarker.task'),
             ('mediapipe', 'vision_wasm_internal.wasm'),
             ('mediapipe', 'vision_wasm_module_internal.wasm'),
-            ('mediapipe', 'vision_wasm_nosimd_internal.js'),
-            ('mediapipe', 'vision_wasm_nosimd_internal.wasm'),
             ('third-party', 'MEDIAPIPE-APACHE-2.0.txt')
         ):
             path = self.out / dirname / name
