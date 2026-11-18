@@ -4,6 +4,27 @@ on:
     branches: [main]
     paths:
       - package.json
+      - package-lock.json
+      - ios/App/App.xcodeproj/project.pbxproj
+      - ios/App/App/Info.plist
+      - capacitor.config.ts
+      - codemagic.yaml
+      - scripts/prepare-ios.sh
+      - scripts/bundle_native_offline.py
+      - scripts/test_bundle_native_offline.py
+      - src/lib/removeBg.ts
+      - src/lib/stickers.ts
+      - scripts/generate-ios-icon.py
+      - src/components/SaveModal.tsx
+      - src/components/TopBar.tsx
+      - src/lib/nativeFileShare.ts
+      - .github/workflows/ios-native-preflight.yml
+      - scripts/set_ios_build_number.py
+      - scripts/verify_ios_ipa_version.py
+      - scripts/test_ios_build_version.py
+  pull_request:
+    paths:
+      - package.json
       - capacitor.config.ts
       - codemagic.yaml
       - scripts/prepare-ios.sh
@@ -30,7 +51,7 @@ concurrency:
 
 jobs:
   check-and-scaffold:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
