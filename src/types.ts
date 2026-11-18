@@ -91,6 +91,8 @@ export type ImageEl = Base & {
   filter: FilterPreset;
   frame?: ImageFrame;
   beauty?: BeautySettings;
+  // Per-face field overrides; indices follow the shared left-to-right detector.
+  beautyFaceOverrides?: Record<string, Partial<BeautySettings>>;
 };
 
 export type TextEl = Base & {
@@ -118,6 +120,8 @@ export type StickerEl = Base & {
   size: number;
   src?: string;
   label?: string;
+  // Beauty sunglasses remain ordinary editable, photo-attached stickers.
+  beautyGlassesFace?: number;
 };
 
 export type LineEl = Base & {
