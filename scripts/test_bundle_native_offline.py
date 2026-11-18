@@ -21,6 +21,9 @@ class OfflineBundleTests(unittest.TestCase):
         pose.parent.mkdir()
         with zipfile.ZipFile(pose, 'w') as archive:
             archive.writestr('pose_detector.tflite', b'fixture')
+        # Fake packaged non-SIMD runtime for native-bundle validation.
+        (pose.parent / 'vision_wasm_nosimd_internal.js').write_bytes(b'j' * 50001)
+        (pose.parent / 'vision_wasm_nosimd_internal.wasm').write_bytes(b'w' * 1000001)
         (self.dist / 'index.html').write_text(
             '<html><head><link rel="preconnect" href="https://fonts.googleapis.com">'
             '<link rel="preconnect" href="https://fonts.gstatic.com">'
