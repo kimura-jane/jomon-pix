@@ -195,6 +195,17 @@ const messages: Record<string, string> = {
   '血色': 'Warmth', '小顔': 'Slim Face',
   'あごシャープ': 'Sharper Chin', '目の大きさ': 'Eye Size',
   'リップ': 'Lip Color', 'チーク': 'Blush',
+  '脚を細く': 'Slim Legs', '脚を長く': 'Longer Legs',
+  '写真を解析して加工中…': 'Analyzing and editing photo…',
+  '加工可能な顔・脚を検出できませんでした。元の写真を表示しています。':
+    'No suitable face or legs found. Showing the original photo.',
+  '顔の補正を表示中です。脚の解析には失敗しました。':
+    'Face edits are shown, but leg detection failed.',
+  '脚長の補正には、1人で全身が写った写真が必要です。':
+    'Leg length adjustment needs a single full-body portrait.',
+  'ビューティーの加工を表示しています。': 'Beauty adjustments are being shown.',
+  '人物の解析を利用できません。加工せず元の写真を表示しています。':
+    'Could not analyze the person. Showing the original photo.',
   '写真のロックを解除してください。': 'Unlock the photo first.',
   '加工前を表示中': 'Showing original', '長押しで比較': 'Hold to compare',
   '加工をリセット': 'Reset Adjustments',
