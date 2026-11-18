@@ -196,6 +196,20 @@ const messages: Record<string, string> = {
   'あごシャープ': 'Sharper Chin', '目の大きさ': 'Eye Size',
   'リップ': 'Lip Color', 'チーク': 'Blush',
   '脚を細く': 'Slim Legs', '脚を長く': 'Longer Legs',
+  '脚の補正をリセット': 'Reset Leg Adjustments',
+  '脚の解析に失敗しました。脚の補正は適用していません。':
+    'Leg detection failed. Leg adjustments were not applied.',
+  '脚を検出できませんでした。脚の補正は適用していません。':
+    'No legs detected. Leg adjustments were not applied.',
+  '脚の細さは、両脚を認識できる写真で調整できます。':
+    'Leg slimming requires both legs to be visible and detected.',
+  '脚長は、全身が写った1人の写真で調整できます。':
+    'Leg length requires a single standing person with the full body visible.',
+  '顔を解析して加工中…': 'Analyzing and editing faces…',
+  '顔を検出できませんでした。加工せず元の写真を表示しています。':
+    'No faces detected. Showing the original image.',
+  '顔認識を利用できません。加工せず元の写真を表示しています。':
+    'Face detection unavailable. Showing the original image.',
   '写真を解析して加工中…': 'Analyzing and editing photo…',
   '加工可能な顔・脚を検出できませんでした。元の写真を表示しています。':
     'No suitable face or legs found. Showing the original photo.',
@@ -295,6 +309,8 @@ const messages: Record<string, string> = {
 };
 
 const patterns: Array<[RegExp, (...args: string[]) => string]> = [
+  [/^顔の加工を表示しています。（(\d+)人の顔を検出）$/, (_full, n) =>
+    'Face adjustments shown (' + n + ' faces detected).'],
   [/^顔を(\d+)人認識しました$/, (_full, n) => 'Detected ' + n + ' faces'],
   [/^(.+)を装着$/, (_full, name) => 'Wear ' + translateLabel(name)],
   [/^吹き出しの幅\s*(\d+)px$/, (_full, n) => 'Bubble Width ' + n + 'px'],
