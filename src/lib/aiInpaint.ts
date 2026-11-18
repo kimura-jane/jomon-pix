@@ -179,7 +179,7 @@ export async function aiSmartErase(
   }
 
   progress?.('AIモデルを読み込み中…');
-  const ort = await import('onnxruntime-web/wasm') as unknown as typeof import('onnxruntime-web');
+  const ort = await import('onnxruntime-web/wasm');
   ort.env.wasm.numThreads = 1; // iOS WebView does not require COOP/COEP
   ort.env.wasm.proxy = false;
   const base = new URL(import.meta.env.BASE_URL + 'ai/inpaint/', document.baseURI).href;
