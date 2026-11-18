@@ -18,6 +18,7 @@ MODEL_URL = (
 )
 MIN_BYTES = 4_000_000
 MAX_BYTES = 9_000_000
+EXPECTED_SHA256 = '59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a'
 
 
 def validate(path: Path) -> None:
@@ -30,7 +31,10 @@ def validate(path: Path) -> None:
             name.lower().endswith('.tflite') for name in archive.namelist()
         ):
             raise ValueError(f'Incomplete Pose Landmarker archive: {path}')
-    print(f'Pose model SHA256: {hashlib.sha256(path.read_bytes()).hexdigest()}', flush=True)
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if digest != EXPECTED_SHA256:
+        raise ValueError(f'Pose model SHA256 mismatch: {path}')
+    print(f'Pose model SHA256 verified: {digest}', flush=True)
 
 
 def fetch(path: Path) -> None:
