@@ -11,6 +11,15 @@ on:
       - 'public/privacy-policy.html'
       - 'src/App.css'
       - '.github/workflows/audit-backup-roundtrip.yml'
+  pull_request:
+    paths:
+      - 'src/components/TopBar.tsx'
+      - 'src/lib/nftDogs.ts'
+      - 'src/lib/museumStickers.ts'
+      - 'scripts/audit_backup_roundtrip.mjs'
+      - 'public/privacy-policy.html'
+      - 'src/App.css'
+      - '.github/workflows/audit-backup-roundtrip.yml'
   workflow_dispatch:
 
 permissions:
