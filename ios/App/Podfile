@@ -20,6 +20,12 @@ target 'App' do
   # Add your Pods here
 end
 
+# Keep generated Pods targets compatible with Xcode 27 (minimum iOS 15).
+# The app's deployment target is already 15.0, but individual podspec targets
+# can still be generated as iOS 14.0 despite the platform declaration above.
+require_relative '../../scripts/ios_pod_deployment_target'
+
 post_install do |installer|
   assertDeploymentTarget(installer)
+  JomonPixPodDeploymentTarget.enforce(installer)
 end
