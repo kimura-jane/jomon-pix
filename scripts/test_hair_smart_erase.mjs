@@ -142,6 +142,9 @@ try {
   await page.getByRole('button', { name: '不要なものを消す' }).click();
   const dialog = page.getByRole('dialog', { name: 'スマート消去' });
   await dialog.waitFor();
+  // The real neural model must be selected by default, not a silent
+  // fallback to the old pixel-copy algorithm.
+  assert.equal(await dialog.getByRole('button', { name: 'AI補完' }).getAttribute('aria-pressed'), 'true');
   await dialog.getByRole('button', { name: '四角で囲む' }).click();
   const picture = dialog.locator('img[alt="消去する写真"]');
   const box = await picture.boundingBox();
@@ -154,8 +157,11 @@ try {
   await page.mouse.down();
   await page.mouse.move(toClient(144, 110).x, toClient(144, 110).y, { steps: 6 });
   await page.mouse.up();
-  await dialog.getByRole('button', { name: '消去して補完' }).click();
-  await dialog.waitFor({ state: 'hidden', timeout: 25000 });
+  await dialog.getByRole('button', { name: 'AIで消す' }).click();
+  await dialog.getByRole('button', { name: 'この結果を適用' }).waitFor({ timeout: 120000 });
+  assert.equal(await dialog.getByRole('status').filter({ hasText: '補完が完了' }).count(), 1);
+  await dialog.getByRole('button', { name: 'この結果を適用' }).click();
+  await dialog.waitFor({ state: 'hidden', timeout: 30000 });
 
   const changed = await waitSaved((state) => state.elements.some(
     (item) => item.type === 'image' && item.src !== original,
