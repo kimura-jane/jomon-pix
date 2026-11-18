@@ -99,13 +99,16 @@ function isImageSource(value: unknown): value is string {
 // known local asset layouts, never arbitrary local files or traversal paths.
 const BUNDLED_STICKER = /^\/(?:jomon-pix\/)?stickers\/(?:taf-dog\/(?:v[23]\/)?taf_dog_(?:0[1-9]|1[0-9]|20)|archaeology\/v1\/(?:haniwa\/h(?:0[1-9]|10)|dogu\/d(?:0[1-9]|10)))\.webp$/;
 
+// Only allow the exact bundled hairstyle paths in imported project backups.
+const BUNDLED_HAIR = /^\/(?:jomon-pix\/)?stickers\/hair\/v2\/(?:bob|long|pixie|wave|layered|bangs|flattop|afro|pompadour)-(?:black|dark-brown|brown|blonde|ash|copper|pink|silver)\.webp$/;
+
 function isStickerSource(value: unknown): value is string {
   return isImageSource(value) ||
-    (typeof value === 'string' && BUNDLED_STICKER.test(value));
+    (typeof value === 'string' && (BUNDLED_STICKER.test(value) || BUNDLED_HAIR.test(value)));
 }
 
 function normalizeStickerSource(src: string | undefined): string | undefined {
-  if (!src || !BUNDLED_STICKER.test(src)) return src;
+  if (!src || (!BUNDLED_STICKER.test(src) && !BUNDLED_HAIR.test(src))) return src;
   return src.replace(/^\/(?:jomon-pix\/)?stickers\//,
     `${import.meta.env.BASE_URL}stickers/`);
 }
@@ -239,6 +242,7 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         (value.src === undefined || isStickerSource(value.src)) &&
         (value.label === undefined || typeof value.label === 'string') &&
         (value.beautyGlassesFace === undefined || (Number.isInteger(value.beautyGlassesFace) && (value.beautyGlassesFace as number) >= 0 && (value.beautyGlassesFace as number) < 10)) &&
+         (value.hairFaceIndex === undefined || (Number.isInteger(value.hairFaceIndex) && (value.hairFaceIndex as number) >= 0 && (value.hairFaceIndex as number) < 10)) &&
         isParentReference(value)
       );
 

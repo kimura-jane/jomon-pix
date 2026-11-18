@@ -7,6 +7,7 @@ import {
   addImageFromFile,
   addSticker,
   addLibrarySticker,
+  addOrReplaceHairSticker,
   addText,
   addSpeechBubble,
 } from '../lib/factory';
@@ -1105,7 +1106,7 @@ function StampTab({
 
     autoGuard.current = true;
     setAutoBusy(true);
-    setAutoMessage('選択した顔にスタンプを配置中…');
+    setAutoMessage(sub === '髪型' ? '髪型を変更中…' : '選択した顔にスタンプを配置中…');
     try {
       const result = await createAutoFaceSticker(photo, sticker, selectedFaceIndex);
       const latest = useEditor.getState();
@@ -1117,10 +1118,14 @@ function StampTab({
           unchangedPhoto.hidden || unchangedPhoto.locked) {
         throw new Error('写真が変更されたため配置を取り消しました。もう一度お試しください。');
       }
-      latest.add(result.sticker);
-      setAutoMessage(
-        '',
-      );
+      if (sub === '髪型') {
+        if (!latest.setHairSticker({ ...result.sticker, hairFaceIndex: selectedFaceIndex })) {
+          throw new Error('髪型を変更できません。写真や既存の髪型のロックを解除してください。');
+        }
+      } else {
+        latest.add(result.sticker);
+      }
+      setAutoMessage('');
     } catch (error) {
       setAutoMessage(
         error instanceof Error ? error.message : '顔デコの自動配置に失敗しました。',
@@ -1625,7 +1630,7 @@ function StampTab({
               </button>
             ))}
           </div>
-          <p className="hint-s">透過ヘアスタンプを重ねます。写真の髪そのものをAIで変える機能ではありません。</p>
+          <p className="hint-s">実写風の透過ヘア素材です。別の髪型を選ぶと同じ人の髪型だけ差し替えます。</p>
         </div>
       )}
 
@@ -1810,6 +1815,12 @@ function StampTab({
                     void autoAdd(sticker);
                   } else if (sub === 'サングラス' && autoFace) {
                     void autoEquipSunglasses(sticker);
+                  } else if (sub === '髪型') {
+                    if (!addOrReplaceHairSticker(sticker)) {
+                      setAutoMessage('髪型を変更できません。写真や既存の髪型のロックを解除してください。');
+                    } else {
+                      setAutoMessage('');
+                    }
                   } else {
                     addLibrarySticker(sticker);
                   }
