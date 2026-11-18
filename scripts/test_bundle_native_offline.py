@@ -24,6 +24,9 @@ class OfflineBundleTests(unittest.TestCase):
         # Fake packaged non-SIMD runtime for native-bundle validation.
         (pose.parent / 'vision_wasm_nosimd_internal.js').write_bytes(b'j' * 50001)
         (pose.parent / 'vision_wasm_nosimd_internal.wasm').write_bytes(b'w' * 1000001)
+        notice_dir = self.dist / 'third-party'
+        notice_dir.mkdir()
+        (notice_dir / 'MEDIAPIPE-APACHE-2.0.txt').write_text('Apache-2.0 fixture\n' * 100)
         (self.dist / 'index.html').write_text(
             '<html><head><link rel="preconnect" href="https://fonts.googleapis.com">'
             '<link rel="preconnect" href="https://fonts.gstatic.com">'
