@@ -37,7 +37,8 @@ export function useBeautyPreview(
       return;
     }
     let cancelled = false;
-    setResult(id, { state: 'processing', message: '写真を解析して加工中…' });
+    const needsLeg = (settings?.legSlim ?? 0) > 0 || (settings?.legLength ?? 0) > 0;
+    setResult(id, { state: 'processing', message: needsLeg ? '写真を解析して加工中…' : '顔を解析して加工中…' });
     // Slider motions are batched and obsolete renders are discarded.
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -48,14 +49,17 @@ export function useBeautyPreview(
             setReady({ source, signature, image: original });
             setResult(id, {
               state: 'no-face',
-              message: '加工可能な顔・脚を検出できませんでした。元の写真を表示しています。',
+              message: needsLeg ? '加工可能な顔・脚を検出できませんでした。元の写真を表示しています。'
+                : '顔を検出できませんでした。加工せず元の写真を表示しています。',
             });
             return;
           }
           setReady({ source, signature, image: output.canvas });
           setResult(id, {
             state: 'ready',
-            message: output.legUnavailable
+            message: !needsLeg
+              ? `顔の加工を表示しています。（${output.faceCount}人の顔を検出）`
+              : output.legUnavailable
               ? '顔の補正を表示中です。脚の解析には失敗しました。'
               : output.legCount && !output.lengthApplied && (settings?.legLength ?? 0) > 0
                 ? '脚長の補正には、1人で全身が写った写真が必要です。'
@@ -67,7 +71,8 @@ export function useBeautyPreview(
           setReady({ source, signature, image: original });
           setResult(id, {
             state: 'error',
-            message: '人物の解析を利用できません。加工せず元の写真を表示しています。',
+            message: needsLeg ? '人物の解析を利用できません。加工せず元の写真を表示しています。'
+              : '顔認識を利用できません。加工せず元の写真を表示しています。',
           });
         }
       })();
