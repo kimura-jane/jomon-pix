@@ -79,6 +79,16 @@ try {
     status.includes('脚の細さは、両脚を認識できる写真で調整できます。'),
     'Leg slim did not apply. Status: ' + status + ' / errors: ' + [...errors, ...diagnostics].join('; '));
 
+  // Verify length independently: a rejected slim effect must not mask the
+  // status of the leg-length adjustment that follows.
+  await slim.focus();
+  await page.keyboard.press('Home');
+  for (let i = 0; i < 200; i++) {
+    const item = await savedImage();
+    if (item?.beauty?.legSlim === 0) break;
+    await page.waitForTimeout(250);
+    if (i === 199) throw new Error('Timed out clearing leg slimming before length check');
+  }
   await length.focus();
   await page.keyboard.press('End');
   const second = await waitSetting('legLength');
