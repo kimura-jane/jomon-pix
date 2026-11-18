@@ -82,15 +82,21 @@ try {
   assert.equal(image.beautyFaceOverrides['1'].bright, 100);
   assert.equal(image.beautyFaceOverrides['0'], undefined);
 
-  // Automatic sunglasses are attached to both photo-local faces and Undo is atomic.
+  // Sunglasses belong only to the dedicated category, not the Beauty panel.
+  assert.equal(await page.getByText('サングラス装備', { exact: true }).count(), 0);
+  await page.locator('.bar button.tab').filter({ hasText: 'スタンプ' }).click();
+  await page.getByRole('button', { name: 'サングラス', exact: true }).click();
+  await page.getByRole('group', { name: 'サングラスをつける顔を選ぶ' })
+    .waitFor({ timeout: 45000 });
   await page.getByRole('button', { name: '全員', exact: true }).click();
-  await page.getByRole('button', { name: '定番ブラックを装着' }).click();
+  // Automatic sunglasses are attached to both photo-local faces and Undo is atomic.
+  await page.getByRole('button', { name: '定番ブラックを自動配置' }).click();
   const all = await waitState((state) => stickersFor(state, imageId).length === 2, 'two glasses');
   const glasses = stickersFor(all, imageId);
   assert.deepEqual(glasses.map((sticker) => sticker.beautyGlassesFace).sort(), [0, 1]);
   assert.ok(Math.abs(glasses[0].x - glasses[1].x) > 20);
   await face2.click();
-  await page.getByRole('button', { name: '丸型ゴールドを装着' }).click();
+  await page.getByRole('button', { name: '丸型ゴールドを自動配置' }).click();
   const changed = await waitState((state) => {
     const entries = stickersFor(state, imageId);
     return entries.length === 2 && entries.some((s) =>
@@ -104,10 +110,12 @@ try {
     stickersFor(state, imageId).every((s) => s.label === '定番ブラック'), 'Undo glasses replacement');
   assert.equal(stickersFor(undone, imageId).length, 2);
 
-  await page.getByRole('button', { name: 'なし', exact: true }).click();
+  await page.getByRole('button', { name: 'サングラスを外す' }).click();
   const removed = await waitState((state) => stickersFor(state, imageId).length === 1,
     'Remove glasses for face 2');
   assert.equal(stickersFor(removed, imageId)[0].beautyGlassesFace, 0);
+  await page.locator('.bar button.tab').filter({ hasText: 'ビューティー' }).click();
+  await page.getByRole('button', { name: '左から2人目', exact: true }).click();
   await page.getByRole('button', { name: 'この顔の個別設定を解除' }).click();
   const reset = await waitState((state) => state.elements.some((el) =>
     el.id === imageId && !el.beautyFaceOverrides?.['1']), 'Reset one face');
