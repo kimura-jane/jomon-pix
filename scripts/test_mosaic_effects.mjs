@@ -57,16 +57,22 @@ try {
     '三角形', '黒塗り', 'ハート', 'ブラシ風'];
   const distinct = new Set();
   const image = dialog.locator('img[alt="モザイク対象の写真"]');
+  await dialog.getByRole('button', { name: '範囲指定' }).click();
+  const storedOriginal = await image.getAttribute('src');
+  await dialog.getByRole('button', { name: '写真全体' }).click();
+  let oldPreview = null;
 
   for (let i = 0; i < expected.length; i++) {
     await styles.nth(i).click();
-    await page.waitForFunction(() => {
+    await page.waitForFunction((previous) => {
       const img = document.querySelector('img[alt="モザイク対象の写真"]');
-      return img?.getAttribute('src')?.startsWith('data:image/jpeg');
-    });
-    const src = await image.getAttribute('src');
-    assert.ok(src?.startsWith('data:image/jpeg'), 'Effect preview must be a rendered sample');
-    distinct.add(src);
+      const current = img?.getAttribute('src');
+      return current?.startsWith('data:image/jpeg') && current !== previous;
+    }, oldPreview, { timeout: 15000 });
+    const preview = await image.getAttribute('src');
+    assert.ok(preview?.startsWith('data:image/jpeg'), 'Effect preview must be rendered');
+    distinct.add(preview);
+    oldPreview = preview;
     assert.equal(await styles.nth(i).getAttribute('aria-pressed'), 'true');
   }
   // Every effect needs to look different on a real photo.
@@ -93,8 +99,9 @@ try {
   await page.getByRole('button', { name: 'キャンセル' }).click();
   await page.locator('.bar [aria-label="戻す"]').click();
   await page.getByRole('button', { name: '▦ 全体にモザイク' }).click();
+  await page.getByRole('dialog', { name: 'モザイク加工' }).getByRole('button', { name: '範囲指定' }).click();
   const reverted = await page.locator('img[alt="モザイク対象の写真"]').getAttribute('src');
-  assert.equal(reverted, photo, 'Undo must restore original full-resolution photo');
+  assert.equal(reverted, storedOriginal, 'Undo must restore the stored original photo');
   await page.getByRole('button', { name: 'キャンセル' }).click();
 
   // English labels for the Home and mosaic styles.
