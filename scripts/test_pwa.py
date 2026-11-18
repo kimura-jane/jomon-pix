@@ -65,6 +65,10 @@ class PWATests(unittest.TestCase):
         self.assertIn('/jomon-pix/frame-previews/frame.png', paths)
         self.assertIn('/jomon-pix/stickers/demo.webp', paths)
         self.assertIn('/jomon-pix/backgrounds/scene.svg', paths)
+        self.assertIn('/jomon-pix/mediapipe/pose_landmarker_lite.task', paths)
+        self.assertIn('/jomon-pix/mediapipe/face_landmarker.task', paths)
+        sw = (self.out / 'sw.js').read_text()
+        self.assertIn("'jomon-pix-runtime-' + VERSION", sw)
         self.assertIn('/jomon-pix/pwa-icons/icon-maskable-512.png', paths)
 
     def test_modified_equal_size_assets_force_new_cache(self):
