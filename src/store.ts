@@ -467,9 +467,9 @@ export const useEditor = create<S>()(
         bgColor: '#fff6fb',
         sceneBackground: 'none',
         socialTemplate: 'none',
-        canvasPreset: 'square',
-        canvasWidth: 800,
-        canvasHeight: 800,
+        canvasPreset: '9:16',
+        canvasWidth: 900,
+        canvasHeight: 1600,
         tab: 'image',
         tool: 'select',
         pen: {
@@ -866,9 +866,9 @@ export const useEditor = create<S>()(
             bgColor: '#fff6fb',
             sceneBackground: 'none',
             socialTemplate: 'none',
-            canvasPreset: 'square',
-            canvasWidth: 800,
-            canvasHeight: 800,
+            canvasPreset: '9:16',
+            canvasWidth: 900,
+            canvasHeight: 1600,
           });
           set({ selectedId: null });
         },
