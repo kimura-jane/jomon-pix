@@ -2,6 +2,7 @@
 """No-network regression tests for offline native asset preparation."""
 import hashlib
 import json
+import shutil
 from pathlib import Path
 import tempfile
 import unittest
@@ -24,6 +25,16 @@ class OfflineBundleTests(unittest.TestCase):
         notice_dir = self.dist / 'third-party'
         notice_dir.mkdir()
         (notice_dir / 'MEDIAPIPE-APACHE-2.0.txt').write_text('Apache-2.0 fixture\n' * 100)
+        # The MI-GAN hash check is intentional: use exact pinned bytes,
+        # not fake model metadata that would weaken real native validation.
+        bundled = Path(__file__).resolve().parent.parent / 'public'
+        ai = self.dist / 'ai' / 'inpaint'
+        ai.mkdir(parents=True)
+        for name in ('migan_pipeline_v2.onnx',
+                     'ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm'):
+            shutil.copy2(bundled / 'ai' / 'inpaint' / name, ai / name)
+        for name in ('MI-GAN-MIT.txt', 'ONNXRUNTIME-MIT.txt'):
+            shutil.copy2(bundled / 'third-party' / name, notice_dir / name)
         (self.dist / 'index.html').write_text(
             '<html><head><link rel="preconnect" href="https://fonts.googleapis.com">'
             '<link rel="preconnect" href="https://fonts.gstatic.com">'
