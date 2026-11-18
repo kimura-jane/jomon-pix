@@ -44,6 +44,7 @@ jobs:
         run: |
           npm run typecheck
           npm run build
+          python3 scripts/fetch_pose_model.py --out dist/mediapipe/pose_landmarker_lite.task
           python3 scripts/build_pwa.py --out dist
       - name: Install Chrome test browser
         run: |
