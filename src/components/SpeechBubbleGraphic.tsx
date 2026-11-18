@@ -89,6 +89,8 @@ export function SpeechBubbleGraphic({ el }: { el: TextEl }) {
   return (
     <Group>
       <Shape
+        width={w}
+        height={bodyHeight + 28}
         fill={bubble.background}
         stroke={bubble.outline}
         strokeWidth={Math.max(2, w * 0.01)}
