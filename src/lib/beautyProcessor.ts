@@ -123,6 +123,12 @@ type FaceCandidate = {
 const enhancedFaces = new WeakMap<
   HTMLImageElement | HTMLCanvasElement, Promise<Landmark[][]>
 >();
+// Beauty's preview Image and Face Deco's decoded Image are different DOM
+// objects for the same photograph. Cache by the actual source too, so the
+// two panels use the *same* detected faces and the same left-to-right indices.
+// Bound the cache to avoid retaining many megabytes of data-URL keys on iPhone.
+const sharedPhotoFaces = new Map<string, Promise<Landmark[][]>>();
+const SHARED_PHOTO_CACHE_LIMIT = 4;
 
 function candidateForFace(
   points: Landmark[], imageWidth: number, imageHeight: number,
@@ -167,6 +173,25 @@ function mergeCandidates(
   return unique;
 }
 
+/**
+ * The one canonical face index for Beauty, Face Deco and sunglasses.
+ * It is intentionally independent of sticker placement: extreme poses can
+ * be selected for Beauty, but a sticker may refuse unsafe automatic placement.
+ * Every detector return path (including short images and 10-face first passes)
+ * calls this function before assigning "left-to-right" face numbers.
+ */
+export function indexDetectedFaces(
+  landmarks: Landmark[][], imageWidth: number, imageHeight: number,
+): Landmark[][] {
+  const candidates = landmarks
+    .map((points) => candidateForFace(points, imageWidth, imageHeight))
+    .filter((candidate): candidate is FaceCandidate => candidate !== null);
+  return mergeCandidates(candidates, imageWidth, imageHeight)
+    .sort((a, b) => a.x - b.x || a.y - b.y)
+    .slice(0, MAX_FACE_TARGETS)
+    .map((candidate) => candidate.points);
+}
+
 async function scanFaceLandmarks(
   image: HTMLImageElement | HTMLCanvasElement,
 ): Promise<Landmark[][]> {
@@ -178,12 +203,14 @@ async function scanFaceLandmarks(
     .map((points) => candidateForFace(points, width, height))
     .filter((face): face is FaceCandidate => face !== null);
   const results = [...original];
-  if (results.length >= MAX_FACE_TARGETS) return results.slice(0, MAX_FACE_TARGETS).map((f) => f.points);
+  if (mergeCandidates(results, width, height).length >= MAX_FACE_TARGETS) {
+    return indexDetectedFaces(results.map((f) => f.points), width, height);
+  }
 
   const largeSolo = results.length === 1 && results[0].width / width > 0.28;
   // Single portraits already detected at good scale need no extra CPU work.
   if (largeSolo || Math.min(width, height) < 180) {
-    return results.map((f) => f.points);
+    return indexDetectedFaces(results.map((f) => f.points), width, height);
   }
 
   const crops: Array<readonly [number, number, number, number]> = [
@@ -225,10 +252,7 @@ async function scanFaceLandmarks(
     }
   }
 
-  return mergeCandidates(results, width, height)
-    .sort((a, b) => a.x - b.x)
-    .slice(0, MAX_FACE_TARGETS)
-    .map((face) => face.points);
+  return indexDetectedFaces(results.map((f) => f.points), width, height);
 }
 
 export function detectFaceLandmarksEnhanced(
@@ -236,11 +260,29 @@ export function detectFaceLandmarksEnhanced(
 ): Promise<Landmark[][]> {
   const cached = enhancedFaces.get(image);
   if (cached) return cached;
+
+  // Normal decoded photos have a stable source URI; temporary crop canvases
+  // must never share source-key results because their coordinates are local.
+  const src = image instanceof HTMLImageElement ? (image.currentSrc || image.src) : '';
+  const shared = src ? sharedPhotoFaces.get(src) : undefined;
+  if (shared) {
+    enhancedFaces.set(image, shared);
+    return shared;
+  }
+
   const pending = scanFaceLandmarks(image).catch((error: unknown) => {
     enhancedFaces.delete(image);
+    if (src && sharedPhotoFaces.get(src) === pending) sharedPhotoFaces.delete(src);
     throw error;
   });
   enhancedFaces.set(image, pending);
+  if (src) {
+    sharedPhotoFaces.set(src, pending);
+    if (sharedPhotoFaces.size > SHARED_PHOTO_CACHE_LIMIT) {
+      const oldest = sharedPhotoFaces.keys().next().value;
+      if (oldest !== undefined) sharedPhotoFaces.delete(oldest);
+    }
+  }
   return pending;
 }
 
