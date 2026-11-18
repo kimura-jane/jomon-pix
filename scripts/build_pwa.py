@@ -15,7 +15,9 @@ SOURCE_ICON = Path('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.
 BASE_PRECACHE = ('assets', 'stickers', 'frame-previews', 'backgrounds', 'mediapipe')
 REQUIRED_PUBLIC = ('mediapipe/face_landmarker.task', 'mediapipe/pose_landmarker_lite.task',
                    'mediapipe/vision_wasm_internal.wasm',
-                   'mediapipe/vision_wasm_module_internal.wasm')
+                   'mediapipe/vision_wasm_module_internal.wasm',
+                   'mediapipe/vision_wasm_nosimd_internal.js',
+                   'mediapipe/vision_wasm_nosimd_internal.wasm')
 
 def build(out: Path) -> None:
     if not (out / 'index.html').is_file():
