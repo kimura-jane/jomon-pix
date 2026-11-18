@@ -118,15 +118,13 @@ function imageFromSource(src: string): Promise<HTMLImageElement> {
   });
 }
 
-// Beauty and Face Deco now use the exact same region-based detections.
-// Stickers still reject poses that cannot be placed safely.
+// Everyone sees the identical left-to-right face numbers in Beauty,
+// Face Deco and sunglasses, including very tilted faces. Filtering faces
+// here silently renumbered the people and could apply an override to someone
+// else. The actual sticker placement may still decline an unsupported pose.
 async function scanFaceCandidates(photo: ImageEl): Promise<Landmark[][]> {
   const image = await imageFromSource(photo.src);
-  const faces = await detectFaceLandmarksEnhanced(image);
-  return faces.filter((face) => makePosition(face, photo, {
-    id: 'face-cat-ears', label: 'reference', kind: 'svg',
-    src: 'data:image/svg+xml,reference',
-  }) !== null);
+  return detectFaceLandmarksEnhanced(image);
 }
 
 // Reuse exactly the same detected faces when the user places a sticker:
