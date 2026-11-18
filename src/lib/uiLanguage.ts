@@ -108,8 +108,12 @@ const messages: Record<string, string> = {
   '顔デコ': 'Face Decor', '髪型': 'Hairstyles', 'サングラス': 'Sunglasses',
   '髪色（選択中の髪型にも反映）': 'Hair color (updates selected hair too)',
   '髪色を選択': 'Select hair color',
-  '透過ヘアスタンプを重ねます。写真の髪そのものをAIで変える機能ではありません。':
-    'This overlays a transparent hairstyle; it does not modify real hair with AI.',
+  '実写風の透過ヘア素材です。別の髪型を選ぶと同じ人の髪型だけ差し替えます。':
+    'Realistic transparent hair overlays. Choosing a new cut replaces the same person\'s hair.',
+  '髪型を変更中…': 'Changing hairstyle…',
+  '髪型を変更できません。写真や既存の髪型のロックを解除してください。':
+    'Unlock the photo or existing hairstyle before replacing it.',
+  '角刈り': 'Flat Top', 'アフロ': 'Afro', 'リーゼント': 'Pompadour',
   '黒髪': 'Black', 'ダークブラウン': 'Dark Brown', 'ブラウン': 'Brown',
   'ブロンド': 'Blonde', 'アッシュ': 'Ash', 'レッド': 'Red',
   'ピンク': 'Pink', 'シルバー': 'Silver',
