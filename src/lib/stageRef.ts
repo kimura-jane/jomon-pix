@@ -213,7 +213,7 @@ export async function exportBlob(): Promise<Blob> {
     return result;
   } catch (error) {
     console.error(
-      '[JOMON pix] PNG出力エラー:',
+      '[JOMON PIX] PNG出力エラー:',
       error,
     );
 

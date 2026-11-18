@@ -1,6 +1,6 @@
-# JOMON pix
+# JOMON PIX
 
-写真編集アプリ JOMON pix。
+写真編集アプリ JOMON PIX。
 
 - Web版: https://kimura-jane.github.io/jomon-pix/
 - プライバシーポリシー: https://jomon-policy.onrender.com/

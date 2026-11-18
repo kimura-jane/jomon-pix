@@ -19,7 +19,7 @@ export default function App() {
     if (!useEditor.persist.hasHydrated()) {
       void useEditor.persist.rehydrate()
         .catch((error) => {
-          console.error('[JOMON pix] Unable to hydrate project', error);
+          console.error('[JOMON PIX] Unable to hydrate project', error);
         })
         .finally(() => setHydrated(true));
     } else {

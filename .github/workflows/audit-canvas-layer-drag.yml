@@ -9,6 +9,7 @@ on:
       - 'src/store.ts'
       - 'src/components/TopBar.tsx'
       - 'scripts/audit_canvas_layer_drag.mjs'
+      - 'scripts/audit_legacy_canvas.mjs'
       - '.github/workflows/audit-canvas-layer-drag.yml'
   pull_request:
     paths:
@@ -49,6 +50,8 @@ jobs:
           done
           node scripts/audit_canvas_layer_drag.mjs chromium
           node scripts/audit_canvas_layer_drag.mjs webkit
+          node scripts/audit_legacy_canvas.mjs chromium
+          node scripts/audit_legacy_canvas.mjs webkit
       - name: Save regression reports without auto-committing
         if: always()
         uses: actions/upload-artifact@v4

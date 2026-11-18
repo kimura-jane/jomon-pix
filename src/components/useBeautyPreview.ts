@@ -59,7 +59,7 @@ export function useBeautyPreview(
           });
         } catch (error) {
           if (cancelled) return;
-          console.error('[JOMON pix] Beauty processing failed:', error);
+          console.error('[JOMON PIX] Beauty processing failed:', error);
           setReady({ source, signature, image: original });
           setResult(id, {
             state: 'error',

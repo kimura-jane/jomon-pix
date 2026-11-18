@@ -252,7 +252,7 @@ const messages: Record<string, string> = {
   '画像の作成に失敗しました': 'Could not create the image.',
   'バックアップを作成できませんでした。': 'Could not create a backup.',
   '作品を復元しました。': 'Project restored.',
-  'JOMON pixの対応する作品ファイルではありません。': 'This is not a supported JOMON PIX project file.',
+  'JOMON PIXの対応する作品ファイルではありません。': 'This is not a supported JOMON PIX project file.',
   '作品データの形式またはサイズが正しくありません。': 'Invalid project file format or size.',
   '作品データに重複した要素IDがあります。': 'The project contains duplicate element IDs.',
   '作品ファイルが大きすぎます（上限100MB）。': 'The project file exceeds the 100 MB limit.',
