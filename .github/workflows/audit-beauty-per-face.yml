@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'src/components/BeautyPanel.tsx'
+      - 'src/components/Panel.tsx'
+      - 'src/lib/uiLanguage.ts'
       - 'src/components/useBeautyPreview.ts'
       - 'src/components/ElementNode.tsx'
       - 'src/lib/beautyProcessor.ts'

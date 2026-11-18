@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useEditor } from '../store';
-import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
-import { SUNGLASSES_STICKERS } from '../lib/glassesStickers';
-import type { LibrarySticker } from '../lib/stickers';
-import type { ImageEl, BeautySettings, StickerEl } from '../types';
+import { countAutoFaceTargets } from '../lib/autoFaceDeco';
+import type { ImageEl, BeautySettings } from '../types';
 import { BEAUTY_FIELDS, DEFAULT_BEAUTY } from '../lib/beautyProcessor';
 import { useBeautyStatus } from '../lib/beautyStatus';
 import { HistorySlider } from './HistorySlider';
@@ -42,8 +40,7 @@ export function BeautyPanel() {
   const [target, setTarget] = useState<'all' | number>('all');
   const [faceInfo, setFaceInfo] = useState<{ photoId: string; src: string; count: number } | null>(null);
   const [faceBusy, setFaceBusy] = useState(false);
-  const [glassBusy, setGlassBusy] = useState(false);
-  const [glassMessage, setGlassMessage] = useState('');
+  const [faceError, setFaceError] = useState('');
 
   const photoId = photo?.id;
   const photoSrc = photo?.src;
@@ -51,7 +48,7 @@ export function BeautyPanel() {
     let cancelled = false;
     setFaceInfo(null);
     setTarget('all');
-    setGlassMessage('');
+    setFaceError('');
     if (!photoId || !photoSrc) { setFaceBusy(false); return; }
     setFaceBusy(true);
     const current = useEditor.getState().elements.find(
@@ -62,7 +59,7 @@ export function BeautyPanel() {
     }).catch((error) => {
       if (!cancelled) {
         console.error('[JOMON PIX] Beauty face scan failed', error);
-        setGlassMessage('顔認識に失敗しました。');
+        setFaceError('顔認識に失敗しました。');
       }
     }).finally(() => { if (!cancelled) setFaceBusy(false); });
     return () => { cancelled = true; };
@@ -74,36 +71,6 @@ export function BeautyPanel() {
   const override = selectedIndex === null
     ? undefined : photo?.beautyFaceOverrides?.[String(selectedIndex)];
   const visibleSettings = { ...beauty, ...override };
-  const targetIndices = target === 'all'
-    ? Array.from({ length: count }, (_, index) => index)
-    : selectedIndex !== null ? [selectedIndex] : [];
-  const attachedGlasses = editor.elements.filter(
-    (el): el is StickerEl => el.type === 'sticker' && el.parentImageId === photoId &&
-      el.beautyGlassesFace !== undefined
-  );
-
-  const equip = async (style: LibrarySticker | null) => {
-    if (!photo || faceBusy || glassBusy || !targetIndices.length || photo.locked) return;
-    setGlassBusy(true);
-    setGlassMessage('');
-    try {
-      const additions = style ? await Promise.all(targetIndices.map(async (index) => {
-        const result = await createAutoFaceSticker(photo, style, index);
-        return { ...result.sticker, beautyGlassesFace: index };
-      })) : [];
-      const latest = useEditor.getState();
-      const current = latest.elements.find((el) => el.id === photo.id);
-      if (!current || current.type !== 'image' || current.src !== photo.src ||
-          current.hidden || current.locked) {
-        throw new Error('写真が変更されました。もう一度お試しください。');
-      }
-      latest.setBeautyGlasses(photo.id, targetIndices, additions);
-    } catch (error) {
-      setGlassMessage(error instanceof Error ? error.message : 'サングラスを装着できませんでした。');
-    } finally {
-      setGlassBusy(false);
-    }
-  };
 
   const status = useBeautyStatus((store) => photo ? store.byImage[photo.id] : undefined);
   const comparing = useBeautyStatus((store) => store.comparingId === photo?.id);
@@ -228,46 +195,7 @@ export function BeautyPanel() {
             )}
           </div>
 
-          <div style={{ marginTop: 12, padding: 10, background: '#fff', borderRadius: 12,
-            border: '1px solid #ecdde8' }}>
-            <strong style={{ fontSize: 13 }}>サングラス装備</strong>
-            <p className="hint-s" style={{ margin: '4px 0 7px' }}>
-              全員または選んだ顔にサングラスを装着
-            </p>
-            <div role="group" aria-label="サングラスの種類" style={{
-              display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 7,
-            }}>
-              <button type="button" className="chip" disabled={!count || faceBusy || glassBusy || photo.locked}
-                onClick={() => void equip(null)} style={{ flex: '0 0 72px', minHeight: 76 }}>
-                なし
-              </button>
-              {SUNGLASSES_STICKERS.map((style) => {
-                const active = targetIndices.length > 0 && targetIndices.every((index) =>
-                  attachedGlasses.some((sticker) =>
-                    sticker.beautyGlassesFace === index && sticker.src === style.src));
-                return (
-                  <button type="button" key={style.id} className="chip"
-                    aria-label={style.label + 'を装着'}
-                    title={style.label}
-                    aria-pressed={active}
-                    disabled={!count || faceBusy || glassBusy || photo.locked}
-                    onClick={() => void equip(style)}
-                    style={{ flex: '0 0 88px', padding: '5px 3px',
-                      borderColor: active ? '#e9519e' : undefined,
-                      background: active ? '#ffe9f5' : '#fff',
-                      display: 'flex', flexDirection: 'column', gap: 4,
-                      alignItems: 'center' }}>
-                    <img src={style.src} alt="" loading="lazy" draggable={false}
-                      style={{ width: 76, height: 48, objectFit: 'contain' }} />
-                    <span style={{ fontSize: 10, overflow: 'hidden', maxWidth: 80,
-                      textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{style.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {glassBusy && <p className="hint-s" role="status">サングラスを装着中…</p>}
-            {glassMessage && <p className="hint-s" role="status">{glassMessage}</p>}
-          </div>
+          {faceError && <p role="status" className="hint-s">{faceError}</p>}
 
           {status && status.state !== 'idle' && (
             <p role="status" className="hint-s" style={{

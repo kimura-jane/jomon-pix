@@ -900,6 +900,7 @@ function StampTab({
     photoId: string; src: string; count: number;
   } | null>(null);
   const [selectedFaceIndex, setSelectedFaceIndex] = useState(0);
+  const [selectedSunglassesTarget, setSelectedSunglassesTarget] = useState<'all' | number>('all');
   const autoGuard = useRef(false);
   const s = useEditor();
 
@@ -934,7 +935,9 @@ function StampTab({
     setFaceInfo(null);
     setAutoMessage('');
     setSelectedFaceIndex(0);
-    if (!autoFace || sub !== '顔デコ' || !activePhotoId || !activePhotoSrc) {
+    setSelectedSunglassesTarget('all');
+    if (!autoFace || (sub !== '顔デコ' && sub !== 'サングラス') ||
+        !activePhotoId || !activePhotoSrc) {
       setFaceBusy(false);
       return () => { cancelled = true; };
     }
@@ -1007,6 +1010,51 @@ function StampTab({
       setAutoMessage(
         error instanceof Error ? error.message : '顔デコの自動配置に失敗しました。',
       );
+    } finally {
+      autoGuard.current = false;
+      setAutoBusy(false);
+    }
+  };
+
+  // Sunglasses use the same left-to-right face landmarks as Face Deco.
+  // Replacing one person's pair never removes manually positioned stickers.
+  const autoEquipSunglasses = async (sticker: LibrarySticker | null) => {
+    if (autoGuard.current || faceBusy) return;
+    const state = useEditor.getState();
+    const photo = findAttachmentPhoto(state.elements, state.selectedId, true);
+    if (!photo) {
+      setAutoMessage('写真のロック・非表示を解除してください。');
+      return;
+    }
+    if (!faceInfo || faceInfo.photoId !== photo.id ||
+        faceInfo.src !== photo.src || faceInfo.count < 1) {
+      setAutoMessage('顔を認識できません。手動配置をお試しください。');
+      return;
+    }
+    const indices = selectedSunglassesTarget === 'all'
+      ? Array.from({ length: faceInfo.count }, (_, index) => index)
+      : selectedSunglassesTarget < faceInfo.count ? [selectedSunglassesTarget] : [];
+    if (!indices.length) return;
+    autoGuard.current = true;
+    setAutoBusy(true);
+    setAutoMessage(sticker ? 'サングラスを装着中…' : 'サングラスを外しています…');
+    try {
+      const additions = sticker ? await Promise.all(indices.map(async (index) => {
+        const result = await createAutoFaceSticker(photo, sticker, index);
+        // Retain the existing metadata key for compatibility with saved projects.
+        return { ...result.sticker, beautyGlassesFace: index };
+      })) : [];
+      const latest = useEditor.getState();
+      const current = latest.elements.find((item) => item.id === photo.id);
+      if (!current || current.type !== 'image' || current.src !== photo.src ||
+          current.hidden || current.locked) {
+        throw new Error('写真が変更されたため配置を取り消しました。もう一度お試しください。');
+      }
+      latest.setBeautyGlasses(photo.id, indices, additions);
+      setAutoMessage('');
+    } catch (error) {
+      setAutoMessage(error instanceof Error
+        ? error.message : 'サングラスを装着できませんでした。');
     } finally {
       autoGuard.current = false;
       setAutoBusy(false);
@@ -1434,7 +1482,7 @@ function StampTab({
         onChange={setSub}
       />
 
-      {sub === '顔デコ' && (
+      {(sub === '顔デコ' || sub === 'サングラス') && (
         <div style={{
           border: '1px solid #f4c2dc',
           background: '#fff7fb',
@@ -1480,7 +1528,7 @@ function StampTab({
                       const selectedPhoto = findAttachmentPhoto(s.elements, s.selectedId, true);
                       return (
                         <button type="button" key={photo.id}
-                          aria-label={`${getPhotoLabel(s.elements, photo.id)}を顔デコ対象にする`}
+                          aria-label={`${getPhotoLabel(s.elements, photo.id)}を${sub === 'サングラス' ? 'サングラス' : '顔デコ'}対象にする`}
                           aria-pressed={selectedPhoto?.id === photo.id}
                           onClick={() => { s.select(photo.id); setAutoMessage(''); }}
                           style={{
@@ -1514,26 +1562,46 @@ function StampTab({
                   <p role="status" className="hint-s" style={{ margin: '6px 0', fontWeight: 700 }}>
                     顔を{faceInfo.count}人認識しました
                   </p>
-                  {faceInfo.count > 1 && (
+                  {(faceInfo.count > 1 || sub === 'サングラス') && (
                     <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>顔を選択</p>
                   )}
-                  {faceInfo.count > 1 && (
-                    <div className="row" role="group" aria-label="スタンプを付ける顔を選ぶ"
+                  {(faceInfo.count > 1 || sub === 'サングラス') && (
+                    <div className="row" role="group"
+                      aria-label={sub === 'サングラス' ? 'サングラスをつける顔を選ぶ' : 'スタンプを付ける顔を選ぶ' }
                       style={{ flexWrap: 'nowrap', overflowX: 'auto', gap: 7, paddingBottom: 5 }}>
-                      {Array.from({ length: faceInfo.count }, (_, i) => (
-                        <button type="button" className="chip" key={i}
-                          aria-pressed={selectedFaceIndex === i}
+                      {sub === 'サングラス' && (
+                        <button type="button" className="chip"
+                          aria-pressed={selectedSunglassesTarget === 'all'}
                           disabled={autoBusy}
-                          onClick={() => setSelectedFaceIndex(i)}
+                          onClick={() => setSelectedSunglassesTarget('all')}
                           style={{
                             flex: '0 0 auto',
-                            ...(selectedFaceIndex === i
+                            ...(selectedSunglassesTarget === 'all'
                               ? { borderColor: '#ec54a5', background: '#ffeaf6' }
                               : {}),
                           }}>
-                          左から{i + 1}人目
+                          全員
                         </button>
-                      ))}
+                      )}
+                      {Array.from({ length: faceInfo.count }, (_, i) => {
+                        const pressed = sub === 'サングラス'
+                          ? selectedSunglassesTarget === i : selectedFaceIndex === i;
+                        return (
+                          <button type="button" className="chip" key={i}
+                            aria-pressed={pressed}
+                            disabled={autoBusy}
+                            onClick={() => {
+                              if (sub === 'サングラス') setSelectedSunglassesTarget(i);
+                              else setSelectedFaceIndex(i);
+                            }}
+                            style={{
+                              flex: '0 0 auto',
+                              ...(pressed ? { borderColor: '#ec54a5', background: '#ffeaf6' } : {}),
+                            }}>
+                            左から{i + 1}人目
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1542,7 +1610,7 @@ function StampTab({
           ) : null}
           {autoBusy && (
             <p className="hint-s" role="status" style={{ margin: '8px 0 0' }}>
-              顔認識を実行中…
+              {sub === 'サングラス' ? 'サングラスを装着中…' : '顔認識を実行中…'}
             </p>
           )}
           {autoMessage && (
@@ -1572,6 +1640,16 @@ function StampTab({
               gap: 8,
             }}
           >
+            {sub === 'サングラス' && autoFace && (
+              <button type="button" className="cell"
+                aria-label="サングラスを外す"
+                disabled={autoBusy || faceBusy || !faceInfo || faceInfo.count < 1 ||
+                  faceInfo.photoId !== activePhotoId || faceInfo.src !== activePhotoSrc}
+                onClick={() => void autoEquipSunglasses(null)}
+                style={{ minHeight: 76, fontWeight: 700 }}>
+                なし
+              </button>
+            )}
             {group.items.map((sticker) => (
               <button
                 key={sticker.id}
@@ -1579,16 +1657,18 @@ function StampTab({
                 className="cell"
                 title={sticker.label}
                 aria-label={
-                  sub === '顔デコ' && autoFace
+                  (sub === '顔デコ' || sub === 'サングラス') && autoFace
                     ? `${sticker.label}を自動配置`
                     : `${sticker.label}を追加`
                 }
-                disabled={autoBusy || (sub === '顔デコ' && autoFace &&
+                disabled={autoBusy || ((sub === '顔デコ' || sub === 'サングラス') && autoFace &&
                   (faceBusy || !faceInfo || faceInfo.count < 1 ||
                    faceInfo.photoId !== activePhotoId || faceInfo.src !== activePhotoSrc))}
                 onClick={() => {
                   if (sub === '顔デコ' && autoFace) {
                     void autoAdd(sticker);
+                  } else if (sub === 'サングラス' && autoFace) {
+                    void autoEquipSunglasses(sticker);
                   } else {
                     addLibrarySticker(sticker);
                   }
