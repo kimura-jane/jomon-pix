@@ -23,6 +23,10 @@ def set_build_number(root: Path, number: str) -> None:
     version = json.loads((root / "package.json").read_text(encoding="utf-8")).get("version")
     if not isinstance(version, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
         raise ValueError(f"Invalid package.json marketing version: {version!r}")
+    # Build 10 for 1.0.3 was already delivered to App Store Connect.
+    # Reject reused numbers BEFORE compiling an expensive signed IPA.
+    if version == "1.0.3" and int(number) <= 10:
+        raise ValueError("JOMON PIX 1.0.3 Build 10 already uploaded; use Build 11 or later")
 
     project = root / "ios/App/App.xcodeproj/project.pbxproj"
     info_path = root / "ios/App/App/Info.plist"
