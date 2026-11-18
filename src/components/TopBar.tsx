@@ -469,29 +469,6 @@ export function TopBar() {
       <div className="brand">
         <span className="logo">JOMON PIX</span>
 
-        {autosaveStatus === 'saving' && (
-          <span className="saved" role="status" style={{
-            color: '#855789', background: '#f6e9fb',
-          }}>
-            保存中…
-          </span>
-        )}
-
-        {autosaveStatus === 'saved' && (
-          <span className="saved" role="status" style={{
-            color: '#177245', background: '#e6f8ed', fontWeight: 700,
-          }}>
-            ✓ 自動保存
-          </span>
-        )}
-
-        {hasSaveError && (
-          <span className="saved" style={{
-            color: '#b42318', background: '#ffebeb', fontWeight: 700,
-          }}>
-            ⚠ 保存失敗
-          </span>
-        )}
 
         <button type="button" className="privacy-link"
           aria-label="プライバシーポリシー"
@@ -502,7 +479,7 @@ export function TopBar() {
           aria-label={uiLanguage === 'ja' ? 'Switch to English' : '日本語に切り替え'}
           title={uiLanguage === 'ja' ? 'Switch to English' : '日本語に切り替え'}
           onClick={() => setUiLanguage(uiLanguage === 'ja' ? 'en' : 'ja')}>
-          {uiLanguage === 'ja' ? '日本語 / English' : 'English / 日本語'}
+          {uiLanguage === 'ja' ? '日本語 / EN' : 'EN / 日本語'}
         </button>
       </div>
 
