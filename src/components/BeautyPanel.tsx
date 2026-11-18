@@ -78,9 +78,11 @@ export function BeautyPanel() {
   const status = useBeautyStatus((store) => photo ? store.byImage[photo.id] : undefined);
   const comparing = useBeautyStatus((store) => store.comparingId === photo?.id);
   const setComparing = useBeautyStatus((store) => store.setComparing);
+  const hasLeg = beauty.legSlim > 0 || beauty.legLength > 0;
+  const hasFaceOverride = !!override && Object.keys(override).length > 0;
   const hasValue = target === 'all'
     ? BEAUTY_FIELDS.some((key) => beauty[key] > 0)
-    : !!override && Object.keys(override).length > 0;
+    : hasFaceOverride || hasLeg;
 
   const change = (field: keyof BeautySettings, value: number) => {
     if (!photo || photo.locked) return;
@@ -105,9 +107,17 @@ export function BeautyPanel() {
     if (target === 'all') {
       editor.update(photo.id, { beauty: undefined });
     } else if (selectedIndex !== null) {
-      const next = { ...photo.beautyFaceOverrides };
-      delete next[String(selectedIndex)];
-      editor.update(photo.id, { beautyFaceOverrides: next });
+      if (hasFaceOverride) {
+        const next = { ...photo.beautyFaceOverrides };
+        delete next[String(selectedIndex)];
+        editor.update(photo.id, { beautyFaceOverrides: next });
+      } else if (hasLeg) {
+        // Global leg sliders remain usable with a face selected. Reset only
+        // the legs; do not unexpectedly clear other faces' adjustments.
+        editor.update(photo.id, {
+          beauty: { ...beauty, legSlim: 0, legLength: 0 },
+        });
+      }
     }
   };
 
@@ -277,7 +287,7 @@ export function BeautyPanel() {
           <button type="button" className="big-btn light"
             disabled={!hasValue || photo.locked}
             onClick={reset}>
-            {target === 'all' ? '全員の補正をリセット' : 'この顔の個別設定を解除'}
+            {target === 'all' ? '全員の補正をリセット' : hasFaceOverride ? 'この顔の個別設定を解除' : '脚の補正をリセット'}
           </button>
         </>
       )}
