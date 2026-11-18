@@ -39,6 +39,20 @@ info['NSPhotoLibraryAddUsageDescription'] = '加工した写真を端末に保�
 info['UIFileSharingEnabled'] = True
 info['LSSupportsOpeningDocumentsInPlace'] = True
 info['ITSAppUsesNonExemptEncryption'] = False
+# Xcode 27/iOS 27 kills apps using the legacy AppDelegate-only UI lifecycle.
+# npx cap sync ios must never reset our UIWindowScene configuration.
+# UIKit instantiates the existing CAPBridgeViewController using Main.storyboard.
+info.pop('UIMainStoryboardFile', None)
+info['UIApplicationSceneManifest'] = {
+    'UIApplicationSupportsMultipleScenes': False,
+    'UISceneConfigurations': {
+        'UIWindowSceneSessionRoleApplication': [{
+            'UISceneConfigurationName': 'Default Configuration',
+            'UISceneDelegateClassName': '$(PRODUCT_MODULE_NAME).SceneDelegate',
+            'UISceneStoryboardFile': 'Main',
+        }],
+    },
+}
 # iPhone and iPad editing controls are designed for portrait.
 info['UISupportedInterfaceOrientations'] = ['UIInterfaceOrientationPortrait']
 info['UISupportedInterfaceOrientations~ipad'] = ['UIInterfaceOrientationPortrait']
