@@ -8,9 +8,11 @@ workflows:
     max_build_duration: 60
     environment:
       node: "22"
-      xcode: '26.6'
+      xcode: '27.2'
       cocoapods: default
     scripts:
+      - name: Verify Xcode 27 and iOS 27 SDK before compilation
+        script: python3 scripts/verify_ios_sdk.py
       - name: Install app dependencies
         script: npm ci --no-audit --no-fund
       - name: TypeScript check
@@ -45,12 +47,14 @@ workflows:
       app_store_connect: Codemagic
     environment:
       node: "22"
-      xcode: '26.6'
+      xcode: '27.2'
       cocoapods: default
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.jomonpix.app
     scripts:
+      - name: Verify Xcode 27 and iOS 27 SDK before compilation
+        script: python3 scripts/verify_ios_sdk.py
       - name: Install app dependencies
         script: npm ci --no-audit --no-fund
       - name: TypeScript check
