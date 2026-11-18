@@ -341,6 +341,7 @@ function TextTab({
   );
 
   const update = useEditor((s) => s.update);
+  const remove = useEditor((s) => s.remove);
 
   const up = (patch: Partial<TextEl>) => {
     if (el && !el.locked) {
@@ -723,10 +724,20 @@ function TextTab({
               <PhotoAttachmentControls el={el} />
 
               <button
+                type="button"
                 className="big-btn light"
                 onClick={() => addText()}
               >
                 ＋ もう1つ文字を入れる
+              </button>
+
+              <button
+                type="button"
+                className="big-btn light"
+                disabled={!!el.locked}
+                onClick={() => remove(el.id)}
+              >
+                🗑 文字を削除
               </button>
             </>
           )}
