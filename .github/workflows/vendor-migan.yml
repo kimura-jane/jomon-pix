@@ -1,0 +1,35 @@
+name: Vendor on-device AI inpaint model (feature branch only)
+on:
+  push:
+    branches: [feature/ai-inpainting-migan-20261119]
+    paths:
+      - '.github/workflows/vendor-migan.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/ai-inpainting-migan-20261119
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies and pinned browser inference runtime
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --save-exact --no-audit --no-fund onnxruntime-web@1.23.2
+      - name: Verify model hash and bundle files for offline browsers and iOS
+        run: python3 scripts/vendor_migan.py
+      - name: Commit dependencies and model to feature branch only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json public/ai/inpaint
+          git diff --cached --quiet || git commit -m 'Bundle MIT MI-GAN and ONNX Runtime for offline smart erase'
+          git push origin HEAD:feature/ai-inpainting-migan-20261119
