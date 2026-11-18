@@ -5,9 +5,10 @@ import { chromium } from 'playwright';
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors = [];
+const diagnostics = [];
 page.on('pageerror', (error) => errors.push(error.message));
-page.on('console', (message) => { if (message.type() === 'error') errors.push('console: ' + message.text()); });
-page.on('requestfailed', (request) => errors.push('fetch: ' + request.url()));
+page.on('console', (message) => { if (message.type() === 'error') diagnostics.push('console: ' + message.text()); });
+page.on('requestfailed', (request) => diagnostics.push('fetch: ' + request.url()));
 
 async function savedImage() {
   return page.evaluate(async () => {
@@ -72,9 +73,9 @@ try {
     if (status.includes('失敗') || status.includes('検出できません')) break;
     await page.waitForTimeout(500);
   }
-  console.log('Leg slim status:', status, 'browser errors:', JSON.stringify(errors));
+  console.log('Leg slim status:', status, 'browser diagnostics:', JSON.stringify([...errors, ...diagnostics]));
   assert.ok(status.includes('ビューティーの加工を表示しています。'),
-    'Leg slim did not apply. Status: ' + status + ' / errors: ' + errors.join('; '));
+    'Leg slim did not apply. Status: ' + status + ' / errors: ' + [...errors, ...diagnostics].join('; '));
 
   await length.focus();
   await page.keyboard.press('End');
@@ -89,9 +90,9 @@ try {
         lengthStatus.includes('全身が写った')) break;
     await page.waitForTimeout(500);
   }
-  console.log('Leg length status:', lengthStatus, 'browser errors:', JSON.stringify(errors));
+  console.log('Leg length status:', lengthStatus, 'browser diagnostics:', JSON.stringify([...errors, ...diagnostics]));
   assert.ok(lengthStatus.includes('ビューティーの加工を表示しています。'),
-    'Leg length did not apply. Status: ' + lengthStatus + ' / errors: ' + errors.join('; '));
+    'Leg length did not apply. Status: ' + lengthStatus + ' / errors: ' + [...errors, ...diagnostics].join('; '));
   assert.deepEqual(errors, []);
   console.log('Leg slimming, length and non-destructive save: PASS');
 } finally {
