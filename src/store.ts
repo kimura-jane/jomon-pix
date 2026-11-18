@@ -877,6 +877,31 @@ export const useEditor = create<S>()(
     {
       name: 'jomon-pix-work',
       storage: workStorage,
+      // Old pre-canvas-preset projects saved elements/bgColor/savedAt only.
+      // A missing canvas must be restored as the original 800x800 square;
+      // the new 9:16 default applies ONLY when no saved project exists.
+      // Keep the raw IndexedDB/localStorage records and future canvas presets
+      // intact. Never rewrite legacy data until the user actually edits it.
+      merge: (persistedState, currentState) => {
+        if (!persistedState || typeof persistedState !== 'object') return currentState;
+        const saved = persistedState as Partial<PersistedWork>;
+        if (!Array.isArray(saved.elements)) return currentState;
+        const completeCanvas =
+          saved.canvasPreset !== undefined &&
+          typeof saved.canvasWidth === 'number' &&
+          Number.isFinite(saved.canvasWidth) && saved.canvasWidth >= 32 &&
+          typeof saved.canvasHeight === 'number' &&
+          Number.isFinite(saved.canvasHeight) && saved.canvasHeight >= 32;
+        const fallback: Pick<Snapshot, 'canvasPreset' | 'canvasWidth' | 'canvasHeight'> =
+          completeCanvas
+            ? {
+                canvasPreset: saved.canvasPreset!,
+                canvasWidth: saved.canvasWidth!,
+                canvasHeight: saved.canvasHeight!,
+              }
+            : { canvasPreset: 'square', canvasWidth: 800, canvasHeight: 800 };
+        return { ...currentState, ...saved, ...fallback };
+      },
       // Hydrate asynchronously from IndexedDB BEFORE mounting any controls;
       // otherwise a fast tap could overwrite saved art with an empty canvas.
       skipHydration: true,
