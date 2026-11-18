@@ -1,0 +1,51 @@
+name: Test per-face Beauty and sunglasses
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/BeautyPanel.tsx'
+      - 'src/components/useBeautyPreview.ts'
+      - 'src/components/ElementNode.tsx'
+      - 'src/lib/beautyProcessor.ts'
+      - 'src/lib/glassesStickers.ts'
+      - 'src/store.ts'
+      - 'src/types.ts'
+      - 'src/lib/stageRef.ts'
+      - 'src/components/TopBar.tsx'
+      - 'scripts/audit_beauty_per_face.mjs'
+      - '.github/workflows/audit-beauty-per-face.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install chromium
+      - name: Download MediaPipe's public test portrait
+        run: |
+          curl -fSL --retry 3 --max-time 60 \
+            https://storage.googleapis.com/mediapipe-assets/portrait.jpg \
+            -o /tmp/beauty-portrait.jpg
+      - name: Typecheck and build
+        run: npm run typecheck && npm run build
+      - name: Verify two-person beauty, glasses, Undo and autosave
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/beauty-per-face-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_beauty_per_face.mjs
