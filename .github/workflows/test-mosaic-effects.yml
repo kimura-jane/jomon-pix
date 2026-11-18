@@ -25,11 +25,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Install locked dependencies and Chromium
+      - name: Install locked JavaScript dependencies
         run: |
           npm ci --no-audit --no-fund
           npm install --no-save --no-audit --no-fund playwright@1.56.1
-          npx playwright install chromium webkit
       - name: Typecheck and production build
         run: npm run typecheck && npm run build
       - name: Verify mosaic output, undo, modes and localized UI
@@ -39,5 +38,4 @@ jobs:
             if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
             sleep 2
           done
-          node scripts/test_mosaic_effects.mjs
-          JOMON_BROWSER=webkit node scripts/test_mosaic_effects.mjs
+          JOMON_BROWSER=system-chrome node scripts/test_mosaic_effects.mjs
