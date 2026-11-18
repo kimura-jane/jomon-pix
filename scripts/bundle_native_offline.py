@@ -194,6 +194,14 @@ def verify(dest: Path, lock: Path):
     pose = dest / 'mediapipe' / 'pose_landmarker_lite.task'
     if not pose.is_file() or not zipfile.is_zipfile(pose):
         raise ValueError('Native offline Pose Landmarker model missing or invalid')
+    runtime = dest / 'mediapipe'
+    for name, minimum in (
+        ('vision_wasm_nosimd_internal.js', 50000),
+        ('vision_wasm_nosimd_internal.wasm', 1000000),
+    ):
+        item = runtime / name
+        if not item.is_file() or item.stat().st_size < minimum:
+            raise ValueError(f'Missing iOS 15-compatible MediaPipe runtime: {name}')
     parent = dest / 'offline-background'
     selected = select_resources(json.loads((parent / 'resources.json').read_text(encoding='utf-8')))
     for item in selected.values():
