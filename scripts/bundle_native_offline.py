@@ -202,6 +202,9 @@ def verify(dest: Path, lock: Path):
         item = runtime / name
         if not item.is_file() or item.stat().st_size < minimum:
             raise ValueError(f'Missing iOS 15-compatible MediaPipe runtime: {name}')
+    legal = dest / 'third-party' / 'MEDIAPIPE-APACHE-2.0.txt'
+    if not legal.is_file() or legal.stat().st_size < 1000:
+        raise ValueError('MediaPipe Apache-2.0 license text missing from native bundle')
     parent = dest / 'offline-background'
     selected = select_resources(json.loads((parent / 'resources.json').read_text(encoding='utf-8')))
     for item in selected.values():
