@@ -37,7 +37,7 @@ export function useBeautyPreview(
       return;
     }
     let cancelled = false;
-    setResult(id, { state: 'processing', message: '顔を解析して加工中…' });
+    setResult(id, { state: 'processing', message: '写真を解析して加工中…' });
     // Slider motions are batched and obsolete renders are discarded.
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -48,14 +48,18 @@ export function useBeautyPreview(
             setReady({ source, signature, image: original });
             setResult(id, {
               state: 'no-face',
-              message: '顔を検出できませんでした。加工せず元の写真を表示しています。',
+              message: '加工可能な顔・脚を検出できませんでした。元の写真を表示しています。',
             });
             return;
           }
           setReady({ source, signature, image: output.canvas });
           setResult(id, {
             state: 'ready',
-            message: `顔の加工を表示しています。（${output.faceCount}人の顔を検出）`,
+            message: output.legUnavailable
+              ? '顔の補正を表示中です。脚の解析には失敗しました。'
+              : output.legCount && !output.lengthApplied && (settings?.legLength ?? 0) > 0
+                ? '脚長の補正には、1人で全身が写った写真が必要です。'
+                : 'ビューティーの加工を表示しています。',
           });
         } catch (error) {
           if (cancelled) return;
@@ -63,7 +67,7 @@ export function useBeautyPreview(
           setReady({ source, signature, image: original });
           setResult(id, {
             state: 'error',
-            message: '顔認識を利用できません。加工せず元の写真を表示しています。',
+            message: '人物の解析を利用できません。加工せず元の写真を表示しています。',
           });
         }
       })();
