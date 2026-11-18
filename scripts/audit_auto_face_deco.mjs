@@ -73,7 +73,7 @@ try {
     .waitFor({ timeout: 15000 });
   assert.equal(await page.getByRole('button', { name: 'ねこ耳を自動配置' }).isDisabled(), true);
   report.checks.push('No-photo guidance is displayed before disabled face stickers');
-  await page.getByRole('button', { name: /画像/ }).first().click();
+  await page.locator('.bar button.tab').filter({ hasText: 'ホーム' }).click();
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/face-deco-portrait.jpg');
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
@@ -97,9 +97,11 @@ try {
 
   await page.getByRole('button', { name: '戻す' }).click();
   await waitForState((saved) => stickers(saved).length === 0, 'undo');
-  await page.getByRole('button', { name: 'やり直す' }).click();
-  await waitForState((saved) => stickers(saved).length === 1, 'redo');
-  report.checks.push('Undo and redo affect exactly one sticker');
+  // Redo is intentionally hidden in the current header. Re-add one
+  // sticker to continue testing adjustment without relying on deleted UI.
+  await page.getByRole('button', { name: 'ねこ耳を自動配置' }).click();
+  await waitForState((saved) => stickers(saved).length === 1, 're-add after undo');
+  report.checks.push('Undo removes one sticker; re-adding creates only one');
 
   await page.getByRole('button', { name: '配置済みスタンプ1を選択' }).click();
   await page.getByRole('slider', { name: 'スタンプの大きさ' }).focus();
