@@ -409,9 +409,13 @@ export function TopBar() {
       const artwork = parseBackup(await file.text());
 
       const confirmed = window.confirm(
-        '現在の作品は読み込む作品で置き換わります。\n' +
-        '現在の作品を残したい場合は、先に「作品をバックアップ」を実行してください。\n\n' +
-        '読み込みを続けますか？',
+        uiLanguage === 'en'
+          ? 'The imported project will replace the current project.\n' +
+            'To keep the current project, choose “Back up project” first.\n\n' +
+            'Continue importing?'
+          : '現在の作品は読み込む作品で置き換わります。\n' +
+            '現在の作品を残したい場合は、先に「作品をバックアップ」を実行してください。\n\n' +
+            '読み込みを続けますか？',
       );
       if (!confirmed) return;
 
