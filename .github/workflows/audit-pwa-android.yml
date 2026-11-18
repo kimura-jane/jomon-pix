@@ -7,6 +7,16 @@ on:
       - scripts/test_pwa.py
       - scripts/audit_pwa_offline.mjs
       - public/manifest.webmanifest
+      - package.json
+      - src/store.ts
+      - src/main.tsx
+      - .github/workflows/audit-pwa-android.yml
+  pull_request:
+    paths:
+      - scripts/build_pwa.py
+      - scripts/test_pwa.py
+      - scripts/audit_pwa_offline.mjs
+      - public/manifest.webmanifest
       - src/main.tsx
       - .github/workflows/audit-pwa-android.yml
   workflow_dispatch:
