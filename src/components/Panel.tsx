@@ -29,6 +29,8 @@ import { CanvasCropModal } from './CanvasCropModal';
 import { HistorySlider } from './HistorySlider';
 import { MosaicPanel } from './MosaicPanel';
 import { BeautyPanel } from './BeautyPanel';
+import { SmartEraserPanel } from './SmartEraserPanel';
+import { HAIR_COLORS, getHairStickers, findHairStyle, getRecoloredHair, type HairColorId } from '../lib/hairStickers';
 import {
   FONTS,
   FONT_GROUPS,
@@ -1004,6 +1006,7 @@ function StampTab({
   initialSub?: string;
 }) {
   const [sub, setSub] = useState(initialSub);
+  const [hairColor, setHairColor] = useState<HairColorId>('dark-brown');
   const [autoFace, setAutoFace] = useState(true);
   const [autoBusy, setAutoBusy] = useState(false);
   const [faceBusy, setFaceBusy] = useState(false);
@@ -1048,7 +1051,7 @@ function StampTab({
     setAutoMessage('');
     setSelectedFaceIndex(0);
     setSelectedSunglassesTarget('all');
-    if (!autoFace || (sub !== '顔デコ' && sub !== 'サングラス') ||
+    if (!autoFace || (sub !== '顔デコ' && sub !== 'サングラス' && sub !== '髪型') ||
         !activePhotoId || !activePhotoSrc) {
       setFaceBusy(false);
       return () => { cancelled = true; };
@@ -1247,9 +1250,18 @@ function StampTab({
     s.endHistoryGroup();
   };
 
-  const group = STAMP_GROUPS.find(
-    (item) => item.label === sub,
-  );
+  const group = sub === '髪型'
+    ? { label: '髪型', items: getHairStickers(hairColor) }
+    : STAMP_GROUPS.find((item) => item.label === sub);
+
+  const selectHairColor = (color: HairColorId) => {
+    setHairColor(color);
+    if (!selectedSticker || selectedSticker.locked || selectedSticker.hidden) return;
+    const style = findHairStyle(selectedSticker.label);
+    if (!style) return;
+    const updated = getRecoloredHair(style, color);
+    s.update(selectedSticker.id, { src: updated.src, label: updated.label });
+  };
 
   const extraEmoji = sub === '絵文字' ? EXTRA_EMOJI : [];
 
@@ -1353,9 +1365,9 @@ function StampTab({
           style={{
             // The sticky sticker editor must not cover the auto face-deco
             // picker when the long panel scrolls on iPhone.
-            position: sub === '顔デコ' ? 'relative' : 'sticky',
+            position: sub === '顔デコ' || sub === '髪型' ? 'relative' : 'sticky',
             top: 0,
-            zIndex: sub === '顔デコ' ? 1 : 10,
+            zIndex: sub === '顔デコ' || sub === '髪型' ? 1 : 10,
             background: '#fff9fd',
             border: '1px solid #f4c7df',
             borderRadius: 16,
@@ -1584,6 +1596,7 @@ function StampTab({
       <Seg
         items={[
           '顔デコ',
+          '髪型',
           'サングラス',
           '犬',
           '縄文',
@@ -1593,7 +1606,30 @@ function StampTab({
         onChange={setSub}
       />
 
-      {(sub === '顔デコ' || sub === 'サングラス') && (
+      {sub === '髪型' && (
+        <div style={{ marginTop: 12, marginBottom: 12 }}>
+          <div className="label">髪色（選択中の髪型にも反映）</div>
+          <div className="row" role="group" aria-label="髪色を選択"
+            style={{ gap: 8 }}>
+            {HAIR_COLORS.map((color) => (
+              <button type="button" key={color.id}
+                className="chip" title={color.label} aria-label={color.label}
+                aria-pressed={hairColor === color.id}
+                onClick={() => selectHairColor(color.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 5,
+                  borderColor: hairColor === color.id ? '#e84e9d' : undefined }}>
+                <span aria-hidden="true" style={{ display: 'inline-block',
+                  width: 17, height: 17, borderRadius: '50%', background: color.hex,
+                  border: '1px solid #aaa' }} />
+                {color.label}
+              </button>
+            ))}
+          </div>
+          <p className="hint-s">透過ヘアスタンプを重ねます。写真の髪そのものをAIで変える機能ではありません。</p>
+        </div>
+      )}
+
+      {(sub === '顔デコ' || sub === 'サングラス' || sub === '髪型') && (
         <div style={{
           border: '1px solid #f4c2dc',
           background: '#fff7fb',
@@ -1762,15 +1798,15 @@ function StampTab({
                 className="cell"
                 title={sticker.label}
                 aria-label={
-                  (sub === '顔デコ' || sub === 'サングラス') && autoFace
+                  (sub === '顔デコ' || sub === 'サングラス' || sub === '髪型') && autoFace
                     ? `${sticker.label}を自動配置`
                     : `${sticker.label}を追加`
                 }
-                disabled={autoBusy || ((sub === '顔デコ' || sub === 'サングラス') && autoFace &&
+                disabled={autoBusy || ((sub === '顔デコ' || sub === 'サングラス' || sub === '髪型') && autoFace &&
                   (faceBusy || !faceInfo || faceInfo.count < 1 ||
                    faceInfo.photoId !== activePhotoId || faceInfo.src !== activePhotoSrc))}
                 onClick={() => {
-                  if (sub === '顔デコ' && autoFace) {
+                  if ((sub === '顔デコ' || sub === '髪型') && autoFace) {
                     void autoAdd(sticker);
                   } else if (sub === 'サングラス' && autoFace) {
                     void autoEquipSunglasses(sticker);
@@ -1811,6 +1847,12 @@ function StampTab({
                     }}
                   >
                     {sticker.emoji}
+                  </span>
+                )}
+                {sub === '髪型' && (
+                  <span style={{ display: 'block', fontSize: 9, lineHeight: 1.2,
+                    overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {sticker.label.split('（')[0].replace('髪型:', '')}
                   </span>
                 )}
               </button>
@@ -2698,6 +2740,8 @@ export function Panel() {
       {tab === 'glasses' && <StampTab initialSub="サングラス" />}
 
       {tab === 'mosaic' && <MosaicPanel />}
+
+      {tab === 'magic' && <SmartEraserPanel />}
 
       {tab === 'beauty' && <BeautyPanel />}
 
