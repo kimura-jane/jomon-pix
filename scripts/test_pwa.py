@@ -28,7 +28,9 @@ class PWATests(unittest.TestCase):
             ('mediapipe', 'pose_landmarker_lite.task'),
             ('backgrounds', 'scene.svg'), ('mediapipe', 'face_landmarker.task'),
             ('mediapipe', 'vision_wasm_internal.wasm'),
-            ('mediapipe', 'vision_wasm_module_internal.wasm')
+            ('mediapipe', 'vision_wasm_module_internal.wasm'),
+            ('mediapipe', 'vision_wasm_nosimd_internal.js'),
+            ('mediapipe', 'vision_wasm_nosimd_internal.wasm')
         ):
             path = self.out / dirname / name
             path.parent.mkdir(exist_ok=True)
