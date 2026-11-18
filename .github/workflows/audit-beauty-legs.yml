@@ -8,6 +8,7 @@ on:
       - 'src/lib/beautyProcessor.ts'
       - 'scripts/fetch_pose_model.py'
       - 'scripts/audit_leg_beauty.mjs'
+      - 'scripts/audit_leg_geometry.mjs'
       - '.github/workflows/audit-beauty-legs.yml'
   push:
     branches: [main]
@@ -18,6 +19,7 @@ on:
       - 'src/lib/beautyProcessor.ts'
       - 'scripts/fetch_pose_model.py'
       - 'scripts/audit_leg_beauty.mjs'
+      - 'scripts/audit_leg_geometry.mjs'
       - '.github/workflows/audit-beauty-legs.yml'
   workflow_dispatch:
 
@@ -59,3 +61,4 @@ jobs:
             sleep 2
           done
           node scripts/audit_leg_beauty.mjs
+          node scripts/audit_leg_geometry.mjs

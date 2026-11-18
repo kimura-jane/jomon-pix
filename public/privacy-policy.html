@@ -40,7 +40,7 @@
   <h2>1. 写真・編集データの取扱い</h2>
   <p>本アプリに読み込んだ写真、編集した画像、スタンプ・文字・描画・配置情報などの作品データは、原則として<strong>利用者の端末またはブラウザ内</strong>で処理・保存されます。編集途中の作品は、端末内のIndexedDBに自動保存されます。旧バージョンの作品データがlocalStorageに残っている場合には、復元用のコピーとして保持されることがあります。</p>
   <p>現行の本アプリには、利用者の写真や作品を運営者のサーバーにアップロードして保管したり、他の利用者に公開したりする機能はありません。運営者が利用者の端末内の作品を閲覧するための管理画面もありません。</p>
-  <p>顔認識・顔デコ・美顔補正に使用する顔の特徴点も端末内で処理する設計です。顔写真や顔の特徴点を運営者のサーバーへ送信する処理は設けていません。</p>
+  <p>顔認識・顔デコ・美顔補正に使用する顔の特徴点、および脚の補正に使用する身体の姿勢・関節の推定位置は、端末内で処理する設計です。写真や顔・身体の特徴点を運営者のサーバーへ送信する処理は設けていません。</p>
 
   <h2>2. 端末の写真へのアクセス</h2>
   <p>写真の選択や撮影など、利用者が操作した場合に必要な画像へアクセスします。利用者が選択していない写真を自動的に収集することはありません。写真へのアクセス権限は、端末の設定から変更できる場合があります。</p>
@@ -51,6 +51,7 @@
     <li><strong>Google Fonts：</strong>Web版・Android版では、文字表示のためにGoogleの配信サービスからフォントを取得する場合があります。iOS版は日本語フォントをアプリ内に同梱しているため、これらのフォントを実行時にGoogleから取得する必要はありません。</li>
     <li><strong>背景削除：</strong>Web版・Android版では、背景削除機能の利用時にIMG.LYのAIモデルや実行用ファイルを外部配信元から取得する場合があります。iOS版は背景削除用AIモデルと実行用ファイルをアプリ内に同梱しています。背景削除処理自体は端末内で実行され、写真を運営者の処理サーバーへ送信しません。</li>
     <li><strong>Web版・Android版：</strong>GitHub Pagesなど、Webページを配信するサービスへの接続が発生します。Android版（PWA/TWA）は、初回起動や未取得の素材・AIモデルの読み込みに通信が必要となる場合があります。</li>
+    <li><strong>人物の姿勢検出：</strong>脚の細さ・長さ補正には、MediaPipeのAIモデルを端末内で使用します。iOS版はモデルを同梱しています。Web・Android版では公開サイトからモデルを取得する場合があります。</li>
   </ul>
   <p>外部通信では、接続先サービスがIPアドレス、ブラウザ・端末に関する情報、アクセス日時などの通信情報を受け取り、各サービスの方針に従って取り扱う場合があります。これらの通信は、利用者の写真を公開するためのものではありません。</p>
   <p>現行の本アプリには、運営者による広告配信・広告目的の追跡、アカウント登録、独自のアクセス解析サービスへの写真送信機能はありません。</p>
@@ -70,7 +71,10 @@
   <h2>7. 本ポリシーの変更</h2>
   <p>機能や外部サービスの変更に応じて本ポリシーを改定する場合があります。重要な変更がある場合は、アプリまたは本ページでお知らせします。変更後の内容と更新日を本ページに掲示します。</p>
 
-  <h2>8. お問い合わせ</h2>
+  <h2>8. オープンソースとソースコード</h2>
+  <p>本アプリはIMG.LYの背景削除ライブラリ（AGPL-3.0）とGoogle MediaPipeの人物認識技術を使用しています。アプリのソースコードは<a href="https://github.com/kimura-jane/jomon-pix" rel="noopener noreferrer">JOMON PIX GitHubリポジトリ</a>から確認できます。ライブラリの利用条件は<a href="https://github.com/imgly/background-removal-js" rel="noopener noreferrer">IMG.LY</a>および<a href="https://github.com/google-ai-edge/mediapipe" rel="noopener noreferrer">MediaPipe</a>の配布元をご確認ください。MediaPipeのApache-2.0ライセンス本文は<a href="./third-party/MEDIAPIPE-APACHE-2.0.txt">こちら</a>から確認できます。</p>
+
+  <h2>9. お問い合わせ</h2>
   <p>運営者：<strong>縄文</strong><br>
     メール：<a href="mailto:jomon@jomonkusama.com">jomon@jomonkusama.com</a></p>
   <footer>JOMON PIX — プライバシーポリシー</footer>
@@ -84,7 +88,7 @@
   <h2>1. Handling of photos and editing data</h2>
   <p>Photos imported into the App, edited images, and project data such as stickers, text, drawings, and positioning information are generally processed and stored <strong>on the user's device or in the user's browser</strong>. Work-in-progress projects are automatically saved in IndexedDB on the device. If project data from an earlier version remains in localStorage, it may be retained as a recovery copy.</p>
   <p>The current App does not provide a feature to upload and store users' photos or projects on the Operator's servers or publish them to other users. The Operator also has no administrative interface for viewing projects stored on users' devices.</p>
-  <p>Facial landmarks used for face detection, face decoration, and beauty adjustments are also designed to be processed on the device. The App does not include a process that sends facial photos or facial landmarks to the Operator's servers.</p>
+  <p>Facial landmarks used for face detection, decoration, and beauty adjustments, as well as pose and joint locations used for leg adjustments, are designed to be processed on the device. The App does not include a process that sends photos or facial/body landmarks to the Operator's servers.</p>
 
   <h2>2. Access to photos on the device</h2>
   <p>The App accesses the images needed when a user takes an action, such as selecting or taking a photo. It does not automatically collect photos that the user has not selected. Depending on the device, photo access permissions may be changed in device settings.</p>
@@ -95,6 +99,7 @@
     <li><strong>Google Fonts:</strong> The web and Android editions may download fonts from Google's delivery service. The iOS edition bundles its Japanese fonts inside the app and does not need to download those font files from Google at runtime.</li>
     <li><strong>Background removal:</strong> The web and Android editions may download IMG.LY AI models and runtime files when the feature is used. The iOS edition bundles the background-removal model and runtime files inside the app. Background removal itself runs on the user's device; photos are not sent to an image-processing server operated by the Operator.</li>
     <li><strong>Web and Android editions:</strong> The App connects to web-hosting services such as GitHub Pages. The Android PWA/TWA may require connectivity on its first launch or when loading assets and AI models that have not been cached.</li>
+    <li><strong>Body pose detection:</strong> Leg slimming and lengthening use a MediaPipe AI model on the device. The iOS edition bundles the model; the web and Android editions may download the model from the app's hosted website.</li>
   </ul>
   <p>During these connections, third-party services may receive communication information, such as IP address, browser and device information, and access date and time, and handle it in accordance with their policies. These connections are not intended to publish users' photos.</p>
   <p>The current App does not include advertising served by the Operator, advertising-purpose tracking, account registration, or a feature that sends photos to an independent analytics service.</p>
@@ -114,7 +119,10 @@
   <h2>7. Changes to this policy</h2>
   <p>This policy may be revised as features or external services change. Important changes will be announced in the App or on this page. The revised policy and its last-updated date will be posted here.</p>
 
-  <h2>8. Contact</h2>
+  <h2>8. Open-source notices and source code</h2>
+  <p>The App uses IMG.LY's AGPL-3.0 background-removal library and Google's MediaPipe person-detection technology. The App source code is available at the <a href="https://github.com/kimura-jane/jomon-pix" rel="noopener noreferrer">JOMON PIX GitHub repository</a>. See the <a href="https://github.com/imgly/background-removal-js" rel="noopener noreferrer">IMG.LY</a> and <a href="https://github.com/google-ai-edge/mediapipe" rel="noopener noreferrer">MediaPipe</a> upstream sites for their respective licensing terms. The full <a href="./third-party/MEDIAPIPE-APACHE-2.0.txt">MediaPipe Apache-2.0 license</a> is bundled with this app.</p>
+
+  <h2>9. Contact</h2>
   <p>Operator: <strong>Jomon (縄文)</strong><br>
      Email: <a href="mailto:jomon@jomonkusama.com">jomon@jomonkusama.com</a></p>
   <footer>JOMON PIX — Privacy Policy</footer>

@@ -123,13 +123,16 @@ function isImageFrame(value: unknown): boolean {
 const BEAUTY_SETTING_NAMES = [
   'smooth', 'bright', 'warmth', 'slim', 'chin', 'eyes', 'lip', 'blush',
 ] as const;
+const OPTIONAL_LEG_SETTING_NAMES = ['legSlim', 'legLength'] as const;
 
 function isBeautySettings(value: unknown): boolean {
   return isRecord(value) &&
     BEAUTY_SETTING_NAMES.every((name) =>
-      isFiniteNumber(value[name]) &&
-      value[name] >= 0 &&
-      value[name] <= 100
+      isFiniteNumber(value[name]) && value[name] >= 0 && value[name] <= 100
+    ) &&
+    OPTIONAL_LEG_SETTING_NAMES.every((name) =>
+      value[name] === undefined ||
+      (isFiniteNumber(value[name]) && value[name] >= 0 && value[name] <= 100)
     );
 }
 

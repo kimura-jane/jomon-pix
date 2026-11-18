@@ -588,7 +588,9 @@ export type BeautyRender = {
   faceCount: number;
   legCount: number;
   legUnavailable: boolean;
+  slimApplied: boolean;
   lengthApplied: boolean;
+  hasEffects: boolean;
 };
 
 export async function renderBeauty(
@@ -601,13 +603,15 @@ export async function renderBeauty(
   if (naturalW <= 0 || naturalH <= 0) {
     throw new Error('写真が読み込めませんでした。');
   }
-  const needFace = FACE_BEAUTY_FIELDS.some((key) => (settings[key] ?? 0) > 0) ||
+  const needFace = (settings.legLength ?? 0) > 0 ||
+    FACE_BEAUTY_FIELDS.some((key) => (settings[key] ?? 0) > 0) ||
     Object.values(faceOverrides ?? {}).some((patch) => FACE_BEAUTY_FIELDS.some(
       (key) => (patch[key] ?? settings[key] ?? 0) > 0,
     ));
   const needLeg = (settings.legSlim ?? 0) > 0 || (settings.legLength ?? 0) > 0;
 
-  // Avoid loading the facial AI when the user only adjusts legs.
+  // Leg slimming alone does not need face AI. Lengthening cross-checks face
+  // count so a second person missed by pose detection is not warped.
   const faces = needFace ? await detectFaceLandmarksEnhanced(source) : [];
   const ratio = Math.min(1, 1600 / Math.max(naturalW, naturalH));
   const w = Math.max(1, Math.round(naturalW * ratio));
@@ -630,23 +634,9 @@ export async function renderBeauty(
   let legUnavailable = false;
   let lengthApplied = false;
   let applied = false;
-  if (needLeg) {
-    try {
-      const result = await renderLegBeauty(
-        source, canvas, settings.legSlim ?? 0, settings.legLength ?? 0,
-      );
-      canvas = result.canvas;
-      legCount = result.legCount;
-      lengthApplied = result.lengthApplied;
-      applied = result.applied;
-    } catch (error) {
-      console.error('[JOMON PIX] Leg detection or adjustment failed:', error);
-      legUnavailable = true;
-    }
-  }
-
-  // The face model only moves facial pixels; body adjustments are done first.
-  // Face overrides remain based on left-to-right face indices, unchanged.
+  let slimApplied = false;
+  // Apply face effects to original coordinates BEFORE any leg warp.
+  // The localized leg warp leaves the head area and face indices unchanged.
   for (const { face, index } of usableFaces) {
     const localSettings = { ...DEFAULT_BEAUTY, ...settings, ...faceOverrides?.[String(index)] };
     if (!FACE_BEAUTY_FIELDS.some((key) => localSettings[key] > 0)) continue;
@@ -664,12 +654,31 @@ export async function renderBeauty(
     applied = true;
   }
 
-  if (!applied) {
-    if (legUnavailable) throw new Error('脚の解析に失敗しました。');
-    return null;
+  if (needLeg) {
+    try {
+      // Never lengthen when at least two faces are visible, even if pose
+      // inference missed the other person's body.
+      const requestedLength = usableFaces.length > 1 ? 0 : settings.legLength ?? 0;
+      const result = await renderLegBeauty(
+        source, canvas, settings.legSlim ?? 0, requestedLength,
+      );
+      canvas = result.canvas;
+      legCount = result.legCount;
+      lengthApplied = result.lengthApplied;
+      slimApplied = result.slimApplied;
+      applied = applied || result.applied;
+    } catch (error) {
+      console.error('[JOMON PIX] Leg detection or adjustment failed:', error);
+      legUnavailable = true;
+    }
   }
+
+
+  if (!applied && !needLeg) return null;
+  // Return the original canvas with explicit non-applied flags when pose
+  // detection rejects a photo, so the UI never pretends the slider worked.
   return {
     canvas, faceCount: usableFaces.length, legCount,
-    legUnavailable, lengthApplied,
+    legUnavailable, slimApplied, lengthApplied, hasEffects: applied,
   };
 }

@@ -55,15 +55,25 @@ export function useBeautyPreview(
             return;
           }
           setReady({ source, signature, image: output.canvas });
+          const needSlim = (settings?.legSlim ?? 0) > 0;
+          const needLength = (settings?.legLength ?? 0) > 0;
+          let message: string;
+          if (output.legUnavailable) {
+            message = '脚の解析に失敗しました。脚の補正は適用していません。';
+          } else if (needSlim && output.legCount === 0) {
+            message = '脚を検出できませんでした。脚の補正は適用していません。';
+          } else if (needSlim && !output.slimApplied) {
+            message = '脚の細さは、両脚を認識できる写真で調整できます。';
+          } else if (needLength && !output.lengthApplied) {
+            message = '脚長は、全身が写った1人の写真で調整できます。';
+          } else {
+            message = needsLeg
+              ? 'ビューティーの加工を表示しています。'
+              : `顔の加工を表示しています。（${output.faceCount}人の顔を検出）`;
+          }
           setResult(id, {
-            state: 'ready',
-            message: !needsLeg
-              ? `顔の加工を表示しています。（${output.faceCount}人の顔を検出）`
-              : output.legUnavailable
-              ? '顔の補正を表示中です。脚の解析には失敗しました。'
-              : output.legCount && !output.lengthApplied && (settings?.legLength ?? 0) > 0
-                ? '脚長の補正には、1人で全身が写った写真が必要です。'
-                : 'ビューティーの加工を表示しています。',
+            state: output.hasEffects ? 'ready' : 'no-face',
+            message,
           });
         } catch (error) {
           if (cancelled) return;

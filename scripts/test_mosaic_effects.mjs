@@ -102,8 +102,15 @@ try {
   assert.deepEqual(pixel, [0, 0, 0, 255], 'Black mosaic must actually replace photo pixels');
   await page.getByRole('button', { name: 'キャンセル' }).click();
   await page.locator('.bar [aria-label="戻す"]').click();
+  // Undo updates the editor store synchronously, but React redraws the
+  // thumbnail/modal asynchronously. Wait for the source image to settle
+  // rather than reading a stale preview during the transition.
   await page.getByRole('button', { name: '▦ 全体にモザイク' }).click();
   await page.getByRole('dialog', { name: 'モザイク加工' }).getByRole('button', { name: '範囲指定' }).click();
+  await page.waitForFunction((originalSrc) => {
+    const img = document.querySelector('img[alt="モザイク対象の写真"]');
+    return img?.getAttribute('src') === originalSrc;
+  }, storedOriginal, { timeout: 12000 });
   const reverted = await page.locator('img[alt="モザイク対象の写真"]').getAttribute('src');
   assert.equal(reverted, storedOriginal, 'Undo must restore the stored original photo');
   await page.getByRole('button', { name: 'キャンセル' }).click();

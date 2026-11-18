@@ -5,12 +5,17 @@ import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
 type Point = { x: number; y: number };
 type PosePoint = Pick<NormalizedLandmark, 'x' | 'y' | 'visibility'>;
 type Leg = { hip: Point; knee: Point; ankle: Point; hipGap: number };
-type Body = { legs: Leg[]; shoulderY: number; hipY: number; ankleY: number };
+type Body = {
+  legs: Leg[]; shoulderY: number; hipY: number; ankleY: number;
+  shoulderLeft?: Point; shoulderRight?: Point;
+  hipLeft: Point; hipRight: Point;
+};
 type Segment = { a: Point; b: Point; radius: number; start: number; span: number };
 export type LegBeautyResult = {
   canvas: HTMLCanvasElement;
   legCount: number;
   applied: boolean;
+  slimApplied: boolean;
   lengthApplied: boolean;
 };
 
@@ -107,10 +112,15 @@ function findBodies(poses: PosePoint[][], w: number, h: number): Body[] {
     if (!legs.length) continue;
     const hipY = (leftHip.y + rightHip.y) / 2;
     const ankleY = legs.reduce((sum, l) => sum + l.ankle.y, 0) / legs.length;
-    const shoulderY = valid(pose[11]) && valid(pose[12])
-      ? (pose[11].y + pose[12].y) * h / 2
-      : hipY - (ankleY - hipY) * 0.45;
-    bodies.push({ legs, hipY, ankleY, shoulderY });
+    const hasShoulders = valid(pose[11]) && valid(pose[12]);
+    const shoulderLeft = hasShoulders ? pixel(pose[11], w, h) : undefined;
+    const shoulderRight = hasShoulders ? pixel(pose[12], w, h) : undefined;
+    const shoulderY = shoulderLeft && shoulderRight
+      ? (shoulderLeft.y + shoulderRight.y) / 2 : -1;
+    bodies.push({
+      legs, hipY, ankleY, shoulderY,
+      hipLeft: leftHip, hipRight: rightHip, shoulderLeft, shoulderRight,
+    });
   }
   return bodies;
 }
@@ -127,7 +137,7 @@ function canvasCopy(source: HTMLCanvasElement): HTMLCanvasElement {
 
 // Sample an original snapshot, not previously displaced pixels. This makes
 // the result stable on slider updates and avoids cumulative degradation.
-function narrowLegs(
+export function narrowLegs(
   source: HTMLCanvasElement, bodies: Body[], value: number,
 ): HTMLCanvasElement {
   const w = source.width;
@@ -153,6 +163,11 @@ function narrowLegs(
   const offsetsX = new Float32Array(w * h);
   const offsetsY = new Float32Array(w * h);
   const weights = new Float32Array(w * h);
+  const knots = [
+    [0, 0], [0.08, 0.60], [0.22, 1.00], [0.39, 0.55],
+    [0.50, 0.30], [0.64, 0.55], [0.76, 0.58],
+    [0.92, 0.18], [1, 0],
+  ];
   for (const seg of segments) {
     const vx = seg.b.x - seg.a.x;
     const vy = seg.b.y - seg.a.y;
@@ -174,7 +189,18 @@ function narrowLegs(
         if (normalized >= 1) continue;
         const fade = (1 - normalized * normalized) ** 2;
         const progress = seg.start + t * seg.span;
-        const taper = Math.sin(Math.PI * progress);
+        // Strongest near the upper thigh, gentle at the knee; calf tapers off
+        // smoothly toward the ankle. Interpolate between stable anchors.
+        let taper = 0;
+        for (let k = 1; k < knots.length; k++) {
+          const [end, vEnd] = knots[k];
+          if (progress > end) continue;
+          const [start, vStart] = knots[k - 1];
+          const t2 = Math.max(0, Math.min(1, (progress - start) / (end - start)));
+          const eased = t2 * t2 * (3 - 2 * t2);
+          taper = vStart + (vEnd - vStart) * eased;
+          break;
+        }
         const displacement = d * strength * fade * taper;
         const index = y * w + x;
         if (Math.abs(displacement) <= weights[index]) continue;
@@ -207,41 +233,98 @@ function narrowLegs(
   return output;
 }
 
-// Keep the face region and feet fixed. Shrink the torso slightly and
-// redistribute that space to the legs. The original canvas dimensions stay
-// unchanged; no cropping and no extra controls are introduced.
-function lengthenLegs(
-  source: HTMLCanvasElement, bodies: Body[], value: number,
+// Deform only a soft local strip around a single standing body. The face and
+// feet stay fixed. This conservative warp cannot perfectly segment a person
+// from a patterned background, so it is intentionally limited in strength.
+export function lengthenLegs(
+  source: HTMLCanvasElement, body: Body, value: number,
 ): HTMLCanvasElement | null {
-  if (bodies.length !== 1 || bodies[0].legs.length < 1) return null;
-  const body = bodies[0];
-  const w = source.width, h = source.height;
-  const shoulder = Math.max(0, body.shoulderY);
-  const hip = body.hipY;
-  const ankle = body.ankleY;
-  // One reliably detected leg is sufficient when the other is partly
-  // obscured or crossed. Require an upper-body landmark and enough visible
-  // leg length; refuse images that only show a cropped lower body.
-  if (shoulder >= hip - h * 0.045 ||
-      ankle <= hip + h * 0.13 || ankle > h) {
+  if (!body.shoulderLeft || !body.shoulderRight || body.legs.length !== 2) {
     return null;
   }
-  const extra = Math.min((ankle - hip) * 0.12, (hip - shoulder) * 0.20) *
-    Math.min(1, Math.max(0, value / 100));
+  const w = source.width, h = source.height;
+  const shoulder = body.shoulderY;
+  const hip = body.hipY;
+  const ankles = body.legs.map((leg) => leg.ankle);
+  const ankle = body.ankleY;
+  // Do not guess shoulders, accept missing/mostly cropped feet, or stretch
+  // sideways/crouching subjects: the result would be misleading.
+  if (shoulder <= h * 0.02 || shoulder >= hip - h * 0.08 ||
+      hip >= ankle - h * 0.16 || ankle >= h * 0.97 ||
+      Math.abs(ankles[0].y - ankles[1].y) > h * 0.12) {
+    return null;
+  }
+  const extra = Math.min((ankle - hip) * 0.11, (hip - shoulder) * 0.18) *
+    Math.max(0, Math.min(1, value / 100));
   if (extra < 0.5) return null;
   const newHip = hip - extra;
-  const output = document.createElement('canvas');
-  output.width = w;
-  output.height = h;
-  const ctx = output.getContext('2d');
-  if (!ctx) throw new Error('脚の画像処理に失敗しました');
-  ctx.drawImage(source, 0, 0, w, shoulder, 0, 0, w, shoulder);
-  ctx.drawImage(source, 0, shoulder, w, hip - shoulder,
-    0, shoulder, w, newHip - shoulder);
-  ctx.drawImage(source, 0, hip, w, ankle - hip,
-    0, newHip, w, ankle - newHip);
-  ctx.drawImage(source, 0, ankle, w, h - ankle,
-    0, ankle, w, h - ankle);
+  const shoulderCenter = (body.shoulderLeft.x + body.shoulderRight.x) / 2;
+  const hipCenter = (body.hipLeft.x + body.hipRight.x) / 2;
+  const ankleCenter = (ankles[0].x + ankles[1].x) / 2;
+  const shoulderSpan = Math.abs(body.shoulderLeft.x - body.shoulderRight.x);
+  const hipGap = dist(body.hipLeft, body.hipRight);
+  const shoulderRadius = Math.max(12, shoulderSpan * 0.60);
+  const hipRadius = Math.max(12, hipGap * 0.85);
+  const ankleRadius = Math.max(12, Math.max(...ankles.map((p) =>
+    Math.abs(p.x - ankleCenter))) + hipGap * 0.36);
+  // Refuse unusually wide or tilted silhouettes instead of warping the
+  // background or an adjacent subject across a large fraction of the photo.
+  if (Math.max(shoulderRadius, hipRadius, ankleRadius) > w * 0.30) return null;
+
+  const output = canvasCopy(source);
+  const ctx = output.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('脚長の画像処理に失敗しました');
+  const original = ctx.getImageData(0, 0, w, h);
+  const dest = ctx.createImageData(w, h);
+  dest.data.set(original.data);
+  const smooth = (t: number) => {
+    const n = Math.max(0, Math.min(1, t));
+    return n * n * (3 - 2 * n);
+  };
+
+  for (let y = Math.floor(shoulder); y <= Math.min(h - 1, Math.ceil(ankle)); y++) {
+    let originalY: number;
+    if (y < newHip) {
+      originalY = shoulder + (y - shoulder) * (hip - shoulder) / (newHip - shoulder);
+    } else {
+      originalY = hip + (y - newHip) * (ankle - hip) / (ankle - newHip);
+    }
+    const movement = originalY - y;
+    if (movement < 0.01) continue;
+    const ratio = (y - shoulder) / (ankle - shoulder);
+    const torso = smooth((y - shoulder) / Math.max(1, hip - shoulder));
+    const legs = smooth((y - hip) / Math.max(1, ankle - hip));
+    const center = y < hip
+      ? shoulderCenter + (hipCenter - shoulderCenter) * torso
+      : hipCenter + (ankleCenter - hipCenter) * legs;
+    const radius = y < hip
+      ? shoulderRadius + (hipRadius - shoulderRadius) * torso
+      : hipRadius + (ankleRadius - hipRadius) * legs;
+    const inner = radius * 0.66;
+    const outer = radius * 1.28;
+    const x0 = Math.max(0, Math.floor(center - outer));
+    const x1 = Math.min(w - 1, Math.ceil(center + outer));
+    // Fade out at the top and feet, and horizontally into untouched pixels.
+    const vertical = smooth(Math.min(1, ratio * 15)) *
+      smooth(Math.min(1, (1 - ratio) * 15));
+    for (let x = x0; x <= x1; x++) {
+      const dx = Math.abs(x - center);
+      const mask = dx <= inner ? 1 : 1 - smooth((dx - inner) / (outer - inner));
+      const fromY = Math.max(0, Math.min(h - 1, y + movement * mask * vertical));
+      if (Math.abs(fromY - y) < 0.01) continue;
+      const low = Math.floor(fromY);
+      const high = Math.min(h - 1, low + 1);
+      const blend = fromY - low;
+      const to = (y * w + x) * 4;
+      const a = (low * w + x) * 4;
+      const b = (high * w + x) * 4;
+      for (let ch = 0; ch < 4; ch++) {
+        dest.data[to + ch] =
+          original.data[a + ch] * (1 - blend) + original.data[b + ch] * blend;
+      }
+    }
+  }
+  ctx.putImageData(dest, 0, 0);
   return output;
 }
 
@@ -253,21 +336,29 @@ export async function renderLegBeauty(
 ): Promise<LegBeautyResult> {
   const poses = await detectPoses(source);
   const bodies = findBodies(poses, canvas.width, canvas.height);
+  const personCount = poses.filter((pose) =>
+    [11, 12, 23, 24].some((index) => valid(pose[index]))).length;
   const legCount = bodies.reduce((sum, body) => sum + body.legs.length, 0);
   let result = canvas;
-  let applied = false;
+  let slimApplied = false;
   let lengthApplied = false;
-  if (legCount > 0 && slim > 0) {
+  // Do not leave one leg thin and the other unchanged. If an additional
+  // partly visible person is detected, conservatively refuse all-body edits.
+  const bothLegs = personCount > 0 && personCount === bodies.length &&
+    bodies.every((body) => body.legs.length === 2);
+  if (slim > 0 && bothLegs) {
     result = narrowLegs(result, bodies, slim);
-    applied = true;
+    slimApplied = true;
   }
-  if (length > 0) {
-    const stretched = lengthenLegs(result, bodies, length);
+  if (length > 0 && personCount === 1 && bodies.length === 1) {
+    const stretched = lengthenLegs(result, bodies[0], length);
     if (stretched) {
       result = stretched;
-      applied = true;
       lengthApplied = true;
     }
   }
-  return { canvas: result, legCount, applied, lengthApplied };
+  return {
+    canvas: result, legCount, slimApplied, lengthApplied,
+    applied: slimApplied || lengthApplied,
+  };
 }

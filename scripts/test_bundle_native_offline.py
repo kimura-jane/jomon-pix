@@ -21,6 +21,9 @@ class OfflineBundleTests(unittest.TestCase):
         pose.parent.mkdir()
         with zipfile.ZipFile(pose, 'w') as archive:
             archive.writestr('pose_detector.tflite', b'fixture')
+        notice_dir = self.dist / 'third-party'
+        notice_dir.mkdir()
+        (notice_dir / 'MEDIAPIPE-APACHE-2.0.txt').write_text('Apache-2.0 fixture\n' * 100)
         (self.dist / 'index.html').write_text(
             '<html><head><link rel="preconnect" href="https://fonts.googleapis.com">'
             '<link rel="preconnect" href="https://fonts.gstatic.com">'

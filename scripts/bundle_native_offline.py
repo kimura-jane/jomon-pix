@@ -194,6 +194,9 @@ def verify(dest: Path, lock: Path):
     pose = dest / 'mediapipe' / 'pose_landmarker_lite.task'
     if not pose.is_file() or not zipfile.is_zipfile(pose):
         raise ValueError('Native offline Pose Landmarker model missing or invalid')
+    legal = dest / 'third-party' / 'MEDIAPIPE-APACHE-2.0.txt'
+    if not legal.is_file() or legal.stat().st_size < 1000:
+        raise ValueError('MediaPipe Apache-2.0 license text missing from native bundle')
     parent = dest / 'offline-background'
     selected = select_resources(json.loads((parent / 'resources.json').read_text(encoding='utf-8')))
     for item in selected.values():
