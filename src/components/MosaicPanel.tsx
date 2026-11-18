@@ -6,6 +6,7 @@ import { removeBg } from '../lib/removeBg';
 import { isNativeApp } from '../lib/nativeFileShare';
 import type { ImageEl } from '../types';
 import { getPhotoLabel } from '../lib/photoAttachments';
+import { drawMosaicEffect, MOSAIC_EFFECT_OPTIONS, type MosaicEffect } from '../lib/mosaicEffects';
 
 type Mode = 'rectangle' | 'brush' | 'all' | 'background';
 type Point = { x: number; y: number };
@@ -51,35 +52,34 @@ function loadProcessedImage(src: string): Promise<HTMLImageElement> {
 function pixelate(
   img: HTMLImageElement,
   mode: Mode,
+  effect: MosaicEffect,
   tileSize: number,
   region: Region | null,
   strokes: Stroke[],
   foreground: HTMLImageElement | null = null,
+  preview = false,
 ): string {
-  const width = img.naturalWidth;
-  const height = img.naturalHeight;
-  if (!width || !height) throw new Error('画像サイズを取得できません');
+  const originalWidth = img.naturalWidth;
+  const originalHeight = img.naturalHeight;
+  if (!originalWidth || !originalHeight) throw new Error('画像サイズを取得できません');
 
+  // Small, temporary preview canvas avoids repeated full-resolution effects
+  // while the user adjusts a selection or strength slider.
+  const scale = preview ? Math.min(1, 480 / Math.max(originalWidth, originalHeight)) : 1;
+  const width = Math.max(1, Math.round(originalWidth * scale));
+  const height = Math.max(1, Math.round(originalHeight * scale));
   const output = createCanvas(width, height);
   const out = context(output);
-  out.drawImage(img, 0, 0);
-
-  const tile = Math.max(4, Math.min(80, Math.round(tileSize)));
-  const reduced = createCanvas(
-    Math.max(1, Math.ceil(width / tile)),
-    Math.max(1, Math.ceil(height / tile)),
-  );
-  const reducedCtx = context(reduced);
-  reducedCtx.drawImage(img, 0, 0, reduced.width, reduced.height);
+  out.drawImage(img, 0, 0, width, height);
 
   const mosaic = createCanvas(width, height);
   const mosaicCtx = context(mosaic);
-  mosaicCtx.imageSmoothingEnabled = false;
-  mosaicCtx.drawImage(reduced, 0, 0, width, height);
+  drawMosaicEffect(mosaicCtx, img, width, height, tileSize * scale, effect);
 
   if (mode !== 'all' && mode !== 'background') {
     const mask = createCanvas(width, height);
     const ctx = context(mask);
+    ctx.scale(width / originalWidth, height / originalHeight);
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#ffffff';
     ctx.lineJoin = 'round';
@@ -101,13 +101,7 @@ function pixelate(
         ctx.beginPath();
         ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
         if (stroke.points.length === 1) {
-          ctx.arc(
-            stroke.points[0].x,
-            stroke.points[0].y,
-            stroke.size / 2,
-            0,
-            Math.PI * 2,
-          );
+          ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.size / 2, 0, Math.PI * 2);
           ctx.fill();
         } else {
           for (const p of stroke.points.slice(1)) ctx.lineTo(p.x, p.y);
@@ -128,35 +122,39 @@ function pixelate(
   if (mode === 'background') {
     if (!foreground) throw new Error('被写体の自動判定が完了していません');
 
-    // 背景削除AIが返す透明PNGは「被写体の位置」のみを判定する。
-    // 元の写真のRGBをアルファマスクで切り出し、モザイクの上に戻す。
-    // これにより人物の色調を保持し、背景部分だけがピクセル化される。
+    // Restore only the original subject pixels on top of the mosaic.
+    // Background detection supplies an alpha mask, not replacement RGB.
     const subject = createCanvas(width, height);
     const subjectCtx = context(subject);
-    subjectCtx.drawImage(img, 0, 0);
+    subjectCtx.drawImage(img, 0, 0, width, height);
     subjectCtx.globalCompositeOperation = 'destination-in';
     subjectCtx.drawImage(foreground, 0, 0, width, height);
     subjectCtx.globalCompositeOperation = 'source-over';
-
     out.drawImage(subject, 0, 0);
   }
 
   const jpeg = img.src.startsWith('data:image/jpeg') ||
     img.src.startsWith('data:image/jpg');
-  return output.toDataURL(jpeg ? 'image/jpeg' : 'image/png', 0.87);
+  return output.toDataURL(preview ? 'image/jpeg' : jpeg ? 'image/jpeg' : 'image/png', 0.87);
 }
 
 function MosaicDialog({
   photo,
   mode: initialMode,
+  effect,
+  onEffectChange,
   onClose,
 }: {
   photo: ImageEl;
   mode: Mode;
+  effect: MosaicEffect;
+  onEffectChange: (effect: MosaicEffect) => void;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [source, setSource] = useState<HTMLImageElement | null>(null);
+  const [effectThumbnails, setEffectThumbnails] = useState<Partial<Record<MosaicEffect, string>>>({});
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [working, setWorking] = useState(false);
   const [tileSize, setTileSize] = useState(22);
@@ -213,6 +211,44 @@ function MosaicDialog({
       window.removeEventListener('resize', resize);
     };
   }, [source]);
+
+  // Draw actual effect samples from the selected photo, once per photo.
+  useEffect(() => {
+    if (!source) return;
+    try {
+      const thumbs: Partial<Record<MosaicEffect, string>> = {};
+      for (const option of MOSAIC_EFFECT_OPTIONS) {
+        const thumb = createCanvas(92, 64);
+        drawMosaicEffect(context(thumb), source, 92, 64, 11, option.id);
+        thumbs[option.id] = thumb.toDataURL('image/png');
+      }
+      setEffectThumbnails(thumbs);
+    } catch {
+      setEffectThumbnails({});
+    }
+  }, [source]);
+
+  // Show the actual selected-area effect before committing. Background-only
+  // needs subject AI and therefore remains unchanged until Apply is pressed.
+  useEffect(() => {
+    if (!source || mode === 'background' ||
+        (mode === 'rectangle' && !region) ||
+        (mode === 'brush' && strokes.length === 0)) {
+      setPreviewSrc(null);
+      return;
+    }
+    let active = true;
+    setPreviewSrc(null);
+    const timer = window.setTimeout(() => {
+      try {
+        const result = pixelate(source, mode, effect, tileSize, region, strokes, null, true);
+        if (active) setPreviewSrc(result);
+      } catch {
+        if (active) setPreviewSrc(null);
+      }
+    }, 130);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [source, mode, effect, tileSize, region, strokes]);
 
   const reset = () => {
     setRegion(null);
@@ -314,7 +350,7 @@ function MosaicDialog({
         throw new Error('画像が変更されました。画面を閉じて選び直してください');
       }
 
-      const result = pixelate(source, mode, tileSize, region, strokes, foreground);
+      const result = pixelate(source, mode, effect, tileSize, region, strokes, foreground);
       state.update(photo.id, { src: result });
       const saved = useAutosaveStatus.getState();
       if (saved.status === 'failed') {
@@ -346,6 +382,26 @@ function MosaicDialog({
         }}
       >
         <h3>▦ モザイク加工</h3>
+        <div className="label" style={{ margin: '0 0 3px' }}>モザイクの種類</div>
+        <div className="mosaic-styles" role="group" aria-label="モザイクの種類">
+          {MOSAIC_EFFECT_OPTIONS.map((option) => (
+            <button
+              type="button"
+              key={option.id}
+              className={`mosaic-style ${effect === option.id ? 'on' : ''}`}
+              aria-pressed={effect === option.id}
+              disabled={working}
+              onClick={() => onEffectChange(option.id)}
+            >
+              {effectThumbnails[option.id] ? (
+                <img src={effectThumbnails[option.id]} alt="" draggable={false} />
+              ) : (
+                <span className="mosaic-style-placeholder" aria-hidden="true" />
+              )}
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
         <div
           className="seg"
           style={{
@@ -408,7 +464,7 @@ function MosaicDialog({
               }}
             >
               <img
-                src={photo.src}
+                src={previewSrc ?? photo.src}
                 alt="モザイク対象の写真"
                 draggable={false}
                 style={{
@@ -476,8 +532,12 @@ function MosaicDialog({
           )}
         </div>
 
-        <label className="slider">
-          モザイクの粗さ {tileSize}px
+        {mode === 'background' && (
+          <p className="hint-s" style={{ margin: 0 }}>背景だけの仕上がりは適用後に確認できます。</p>
+        )}
+
+        {effect !== 'black' && <label className="slider">
+          {effect === 'blur' ? 'ぼかしの強さ' : 'モザイクの粗さ'} {tileSize}px
           <input
             type="range"
             min={8}
@@ -487,7 +547,7 @@ function MosaicDialog({
             disabled={working}
             onChange={(e) => setTileSize(Number(e.target.value))}
           />
-        </label>
+        </label>}
 
         {mode === 'brush' && (
           <label className="slider">
@@ -555,6 +615,7 @@ function MosaicDialog({
 export function MosaicPanel() {
   const { elements, selectedId, select } = useEditor();
   const [mode, setMode] = useState<Mode>('rectangle');
+  const [effect, setEffect] = useState<MosaicEffect>('pixel');
   const [open, setOpen] = useState(false);
   const photos = elements.filter(
     (el): el is ImageEl => el.type === 'image' && !el.locked && !el.hidden,
@@ -642,6 +703,8 @@ export function MosaicPanel() {
           key={target.id + ':' + mode}
           photo={target}
           mode={mode}
+          effect={effect}
+          onEffectChange={setEffect}
           onClose={() => setOpen(false)}
         />
       )}

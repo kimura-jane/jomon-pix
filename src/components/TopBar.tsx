@@ -320,7 +320,7 @@ function createBackupFile(): File {
 
 export function TopBar() {
   const {
-    tab, setTab, undo, redo, past, future, select,
+    tab, setTab, undo, past, select,
   } = useEditor();
 
   const autosaveStatus = useAutosaveStatus((state) => state.status);
@@ -486,14 +486,12 @@ export function TopBar() {
       <div className="bar">
         <button type="button" className={`tab ${tab === 'image' ? 'on' : ''}`}
           onClick={() => setTab('image')}>
-          <span className="ic">🖼</span>画像
+          <span className="ic">🏠</span>ホーム
         </button>
 
         <div className="sep" />
         <button type="button" className="icon-btn" onClick={undo}
           disabled={!past.length} aria-label="戻す">↶</button>
-        <button type="button" className="icon-btn" onClick={redo}
-          disabled={!future.length} aria-label="やり直す">↷</button>
         <div className="sep" />
 
         <div className="tabs">
