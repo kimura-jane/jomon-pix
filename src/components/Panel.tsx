@@ -31,7 +31,7 @@ import { HistorySlider } from './HistorySlider';
 import { MosaicPanel } from './MosaicPanel';
 import { BeautyPanel } from './BeautyPanel';
 import { SmartEraserPanel } from './SmartEraserPanel';
-import { HAIR_COLORS, getHairStickers, findHairStyle, getRecoloredHair, type HairColorId } from '../lib/hairStickers';
+import { HAIR_COLORS, getHairStickers, findHairStyle, getRecoloredHair, isHairSticker, type HairColorId } from '../lib/hairStickers';
 import {
   FONTS,
   FONT_GROUPS,
@@ -1197,6 +1197,16 @@ function StampTab({
         ? selected
         : undefined;
 
+  // Changing the selected hair sticker also updates the highlighted hair color.
+  useEffect(() => {
+    if (sub !== '髪型' || !selectedSticker || !isHairSticker(selectedSticker)) return;
+    const chosen = HAIR_COLORS.find((color) =>
+      selectedSticker.label?.endsWith('（' + color.label + '）'),
+    );
+    if (chosen) setHairColor(chosen.id);
+  }, [sub, selectedSticker?.id, selectedSticker?.label]);
+
+
   const parentPhoto = s.elements.find(
     (el) =>
       el.type === 'image' &&
@@ -1611,29 +1621,6 @@ function StampTab({
         onChange={setSub}
       />
 
-      {sub === '髪型' && (
-        <div style={{ marginTop: 12, marginBottom: 12 }}>
-          <div className="label">髪色（選択中の髪型にも反映）</div>
-          <div className="row" role="group" aria-label="髪色を選択"
-            style={{ gap: 8 }}>
-            {HAIR_COLORS.map((color) => (
-              <button type="button" key={color.id}
-                className="chip" title={color.label} aria-label={color.label}
-                aria-pressed={hairColor === color.id}
-                onClick={() => selectHairColor(color.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 5,
-                  borderColor: hairColor === color.id ? '#e84e9d' : undefined }}>
-                <span aria-hidden="true" style={{ display: 'inline-block',
-                  width: 17, height: 17, borderRadius: '50%', background: color.hex,
-                  border: '1px solid #aaa' }} />
-                {color.label}
-              </button>
-            ))}
-          </div>
-          <p className="hint-s">実写風の透過ヘア素材です。別の髪型を選ぶと同じ人の髪型だけ差し替えます。</p>
-        </div>
-      )}
-
       {(sub === '顔デコ' || sub === 'サングラス' || sub === '髪型') && (
         <div style={{
           border: '1px solid #f4c2dc',
@@ -1643,6 +1630,7 @@ function StampTab({
           marginTop: 10,
           marginBottom: 12,
         }}>
+          {sub === '髪型' && <div className="label" style={{ marginTop: 0 }}>配置</div>}
           <div className="row" style={{ gap: 7 }}>
             <button
               type="button"
@@ -1775,8 +1763,50 @@ function StampTab({
         </div>
       )}
 
+            {sub === '髪型' && (
+        <div style={{ marginTop: 8, marginBottom: 12 }}>
+          <div className="label" style={{ marginTop: 4 }}>髪色</div>
+          <div className="row" role="group" aria-label="髪色を選択"
+            style={{ gap: 8 }}>
+            {HAIR_COLORS.map((color) => {
+              const active = hairColor === color.id;
+              return (
+                <button type="button" key={color.id}
+                  className={active ? 'chip on' : 'chip'}
+                  title={color.label} aria-label={color.label}
+                  aria-pressed={active}
+                  onClick={() => selectHairColor(color.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 10px',
+                    border: active ? '2px solid #d42e84' : '2px solid #ead6e1',
+                    background: active ? '#fff0f7' : '#fff',
+                    color: '#3a2834',
+                    fontWeight: active ? 700 : 400,
+                    boxShadow: active
+                      ? '0 0 0 2px rgba(212,46,132,0.20)'
+                      : '0 2px 8px rgba(0,0,0,0.05)',
+                  }}>
+                  <span aria-hidden="true" style={{
+                    display: 'inline-block', width: 17, height: 17,
+                    borderRadius: '50%', background: color.hex,
+                    border: '1px solid #aaa',
+                  }} />
+                  {color.label}
+                  {active && <span aria-hidden="true" style={{ color: '#c52171' }}>✓</span>}
+                </button>
+              );
+            })}
+          </div>
+          <p className="hint-s">
+            実写風の透過ヘア素材です。別の髪型を選ぶと同じ人の髪型だけ差し替えます。
+          </p>
+        </div>
+      )}
+
       {group && (
         <>
+          {sub === '髪型' && <div className="label">髪型</div>}
 
           <div
             className="grid"
