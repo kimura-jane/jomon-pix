@@ -6,6 +6,7 @@ runtime CDN. This script is deliberately not called by the running app.
 """
 from __future__ import annotations
 import argparse
+import hashlib
 from pathlib import Path
 import shutil
 from urllib.request import urlopen, Request
@@ -29,6 +30,7 @@ def validate(path: Path) -> None:
             name.lower().endswith('.tflite') for name in archive.namelist()
         ):
             raise ValueError(f'Incomplete Pose Landmarker archive: {path}')
+    print(f'Pose model SHA256: {hashlib.sha256(path.read_bytes()).hexdigest()}', flush=True)
 
 
 def fetch(path: Path) -> None:
