@@ -27,6 +27,10 @@ try {
       ctx.fillStyle = (y / 8) % 2 === 0 ? '#d5479a' : '#185b97';
       ctx.fillRect(175, y, 130, 8);
     }
+    for (let x = 181; x <= 295; x += 12) {
+      ctx.fillStyle = '#f7f23a';
+      ctx.fillRect(x, 100, 3, 510);
+    }
     ctx.fillStyle = '#0a0a0a';
     ctx.fillRect(40, 0, 4, h);
     ctx.fillRect(440, 0, 4, h);
