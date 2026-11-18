@@ -369,7 +369,7 @@ function TextTab({
               <button
                 key={style.id}
                 type="button"
-                className={`bubble-style-card \${el?.bubble?.style === style.id ? 'on' : ''}`}
+                className={`bubble-style-card ${el?.bubble?.style === style.id ? 'on' : ''}`}
                 aria-label={style.label + 'の吹き出し'}
                 aria-pressed={el?.bubble?.style === style.id}
                 disabled={!!el?.locked}
@@ -430,7 +430,7 @@ function TextTab({
               </div>
 
               <HistorySlider
-                label={`吹き出しの幅 \${el.bubble.width}px`}
+                label={`吹き出しの幅 ${el.bubble.width}px`}
                 min={160} max={500} step={10}
                 value={el.bubble.width}
                 elementId={el.id}
@@ -438,7 +438,7 @@ function TextTab({
                 onChange={(width) => up({ bubble: { ...el.bubble!, width } })}
               />
               <HistorySlider
-                label={`大きさ \${el.fontSize}px`}
+                label={`大きさ ${el.fontSize}px`}
                 min={16} max={100} step={1}
                 value={el.fontSize}
                 elementId={el.id}
