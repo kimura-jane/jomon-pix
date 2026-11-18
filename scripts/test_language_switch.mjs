@@ -14,6 +14,33 @@ try {
   assert.match(await page.locator('.logo').innerText(), /JOMON PIX/);
   assert.equal(await page.locator('html').getAttribute('lang'), 'ja');
 
+  // Routine autosave activity must remain invisible and never wrap the header.
+  for (const width of [320, 375, 393]) {
+    await page.setViewportSize({ width, height: 812 });
+    const layout = await page.evaluate(() => {
+      const brand = document.querySelector('.brand');
+      const logo = document.querySelector('.logo');
+      const privacy = document.querySelector('.privacy-link');
+      const language = document.querySelector('.lang-switch');
+      if (!brand || !logo || !privacy || !language) throw new Error('Missing header controls');
+      const a = brand.getBoundingClientRect();
+      const b = logo.getBoundingClientRect();
+      const c = privacy.getBoundingClientRect();
+      const d = language.getBoundingClientRect();
+      return {
+        height: a.height,
+        centered: Math.max(b.top + b.height / 2, c.top + c.height / 2, d.top + d.height / 2)
+          - Math.min(b.top + b.height / 2, c.top + c.height / 2, d.top + d.height / 2),
+        overflow: d.right > document.documentElement.clientWidth,
+      };
+    });
+    assert.ok(layout.height < 44, 'Header must fit on one row at ' + width + 'px');
+    assert.ok(layout.centered < 3, 'Header controls must stay aligned at ' + width + 'px');
+    assert.equal(layout.overflow, false, 'Language control must remain on screen at ' + width + 'px');
+    assert.equal(await page.locator('.saved').count(), 0, 'Routine save badge must be hidden');
+  }
+  await page.setViewportSize({ width: 393, height: 812 });
+
   // No photo or project should be modified by switching the UI language.
   await page.locator('.lang-switch').click();
   await page.getByText('Privacy', { exact: true }).first().waitFor();
