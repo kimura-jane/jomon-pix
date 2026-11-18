@@ -12,7 +12,7 @@ from PIL import Image
 
 BASE = '/jomon-pix/'
 SOURCE_ICON = Path('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png')
-BASE_PRECACHE = ('assets', 'stickers', 'frame-previews', 'backgrounds')
+BASE_PRECACHE = ('assets', 'stickers', 'frame-previews', 'backgrounds', 'mediapipe')
 REQUIRED_PUBLIC = ('mediapipe/face_landmarker.task', 'mediapipe/pose_landmarker_lite.task',
                    'mediapipe/vision_wasm_internal.wasm',
                    'mediapipe/vision_wasm_module_internal.wasm')
@@ -71,7 +71,7 @@ def build(out: Path) -> None:
 
     for name in REQUIRED_PUBLIC:
         if not (out / name).is_file():
-            raise FileNotFoundError(f'Offline-capable face model missing: {name}')
+            raise FileNotFoundError(f'Offline AI asset missing: {name}')
     if not any(item.endswith('.js') for item in critical):
         raise ValueError('No Vite JavaScript included in the offline shell')
     if not any(item.startswith(BASE + 'stickers/') for item in critical):
@@ -90,7 +90,7 @@ def build(out: Path) -> None:
 const ROOT = '/jomon-pix/';
 const VERSION = '__VERSION__';
 const SHELL = 'jomon-pix-shell-' + VERSION;
-const RUNTIME = 'jomon-pix-runtime-v2';
+const RUNTIME = 'jomon-pix-runtime-' + VERSION;
 const PRECACHE = __PRECACHE__;
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -103,7 +103,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
     await Promise.all(names.filter((name) =>
-      name.startsWith('jomon-pix-shell-') && name !== SHELL
+      (name.startsWith('jomon-pix-shell-') && name !== SHELL) ||
+      (name.startsWith('jomon-pix-runtime-') && name !== RUNTIME)
     ).map((name) => caches.delete(name)));
     await self.clients.claim();
   })());
