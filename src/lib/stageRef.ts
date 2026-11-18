@@ -79,7 +79,7 @@ function allImagesReady(stage: Konva.Stage): boolean {
     )) return false;
     if (isCanvas && (image.width <= 0 || image.height <= 0)) return false;
 
-    const beautyKey = el.type === 'image' ? beautySignature(el.beauty) : 'none';
+    const beautyKey = el.type === 'image' ? beautySignature(el.beauty, el.beautyFaceOverrides) : 'none';
     if (beautyKey !== 'none') {
       // Reject a stale/pending beauty bitmap even when its old photo
       // is already loaded. No unprocessed PNG can escape while sliders move.
