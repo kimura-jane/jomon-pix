@@ -38,7 +38,7 @@ const messages: Record<string, string> = {
   '文字': 'Text', 'ペン': 'Draw', 'スタンプ': 'Stickers',
   'モザイク': 'Mosaic', 'ビューティー': 'Beauty',
   '加工': 'Edit', 'フレーム': 'Frames', 'レイヤー': 'Layers',
-  '画像': 'Photo', 'プライバシー': 'Privacy',
+  '画像': 'Photo', 'ホーム': 'Home', 'プライバシー': 'Privacy',
   'プライバシーポリシー': 'Privacy Policy',
   '画像保存': 'Save Image', '作成中…': 'Creating…',
   '保存中…': 'Saving…', '✓ 自動保存': '✓ Autosaved',
@@ -150,6 +150,12 @@ const messages: Record<string, string> = {
   '加工をリセット': 'Reset Adjustments',
   '範囲指定': 'Rectangle', 'ブラシ': 'Brush',
   '写真全体': 'Entire Photo', '背景だけ': 'Background Only',
+  '標準モザイク': 'Standard', 'モザイクの種類': 'Mosaic Styles',
+  'ぼかし': 'Blur', 'ドット': 'Dots', '六角形': 'Hexagon',
+  '三角形': 'Triangles', '黒塗り': 'Solid Black', 'ハート': 'Hearts',
+  'ブラシ風': 'Brush Strokes', 'ぼかしの強さ': 'Blur Strength',
+  '背景だけの仕上がりは適用後に確認できます。':
+    'Background-only results can be viewed after applying.',
   'モザイク加工': 'Mosaic Editor', '▦ モザイク加工': '▦ Mosaic Editor',
   'ドラッグで範囲指定': 'Drag to select an area',
   '指で塗る': 'Brush over an area',
@@ -229,6 +235,7 @@ const messages: Record<string, string> = {
 
 const patterns: Array<[RegExp, (...args: string[]) => string]> = [
   [/^モザイクの粗さ\s*(\d+)px$/, (_full, n) => 'Mosaic Size ' + n + 'px'],
+  [/^ぼかしの強さ\s*(\d+)px$/, (_full, n) => 'Blur Strength ' + n + 'px'],
   [/^ブラシの太さ\s*(\d+)%$/, (_full, n) => 'Brush Size ' + n + '%'],
   [/^ふちどりの太さ\s*(\d+)px$/, (_full, n) => 'Outline Width ' + n + 'px'],
   [/^太さ\s*(\d+)(px|%)?$/, (_full, n, unit) => 'Width ' + n + (unit || '')],
