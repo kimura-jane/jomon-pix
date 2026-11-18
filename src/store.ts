@@ -134,7 +134,7 @@ function markSaveFailed(error: unknown, reading: boolean) {
   const previous = useAutosaveStatus.getState();
   if (previous.status !== 'failed' || previous.errorMessage !== message) {
     useAutosaveStatus.setState({ status: 'failed', errorMessage: message });
-    console.warn('[JOMON pix] ' + message, error);
+    console.warn('[JOMON PIX] ' + message, error);
   }
 }
 
