@@ -12,3 +12,6 @@ ios/DerivedData/
 *.p12
 *.mobileprovision
 *.p8
+
+# Downloaded for production bundles; never commit large model binaries.
+public/mediapipe/pose_landmarker_lite.task
