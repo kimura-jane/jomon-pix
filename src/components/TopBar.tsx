@@ -157,6 +157,17 @@ function isImageStroke(value: unknown): boolean {
       .includes(String(value.penStyle));
 }
 
+function isSpeechBubble(value: unknown): boolean {
+  return isRecord(value) &&
+    ['round', 'jagged', 'cloud', 'chat'].includes(String(value.style)) &&
+    typeof value.background === 'string' &&
+    /^#[0-9a-fA-F]{6}$/.test(value.background) &&
+    typeof value.outline === 'string' &&
+    /^#[0-9a-fA-F]{6}$/.test(value.outline) &&
+    ['left', 'right'].includes(String(value.tail)) &&
+    isFiniteNumber(value.width) && value.width >= 160 && value.width <= 500;
+}
+
 function isParentReference(value: Record<string, unknown>): boolean {
   return value.parentImageId === undefined ||
     (typeof value.parentImageId === 'string' &&
@@ -204,6 +215,7 @@ function isCanvasElement(value: unknown): value is CanvasEl {
     case 'text':
       return (
         typeof value.text === 'string' &&
+        (value.bubble === undefined || isSpeechBubble(value.bubble)) &&
         typeof value.fontFamily === 'string' &&
         isFiniteNumber(value.fontSize) && value.fontSize > 0 &&
         typeof value.fill === 'string' &&
