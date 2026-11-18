@@ -1,0 +1,42 @@
+name: Test JOMON PIX mosaic styles and Home navigation
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/mosaicEffects.ts'
+      - 'src/components/MosaicPanel.tsx'
+      - 'src/components/TopBar.tsx'
+      - 'src/lib/uiLanguage.ts'
+      - 'src/App.css'
+      - 'scripts/test_mosaic_effects.mjs'
+      - '.github/workflows/test-mosaic-effects.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mosaic-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies and Chromium
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Typecheck and production build
+        run: npm run typecheck && npm run build
+      - name: Verify mosaic output, undo, modes and localized UI
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/jomon-mosaic.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/test_mosaic_effects.mjs
