@@ -170,7 +170,7 @@ try {
   report.checks.push('PNG export with face effects');
 
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
-  await page.getByRole('button', { name: '加工をリセット' }).click();
+  await page.getByRole('button', { name: '全員の補正をリセット' }).click();
   const state3 = await waitWork(
     (work) => work.elements.some((el) => el.type === 'image' && !el.beauty),
     'beauty reset saved in IndexedDB',

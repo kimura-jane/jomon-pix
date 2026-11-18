@@ -15,11 +15,25 @@ export const BEAUTY_FIELDS: (keyof BeautySettings)[] = [
   'chin', 'eyes', 'lip', 'blush',
 ];
 
-export function beautySignature(settings?: BeautySettings): string {
-  if (!settings || BEAUTY_FIELDS.every((key) => !(settings[key] > 0))) return 'none';
-  return BEAUTY_FIELDS.map((key) => (
-    Math.max(0, Math.min(100, Math.round(settings[key] ?? 0)))
-  )).join('/');
+export function beautySignature(
+  settings?: BeautySettings,
+  faceOverrides?: Record<string, Partial<BeautySettings>>,
+): string {
+  const base = settings ?? DEFAULT_BEAUTY;
+  const entries = Object.entries(faceOverrides ?? {})
+    .filter(([key, patch]) =>
+      /^(?:0|[1-9][0-9]?)$/.test(key) &&
+      patch && typeof patch === 'object' &&
+      BEAUTY_FIELDS.some((field) => typeof patch[field] === 'number'))
+    .sort(([a], [b]) => Number(a) - Number(b));
+  if (!BEAUTY_FIELDS.some((key) => base[key] > 0) &&
+      !entries.some(([, patch]) => BEAUTY_FIELDS.some((field) =>
+        (patch[field] ?? base[field]) > 0))) return 'none';
+  const normalized = (values: Partial<BeautySettings>) =>
+    BEAUTY_FIELDS.map((key) => Math.max(0, Math.min(100, Math.round(values[key] ?? 0)))).join('/');
+  return normalized(base) + entries.map(([key, patch]) =>
+    '|' + key + ':' + BEAUTY_FIELDS.map((field) =>
+      patch[field] === undefined ? '-' : Math.round(patch[field] ?? 0)).join('/')).join('');
 }
 
 let landmarkerPromise: Promise<import('@mediapipe/tasks-vision').FaceLandmarker> | undefined;
@@ -528,6 +542,7 @@ export type BeautyRender = {
 export async function renderBeauty(
   source: HTMLImageElement,
   settings: BeautySettings,
+  faceOverrides?: Record<string, Partial<BeautySettings>>,
 ): Promise<BeautyRender | null> {
   const faces = await detectFaceLandmarksEnhanced(source);
   if (!faces.length) return null;
@@ -543,7 +558,7 @@ export async function renderBeauty(
   const ratio = Math.min(1, 1600 / Math.max(naturalW, naturalH));
   const w = Math.max(1, Math.round(naturalW * ratio));
   const h = Math.max(1, Math.round(naturalH * ratio));
-  const usableFaces = faces.filter((face) => {
+  const usableFaces = faces.map((face, index) => ({ face, index })).filter(({ face }) => {
     const width = Math.hypot(
       (face[454].x - face[234].x) * w,
       (face[454].y - face[234].y) * h,
@@ -563,7 +578,9 @@ export async function renderBeauty(
 
   // All editing uses the shared, deduplicated face list.
   // Distances use full 2D geometry so tilted faces aren't wrongly skipped.
-  for (const face of usableFaces) {
+  for (const { face, index } of usableFaces) {
+    const localSettings = { ...settings, ...faceOverrides?.[String(index)] };
+    if (!BEAUTY_FIELDS.some((key) => localSettings[key] > 0)) continue;
     const width = Math.hypot(
       (face[454].x - face[234].x) * w,
       (face[454].y - face[234].y) * h,
@@ -572,9 +589,9 @@ export async function renderBeauty(
       (face[152].x - face[10].x) * w,
       (face[152].y - face[10].y) * h,
     );
-    reshape(canvas, face, settings, width, height);
-    skinCorrection(canvas, face, settings, width);
-    makeup(canvas, face, settings, width);
+    reshape(canvas, face, localSettings, width, height);
+    skinCorrection(canvas, face, localSettings, width);
+    makeup(canvas, face, localSettings, width);
   }
 
   return { canvas, faceCount: usableFaces.length };

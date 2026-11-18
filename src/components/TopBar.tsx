@@ -133,6 +133,17 @@ function isBeautySettings(value: unknown): boolean {
     );
 }
 
+function isBeautyFaceOverrides(value: unknown): boolean {
+  if (!isRecord(value) || Object.keys(value).length > 10) return false;
+  return Object.entries(value).every(([key, patch]) =>
+    /^(?:[0-9]|10)$/.test(key) &&
+    isRecord(patch) &&
+    Object.keys(patch).every((field) =>
+      BEAUTY_SETTING_NAMES.some((allowed) => allowed === field) &&
+      isFiniteNumber(patch[field]) &&
+      patch[field] >= 0 && patch[field] <= 100));
+}
+
 function isImageStroke(value: unknown): boolean {
   return isRecord(value) &&
     typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 200 &&
@@ -184,6 +195,7 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         ) &&
         (value.frame === undefined || isImageFrame(value.frame)) &&
         (value.beauty === undefined || isBeautySettings(value.beauty)) &&
+        (value.beautyFaceOverrides === undefined || isBeautyFaceOverrides(value.beautyFaceOverrides)) &&
         (value.drawings === undefined ||
           (Array.isArray(value.drawings) && value.drawings.length <= 1000 &&
             value.drawings.every(isImageStroke)))
@@ -210,6 +222,7 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         isFiniteNumber(value.size) && value.size > 0 &&
         (value.src === undefined || isStickerSource(value.src)) &&
         (value.label === undefined || typeof value.label === 'string') &&
+        (value.beautyGlassesFace === undefined || (Number.isInteger(value.beautyGlassesFace) && (value.beautyGlassesFace as number) >= 0 && (value.beautyGlassesFace as number) < 10)) &&
         isParentReference(value)
       );
 
