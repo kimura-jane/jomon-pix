@@ -588,7 +588,9 @@ export type BeautyRender = {
   faceCount: number;
   legCount: number;
   legUnavailable: boolean;
+  slimApplied: boolean;
   lengthApplied: boolean;
+  hasEffects: boolean;
 };
 
 export async function renderBeauty(
@@ -630,23 +632,9 @@ export async function renderBeauty(
   let legUnavailable = false;
   let lengthApplied = false;
   let applied = false;
-  if (needLeg) {
-    try {
-      const result = await renderLegBeauty(
-        source, canvas, settings.legSlim ?? 0, settings.legLength ?? 0,
-      );
-      canvas = result.canvas;
-      legCount = result.legCount;
-      lengthApplied = result.lengthApplied;
-      applied = result.applied;
-    } catch (error) {
-      console.error('[JOMON PIX] Leg detection or adjustment failed:', error);
-      legUnavailable = true;
-    }
-  }
-
-  // The face model only moves facial pixels; body adjustments are done first.
-  // Face overrides remain based on left-to-right face indices, unchanged.
+  let slimApplied = false;
+  // Apply face effects to original coordinates BEFORE any leg warp.
+  // The localized leg warp leaves the head area and face indices unchanged.
   for (const { face, index } of usableFaces) {
     const localSettings = { ...DEFAULT_BEAUTY, ...settings, ...faceOverrides?.[String(index)] };
     if (!FACE_BEAUTY_FIELDS.some((key) => localSettings[key] > 0)) continue;
@@ -664,12 +652,28 @@ export async function renderBeauty(
     applied = true;
   }
 
-  if (!applied) {
-    if (legUnavailable) throw new Error('脚の解析に失敗しました。');
-    return null;
+  if (needLeg) {
+    try {
+      const result = await renderLegBeauty(
+        source, canvas, settings.legSlim ?? 0, settings.legLength ?? 0,
+      );
+      canvas = result.canvas;
+      legCount = result.legCount;
+      lengthApplied = result.lengthApplied;
+      slimApplied = result.slimApplied;
+      applied = applied || result.applied;
+    } catch (error) {
+      console.error('[JOMON PIX] Leg detection or adjustment failed:', error);
+      legUnavailable = true;
+    }
   }
+
+
+  if (!applied && !needLeg) return null;
+  // Return the original canvas with explicit non-applied flags when pose
+  // detection rejects a photo, so the UI never pretends the slider worked.
   return {
     canvas, faceCount: usableFaces.length, legCount,
-    legUnavailable, lengthApplied,
+    legUnavailable, slimApplied, lengthApplied, hasEffects: applied,
   };
 }
