@@ -87,6 +87,149 @@ export async function detectFaceLandmarks(
   return facePoints(image);
 }
 
+
+/**
+ * Shared multi-pass detector for Beauty and Face Deco.
+ * Landmark coordinates are always normalized to the ORIGINAL photo.
+ *
+ * MediaPipe can miss small faces when it evaluates an entire group photo.
+ * Extra overlapped crops make a smaller face occupy more of the detector input.
+ * A central crop covers faces straddling the seams of the 2x2 grid.
+ *
+ * Results are cached per decoded image object, so moving a beauty slider
+ * doesn't run the five image inferences again.
+ */
+type FaceCandidate = {
+  points: Landmark[];
+  x: number;
+  y: number;
+  width: number;
+};
+
+const enhancedFaces = new WeakMap<
+  HTMLImageElement | HTMLCanvasElement, Promise<Landmark[][]>
+>();
+
+function candidateForFace(
+  points: Landmark[], imageWidth: number, imageHeight: number,
+): FaceCandidate | null {
+  if (points.length < 468) return null;
+  const nose = points[1];
+  const left = points[234];
+  const right = points[454];
+  const forehead = points[10];
+  const chin = points[152];
+  if (![nose, left, right, forehead, chin].every(Boolean)) return null;
+  if (![nose, left, right, forehead, chin].every((p) =>
+    Number.isFinite(p.x) && Number.isFinite(p.y))) return null;
+
+  const width = Math.hypot(
+    (left.x - right.x) * imageWidth,
+    (left.y - right.y) * imageHeight,
+  );
+  const height = Math.hypot(
+    (forehead.x - chin.x) * imageWidth,
+    (forehead.y - chin.y) * imageHeight,
+  );
+  if (width < 14 || height < 14 || nose.x < 0 || nose.x > 1 ||
+      nose.y < 0 || nose.y > 1) return null;
+  return { points, x: nose.x, y: nose.y, width };
+}
+
+function mergeCandidates(
+  candidates: FaceCandidate[], imageWidth: number, imageHeight: number,
+): FaceCandidate[] {
+  const unique: FaceCandidate[] = [];
+  for (const item of candidates) {
+    const duplicate = unique.findIndex((current) =>
+      Math.hypot(
+        (current.x - item.x) * imageWidth,
+        (current.y - item.y) * imageHeight,
+      ) < Math.max(10, Math.min(current.width, item.width) * 0.55),
+    );
+    if (duplicate === -1) unique.push(item);
+    else if (item.width > unique[duplicate].width) unique[duplicate] = item;
+  }
+  return unique;
+}
+
+async function scanFaceLandmarks(
+  image: HTMLImageElement | HTMLCanvasElement,
+): Promise<Landmark[][]> {
+  const width = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
+  const height = image instanceof HTMLImageElement ? image.naturalHeight : image.height;
+  if (!width || !height) throw new Error('写真のサイズを取得できませんでした。');
+
+  const original = (await detectFaceLandmarks(image))
+    .map((points) => candidateForFace(points, width, height))
+    .filter((face): face is FaceCandidate => face !== null);
+  const results = [...original];
+  if (results.length >= MAX_FACE_TARGETS) return results.slice(0, MAX_FACE_TARGETS).map((f) => f.points);
+
+  const largeSolo = results.length === 1 && results[0].width / width > 0.28;
+  // Single portraits already detected at good scale need no extra CPU work.
+  if (largeSolo || Math.min(width, height) < 180) {
+    return results.map((f) => f.points);
+  }
+
+  const crops: Array<readonly [number, number, number, number]> = [
+    [0, 0, 0.57, 0.57],
+    [0.43, 0, 0.57, 0.57],
+    [0, 0.43, 0.57, 0.57],
+    [0.43, 0.43, 0.57, 0.57],
+    [0.17, 0.17, 0.66, 0.66],
+  ];
+  for (const [leftRatio, topRatio, widthRatio, heightRatio] of crops) {
+    if (mergeCandidates(results, width, height).length >= MAX_FACE_TARGETS) break;
+    const x = Math.round(width * leftRatio);
+    const y = Math.round(height * topRatio);
+    const cropWidth = Math.min(width - x, Math.round(width * widthRatio));
+    const cropHeight = Math.min(height - y, Math.round(height * heightRatio));
+    if (cropWidth <= 40 || cropHeight <= 40) continue;
+    const tile = document.createElement('canvas');
+    tile.width = cropWidth;
+    tile.height = cropHeight;
+    const context = tile.getContext('2d');
+    if (!context) continue;
+    try {
+      context.drawImage(image, x, y, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+      // Yield so a busy iPhone still paints its "detecting" status.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      const detected = await detectFaceLandmarks(tile);
+      for (const local of detected) {
+        const mapped = local.map((p) => ({
+          x: (x + p.x * cropWidth) / width,
+          y: (y + p.y * cropHeight) / height,
+        }));
+        const candidate = candidateForFace(mapped, width, height);
+        if (candidate) results.push(candidate);
+      }
+    } finally {
+      // Release temporary canvas memory immediately on iPhone.
+      tile.width = 0;
+      tile.height = 0;
+    }
+  }
+
+  return mergeCandidates(results, width, height)
+    .sort((a, b) => a.x - b.x)
+    .slice(0, MAX_FACE_TARGETS)
+    .map((face) => face.points);
+}
+
+export function detectFaceLandmarksEnhanced(
+  image: HTMLImageElement | HTMLCanvasElement,
+): Promise<Landmark[][]> {
+  const cached = enhancedFaces.get(image);
+  if (cached) return cached;
+  const pending = scanFaceLandmarks(image).catch((error: unknown) => {
+    enhancedFaces.delete(image);
+    throw error;
+  });
+  enhancedFaces.set(image, pending);
+  return pending;
+}
+
 function makeCanvas(w: number, h: number): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = w;
@@ -386,7 +529,7 @@ export async function renderBeauty(
   source: HTMLImageElement,
   settings: BeautySettings,
 ): Promise<BeautyRender | null> {
-  const faces = await facePoints(source);
+  const faces = await detectFaceLandmarksEnhanced(source);
   if (!faces.length) return null;
 
   const naturalW = source.naturalWidth;
@@ -401,20 +544,34 @@ export async function renderBeauty(
   const w = Math.max(1, Math.round(naturalW * ratio));
   const h = Math.max(1, Math.round(naturalH * ratio));
   const usableFaces = faces.filter((face) => {
-    const width = Math.abs(face[454].x - face[234].x) * w;
-    const height = Math.abs(face[152].y - face[10].y) * h;
-    return width >= 28 && height >= 28;
+    const width = Math.hypot(
+      (face[454].x - face[234].x) * w,
+      (face[454].y - face[234].y) * h,
+    );
+    const height = Math.hypot(
+      (face[152].x - face[10].x) * w,
+      (face[152].y - face[10].y) * h,
+    );
+    // Allow small group-photo faces without claiming that tiny faces
+    // have enough detail for reliable cosmetic adjustments.
+    return width >= 18 && height >= 18;
   });
   if (!usableFaces.length) return null;
 
   const canvas = makeCanvas(w, h);
   ctx2d(canvas).drawImage(source, 0, 0, w, h);
 
-  // Process every detectable face that is at least 28px in the preview.
-  // Smaller faces can be counted by Face Deco but are intentionally skipped here.
+  // All editing uses the shared, deduplicated face list.
+  // Distances use full 2D geometry so tilted faces aren't wrongly skipped.
   for (const face of usableFaces) {
-    const width = Math.abs(face[454].x - face[234].x) * w;
-    const height = Math.abs(face[152].y - face[10].y) * h;
+    const width = Math.hypot(
+      (face[454].x - face[234].x) * w,
+      (face[454].y - face[234].y) * h,
+    );
+    const height = Math.hypot(
+      (face[152].x - face[10].x) * w,
+      (face[152].y - face[10].y) * h,
+    );
     reshape(canvas, face, settings, width, height);
     skinCorrection(canvas, face, settings, width);
     makeup(canvas, face, settings, width);
