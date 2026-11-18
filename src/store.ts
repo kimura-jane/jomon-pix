@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist, type PersistStorage, type StorageValue } from 'zustand/middleware';
 import type { CanvasEl, Patch, PenStyle, Tab, Tool } from './types';
 import { isPhotoAttachment, toCanvasWorld, toPhotoLocal } from './lib/photoAttachments';
+import { isHairSticker } from './lib/hairStickers';
 import type { SceneId, SocialId } from './lib/scenePresets';
 
 export const newId = () =>
@@ -59,6 +60,7 @@ type S = Snapshot & {
   add: (el: CanvasEl) => void;
   addMany: (items: CanvasEl[]) => void;
   setBeautyGlasses: (photoId: string, indices: number[], stickers: import('./types').StickerEl[]) => void;
+  setHairSticker: (sticker: import('./types').StickerEl) => boolean;
   update: (id: string, patch: Patch) => void;
   remove: (id: string) => void;
   duplicate: (id: string) => void;
@@ -536,6 +538,66 @@ export const useEditor = create<S>()(
           if (get().selectedId && current.some((el) => el.id === get().selectedId && matching(el))) {
             set({ selectedId: photoId });
           }
+        },
+
+        // Try-on must replace the hair of the SAME person, rather than piling
+        // up image layers. One atomic history entry means one Undo restores
+        // exactly the previous haircut. Other faces and photos stay untouched.
+        setHairSticker: (sticker) => {
+          if (!isHairSticker(sticker)) return false;
+          const state = get();
+          const current = state.elements;
+          if (sticker.parentImageId) {
+            const photo = current.find((item) =>
+              item.type === 'image' && item.id === sticker.parentImageId);
+            if (!photo || photo.hidden || photo.locked) return false;
+          }
+
+          const candidates = current.filter((item): item is import('./types').StickerEl =>
+            item.type === 'sticker' &&
+            isHairSticker(item) &&
+            item.parentImageId === sticker.parentImageId,
+          );
+          let previous: import('./types').StickerEl | undefined;
+
+          if (sticker.hairFaceIndex !== undefined) {
+            previous = candidates.find((item) =>
+              item.hairFaceIndex === sticker.hairFaceIndex);
+            // Old 1.0.3 auto hair did not record face indexes. Identify
+            // a nearby legacy hairstyle without affecting distant faces.
+            if (!previous) {
+              const nearby = candidates.filter((item) =>
+                item.hairFaceIndex === undefined).map((item) => ({
+                  item,
+                  distance: Math.hypot(item.x - sticker.x, item.y - sticker.y),
+                })).sort((a, b) => a.distance - b.distance)[0];
+              if (nearby && nearby.distance < Math.max(12, sticker.size * 0.65)) {
+                previous = nearby.item;
+              }
+            }
+          } else {
+            // In manual mode, tapping another style changes the selected hair.
+            // Without explicit selection, reuse a manual hair on this photo
+            // instead of creating a pile of trial hairstyles.
+            previous = candidates.find((item) => item.id === state.selectedId)
+              ?? [...candidates].reverse().find((item) => item.hairFaceIndex === undefined)
+              ?? (candidates.length === 1 ? candidates[0] : undefined);
+          }
+
+          if (previous) {
+            if (previous.locked || previous.hidden) return false;
+            const replacing = {
+              ...previous, src: sticker.src, label: sticker.label,
+              hairFaceIndex: sticker.hairFaceIndex ?? previous.hairFaceIndex,
+            };
+            commit({ elements: current.map((item) =>
+              item.id === previous.id ? replacing : item) });
+            set({ selectedId: previous.id });
+          } else {
+            commit({ elements: [...current, sticker] });
+            set({ selectedId: sticker.id });
+          }
+          return true;
         },
 
         update: (id, patch) => {
