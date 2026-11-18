@@ -9,6 +9,8 @@ on:
       - 'src/components/useBeautyPreview.ts'
       - 'src/components/ElementNode.tsx'
       - 'src/lib/beautyProcessor.ts'
+      - 'src/lib/autoFaceDeco.ts'
+      - 'scripts/audit_face_ordering.mjs'
       - 'src/lib/glassesStickers.ts'
       - 'src/store.ts'
       - 'src/types.ts'
@@ -43,6 +45,8 @@ jobs:
             -o /tmp/beauty-portrait.jpg
       - name: Typecheck and build
         run: npm run typecheck && npm run build
+      - name: Verify canonical left-to-right indices, tilted faces and cap
+        run: node scripts/audit_face_ordering.mjs
       - name: Verify two-person beauty, glasses, Undo and autosave
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/beauty-per-face-preview.log 2>&1 &
