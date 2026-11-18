@@ -200,6 +200,16 @@ const messages: Record<string, string> = {
   '今の作品を消して新しく作る？': 'Discard this project and start a new one?',
   '写真がありません。先に写真を追加してください。': 'No photos yet. Add one first.',
   '写真を読み込み中です': 'The photo is still loading.',
+  '加工は反映されましたが、自動保存できません。画像サイズや保存容量を確認してください。':
+    'The edit was applied, but autosave failed. Check the image size and storage space.',
+  '写真の背景を削除できませんでした。': 'Could not remove the photo background.',
+  '背景削除に失敗しました。端末の空きメモリを確認してください。': 'Background removal failed. Check available device memory.',
+  '顔デコの自動配置に失敗しました。': 'Could not automatically place the face sticker.',
+  '顔認識に失敗しました。手動配置をお試しください。': 'Face detection failed. Try manual placement.',
+  '写真が変更されたため配置を取り消しました。もう一度お試しください。': 'The photo changed. Placement was cancelled. Try again.',
+  '顔を認識できません。手動配置をお試しください。': 'Face not detected. Try manual placement.',
+  '写真が変更されました。画面を閉じて選び直してください': 'The photo changed. Close this dialog and select it again.',
+  '写真の背景を削除できませんでした。': 'Could not remove the background.',
   '写真を読み込めませんでした': 'Could not load the photo.',
   'トリミングに失敗しました': 'Could not crop the photo.',
   'モザイク加工に失敗しました': 'Could not apply the mosaic.',
@@ -252,6 +262,10 @@ export function translateUiText(value: string): string {
     }
   }
   return english ? leading + english + trailing : value;
+}
+
+export function uiMessage(value: string): string {
+  return currentLanguage === 'en' ? translateUiText(value) : value;
 }
 
 type Snapshot = { ja: string; en: string };
