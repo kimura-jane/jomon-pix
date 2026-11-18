@@ -86,6 +86,7 @@ const messages: Record<string, string> = {
   '左向き': 'Left', '右向き': 'Right',
   '吹き出しの幅': 'Bubble Width',
   '吹き出しを削除': 'Delete Bubble',
+  '🗑 文字を削除': '🗑 Delete Text',
   '吹き出しを選択': 'Select a speech bubble',
   '文字の色': 'Text Color',
   '丸の吹き出し': 'Round Bubble',

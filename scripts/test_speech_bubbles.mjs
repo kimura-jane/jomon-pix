@@ -93,6 +93,31 @@ try {
   await page.getByRole('button', { name: '吹き出しを削除' }).click();
   await waitFor((s) => !s.elements.some((e) => e.id === nextId) &&
     s.elements.some((e) => e.id === id), 'remove only selected bubble');
+  // A normal text layer should have an obvious delete action right next
+  // to “Add another text”, without removing any existing speech bubbles.
+  await page.getByRole('button', { name: '文字', exact: true }).click();
+  await page.getByRole('button', { name: '＋ 文字を入れる' }).click();
+  const withText = await waitFor((state) => state.elements.some((item) =>
+    item.type === 'text' && !item.bubble), 'new ordinary text layer');
+  const ordinary = withText.elements.find((item) => item.type === 'text' && !item.bubble);
+  const textId = ordinary.id;
+  const deleteText = page.getByRole('button', { name: '🗑 文字を削除' });
+  await deleteText.waitFor();
+  assert.equal(await deleteText.isEnabled(), true);
+
+  // Confirm the English UI labels the same action appropriately.
+  await page.locator('.lang-switch').click();
+  await page.getByRole('button', { name: '🗑 Delete Text' }).waitFor();
+  await page.locator('.lang-switch').click();
+  await deleteText.click();
+  await waitFor((state) => !state.elements.some((item) => item.id === textId) &&
+    state.elements.some((item) => item.id === id), 'delete only ordinary text');
+
+  // The header's Undo restores a deleted text element.
+  await page.locator('.bar [aria-label="戻す"]').click();
+  await waitFor((state) => state.elements.some((item) => item.id === textId),
+    'Undo ordinary text deletion');
+
   assert.deepEqual(runtimeErrors, [], 'No browser exceptions');
   console.log('Bubble style/edit/save/undo and removed My Stickers: PASS');
 } finally {
