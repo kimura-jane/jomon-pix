@@ -70,7 +70,7 @@ try {
   }, { timeout: 15000 });
   results.steps.push('PNG export');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
-  await page.getByRole('button', { name: '加工をリセット' }).click();
+  await page.getByRole('button', { name: '全員の補正をリセット' }).click();
   results.steps.push('reset');
   assert.equal(results.transmittedPhotos, false);
   assert.equal(results.errors.length, 0, results.errors.join('\n'));
