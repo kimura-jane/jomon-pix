@@ -197,6 +197,7 @@ try {
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
   await page.getByRole('button', { name: 'サングラス', exact: true }).click();
+  await page.getByRole('button', { name: '手動配置', exact: true }).click();
   await page.getByRole('button', { name: '定番ブラックを追加' }).click();
   await page.getByRole('button', { name: '顔デコ', exact: true }).click();
   await page.getByRole('button', { name: '手動配置', exact: true }).click();

@@ -20,6 +20,12 @@ const near = (a, b, tolerance = 8) => Math.abs(a - b) <= tolerance;
 
 try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/', { waitUntil: 'networkidle' });
+  // A new project starts in portrait 9:16 without changing existing saved art.
+  const first = await page.locator('.stage-card').boundingBox();
+  assert(first && near(first.width / first.height, 9 / 16, 0.02),
+    'Fresh project must begin at portrait 9:16');
+  report.checks.push('New project defaults to portrait 9:16');
+
   await page.getByRole('button', { name: /加工/ }).first().click();
 
   const landscape = page.getByRole('button', { name: /16:9/ });
@@ -42,7 +48,7 @@ try {
   await page.getByText('1600 × 900 px').waitFor();
   report.checks.push('16:9 and 9:16 switching updates canvas dimensions');
 
-  await page.getByRole('button', { name: /画像/ }).first().click();
+  await page.locator('.bar button.tab').filter({ hasText: 'ホーム' }).click();
   const photoData = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 48;
@@ -108,8 +114,9 @@ try {
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('jomon-pix-floating-layers-v1') ?? 'null'));
   assert(stored && stored.x >= 0 && stored.x <= 1 && stored.y >= 0 && stored.y <= 1);
-  await page.getByRole('status').filter({ hasText: '自動保存' })
-    .waitFor({ timeout: 15000 });
+  // The autosave badge was intentionally removed to prevent header wrapping.
+  assert.equal(await page.getByRole('status').filter({ hasText: '自動保存' }).count(), 0);
+  await page.waitForTimeout(400);
   await page.reload({ waitUntil: 'networkidle' });
   await grip.waitFor({ timeout: 15000 });
   await page.waitForFunction(({ x, y }) => {
