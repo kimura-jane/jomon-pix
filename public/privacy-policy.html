@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="referrer" content="no-referrer">
-  <title>プライバシーポリシー | JOMON pix</title>
+  <title>プライバシーポリシー | JOMON PIX</title>
   <style>
     :root{color-scheme:light}*{box-sizing:border-box}
     body{margin:0;background:#fdf8fb;color:#382e39;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:15px;line-height:1.85}
@@ -17,15 +17,25 @@
     .tag{font-size:12px;font-weight:700;color:#a32670;letter-spacing:.06em}
     .meta{color:#716575;font-size:13px}.lead{margin-top:22px}
     footer{border-top:1px solid #e7dbe2;margin-top:32px;padding-top:12px;color:#716575;font-size:12px}
+    .lang-bar{display:flex;justify-content:flex-end;gap:7px;padding-bottom:20px}
+    .lang-button{background:white;border:1px solid #e4c9da;border-radius:999px;padding:6px 14px;color:#76556c;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+    .lang-button[aria-pressed="true"]{background:#a32670;color:white;border-color:#a32670}
+    .lang-button:focus-visible{outline:2px solid #a32670;outline-offset:2px}
+    [hidden]{display:none!important}
     @media(max-width:420px){main{padding:20px 18px 38px}}
   </style>
 </head>
 <body>
 <main>
-  <p class="tag">JOMON pix</p>
+  <nav class="lang-bar" aria-label="Language / 言語">
+    <button class="lang-button" type="button" data-lang="ja" aria-pressed="true">日本語</button>
+    <button class="lang-button" type="button" data-lang="en" aria-pressed="false">English</button>
+  </nav>
+  <section id="policy-ja" lang="ja">
+<p class="tag">JOMON PIX</p>
   <h1>プライバシーポリシー</h1>
-  <p class="meta">運営者：縄文<br>制定・最終更新日：2026年11月15日</p>
-  <p class="lead">縄文（以下「運営者」）は、写真編集アプリ「JOMON pix」（iOSアプリおよびWeb版。以下「本アプリ」）における情報の取扱いを、次のとおり定めます。</p>
+  <p class="meta">運営者：縄文<br>制定・最終更新日：2026年11月18日</p>
+  <p class="lead">縄文（以下「運営者」）は、写真編集アプリ「JOMON PIX」（iOSアプリおよびWeb版。以下「本アプリ」）における情報の取扱いを、次のとおり定めます。</p>
 
   <h2>1. 写真・編集データの取扱い</h2>
   <p>本アプリに読み込んだ写真、編集した画像、スタンプ・文字・描画・配置情報などの作品データは、原則として<strong>利用者の端末またはブラウザ内</strong>で処理・保存されます。編集途中の作品は、端末内のIndexedDBに自動保存されます。旧バージョンの作品データがlocalStorageに残っている場合には、復元用のコピーとして保持されることがあります。</p>
@@ -63,7 +73,83 @@
   <h2>8. お問い合わせ</h2>
   <p>運営者：<strong>縄文</strong><br>
     メール：<a href="mailto:jomon@jomonkusama.com">jomon@jomonkusama.com</a></p>
-  <footer>JOMON pix — プライバシーポリシー</footer>
+  <footer>JOMON PIX — プライバシーポリシー</footer>
+  </section>
+  <section id="policy-en" lang="en" hidden>
+<p class="tag">JOMON PIX</p>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Operator: Jomon<br>Established / Last updated: November 18, 2026</p>
+  <p class="lead">Jomon (the “Operator”) establishes this Privacy Policy to explain how information is handled in the JOMON PIX photo-editing application (the iOS application and web version, collectively the “App”).</p>
+
+  <h2>1. Handling of photos and editing data</h2>
+  <p>Photos imported into the App, edited images, and project data such as stickers, text, drawings, and positioning information are generally processed and stored <strong>on the user's device or in the user's browser</strong>. Work-in-progress projects are automatically saved in IndexedDB on the device. If project data from an earlier version remains in localStorage, it may be retained as a recovery copy.</p>
+  <p>The current App does not provide a feature to upload and store users' photos or projects on the Operator's servers or publish them to other users. The Operator also has no administrative interface for viewing projects stored on users' devices.</p>
+  <p>Facial landmarks used for face detection, face decoration, and beauty adjustments are also designed to be processed on the device. The App does not include a process that sends facial photos or facial landmarks to the Operator's servers.</p>
+
+  <h2>2. Access to photos on the device</h2>
+  <p>The App accesses the images needed when a user takes an action, such as selecting or taking a photo. It does not automatically collect photos that the user has not selected. Depending on the device, photo access permissions may be changed in device settings.</p>
+
+  <h2>3. External communications and third-party services</h2>
+  <p>Photo editing in the App is primarily performed on the device, but the following network communications may occur:</p>
+  <ul>
+    <li><strong>Google Fonts:</strong> The App obtains fonts needed to display text from Google's font delivery service.</li>
+    <li><strong>Background removal:</strong> When background removal is used, the IMG.LY background-removal library may download AI models and other files from external distribution servers. In the current implementation, background removal itself is performed on the device, and the App does not send photos to an image-processing server operated by the Operator.</li>
+    <li><strong>Web version:</strong> The App connects to services that deliver web pages, such as GitHub Pages.</li>
+  </ul>
+  <p>During these connections, third-party services may receive communication information, such as IP address, browser and device information, and access date and time, and handle it in accordance with their policies. These connections are not intended to publish users' photos.</p>
+  <p>The current App does not include advertising served by the Operator, advertising-purpose tracking, account registration, or a feature that sends photos to an independent analytics service.</p>
+
+  <h2>4. Saving, exporting, and sharing</h2>
+  <p>When a user chooses to save or share an image, an image may be created as a temporary file on the device and passed to a chosen destination through iOS sharing features or browser download features. Information sent to another app or cloud service is subject to that destination's handling practices.</p>
+  <p>JSON files used to back up projects <strong>include the photos and editing content themselves</strong>. Please exercise caution when giving these files to others or publishing them. Backups or synchronization involving the device's Photos app, Files app, iCloud, or similar services depend on the device and service settings.</p>
+
+  <h2>5. Retention and deletion of information</h2>
+  <p>Editing data stored on the device may remain until the user edits or replaces a project, clears the browser's site data, or deletes the App's data. Old localStorage data and temporary sharing files may not be deleted merely by replacing a project.</p>
+  <p>Because the App does not provide server-side storage of user projects, the Operator cannot remotely delete photos stored on users' devices. Users may clear the App's data or the browser's site data as needed. <strong>However, doing so may make edited projects impossible to recover.</strong> Saved PNG and JSON files and files shared with other destinations must be deleted separately.</p>
+  <p>If users voluntarily send an email address, name, message, or other information when making an inquiry, the Operator will use it to respond to and handle that inquiry, and retain it for as long as needed for that purpose. Please contact the address below regarding deletion requests.</p>
+
+  <h2>6. Security</h2>
+  <p>The Operator endeavors to design the App so that users' photos are not unnecessarily sent outside the device. However, risks such as device loss, unauthorized operations, operating system or browser vulnerabilities, and sharing initiated by users cannot be entirely eliminated.</p>
+
+  <h2>7. Changes to this policy</h2>
+  <p>This policy may be revised as features or external services change. Important changes will be announced in the App or on this page. The revised policy and its last-updated date will be posted here.</p>
+
+  <h2>8. Contact</h2>
+  <p>Operator: <strong>Jomon (縄文)</strong><br>
+     Email: <a href="mailto:jomon@jomonkusama.com">jomon@jomonkusama.com</a></p>
+  <footer>JOMON PIX — Privacy Policy</footer>
+  </section>
 </main>
+<script>
+(function () {
+  'use strict';
+  var key = 'jomon-pix-ui-language';
+  var query = new URLSearchParams(window.location.search).get('lang');
+  var saved = null;
+  try { saved = window.localStorage.getItem(key); } catch (_) {}
+  var initial = query === 'ja' || query === 'en' ? query : (saved === 'en' ? 'en' : 'ja');
+  var buttons = document.querySelectorAll('[data-lang]');
+  function choose(lang, fromClick) {
+    var en = lang === 'en';
+    document.documentElement.lang = en ? 'en' : 'ja';
+    document.getElementById('policy-ja').hidden = en;
+    document.getElementById('policy-en').hidden = !en;
+    document.title = en ? 'Privacy Policy | JOMON PIX' : 'プライバシーポリシー | JOMON PIX';
+    buttons.forEach(function (button) {
+      button.setAttribute('aria-pressed', button.getAttribute('data-lang') === lang ? 'true' : 'false');
+    });
+    try { window.localStorage.setItem(key, lang); } catch (_) {}
+    if (fromClick) {
+      var url = new URL(window.location.href);
+      url.searchParams.set('lang', lang);
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+  }
+  buttons.forEach(function (button) {
+    button.addEventListener('click', function () { choose(button.getAttribute('data-lang'), true); });
+  });
+  choose(initial, false);
+})();
+</script>
 </body>
 </html>
