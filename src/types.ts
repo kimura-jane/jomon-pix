@@ -135,6 +135,9 @@ export type StickerEl = Base & {
   label?: string;
   // Beauty sunglasses remain ordinary editable, photo-attached stickers.
   beautyGlassesFace?: number;
+  // For hair try-on, one independently replaceable hairstyle per detected face.
+  // Missing on legacy manually placed hair; those are still recognized by label.
+  hairFaceIndex?: number;
 };
 
 export type LineEl = Base & {
