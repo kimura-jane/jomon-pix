@@ -30,7 +30,8 @@ class PWATests(unittest.TestCase):
             ('mediapipe', 'vision_wasm_internal.wasm'),
             ('mediapipe', 'vision_wasm_module_internal.wasm'),
             ('mediapipe', 'vision_wasm_nosimd_internal.js'),
-            ('mediapipe', 'vision_wasm_nosimd_internal.wasm')
+            ('mediapipe', 'vision_wasm_nosimd_internal.wasm'),
+            ('third-party', 'MEDIAPIPE-APACHE-2.0.txt')
         ):
             path = self.out / dirname / name
             path.parent.mkdir(exist_ok=True)
