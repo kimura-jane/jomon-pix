@@ -8,6 +8,12 @@ on:
       - '.github/workflows/audit-auto-face-deco.yml'
       - 'src/lib/autoFaceDeco.ts'
       - 'src/components/Panel.tsx'
+  pull_request:
+    paths:
+      - 'src/lib/autoFaceDeco.ts'
+      - 'src/lib/beautyProcessor.ts'
+      - 'scripts/audit_auto_face_deco.mjs'
+      - '.github/workflows/audit-auto-face-deco.yml'
   workflow_dispatch:
 
 permissions:
