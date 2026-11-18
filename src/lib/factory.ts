@@ -171,6 +171,20 @@ export function addLibrarySticker(
   });
 }
 
+// Hairstyles are trial choices, not layers to pile up.
+export function addOrReplaceHairSticker(sticker: LibrarySticker): boolean {
+  if (!sticker.src) return false;
+  const placement = getStickerPlacement();
+  return useEditor.getState().setHairSticker({
+    ...base(),
+    ...placement,
+    type: 'sticker',
+    emoji: '',
+    src: sticker.src,
+    label: sticker.label,
+  });
+}
+
 // 文字を追加
 export function addText(preset?: Partial<TextEl>) {
   const state = useEditor.getState();
