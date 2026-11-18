@@ -3,7 +3,7 @@ import { useEditor } from '../store';
 import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
 import { SUNGLASSES_STICKERS } from '../lib/glassesStickers';
 import type { LibrarySticker } from '../lib/stickers';
-import type { ImageEl, BeautySettings } from '../types';
+import type { ImageEl, BeautySettings, StickerEl } from '../types';
 import { BEAUTY_FIELDS, DEFAULT_BEAUTY } from '../lib/beautyProcessor';
 import { useBeautyStatus } from '../lib/beautyStatus';
 import { HistorySlider } from './HistorySlider';
@@ -68,7 +68,7 @@ export function BeautyPanel() {
     return () => { cancelled = true; };
   }, [photoId, photoSrc]);
 
-  const count = faceInfo?.photoId === photoId && faceInfo.src === photoSrc
+  const count = faceInfo && faceInfo.photoId === photoId && faceInfo.src === photoSrc
     ? faceInfo.count : 0;
   const selectedIndex = target === 'all' ? null : target < count ? target : null;
   const override = selectedIndex === null
@@ -78,7 +78,7 @@ export function BeautyPanel() {
     ? Array.from({ length: count }, (_, index) => index)
     : selectedIndex !== null ? [selectedIndex] : [];
   const attachedGlasses = editor.elements.filter(
-    (el) => el.type === 'sticker' && el.parentImageId === photoId &&
+    (el): el is StickerEl => el.type === 'sticker' && el.parentImageId === photoId &&
       el.beautyGlassesFace !== undefined
   );
 
