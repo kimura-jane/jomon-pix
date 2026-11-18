@@ -58,6 +58,7 @@ type S = Snapshot & {
 
   add: (el: CanvasEl) => void;
   addMany: (items: CanvasEl[]) => void;
+  setBeautyGlasses: (photoId: string, indices: number[], stickers: import('./types').StickerEl[]) => void;
   update: (id: string, patch: Patch) => void;
   remove: (id: string) => void;
   duplicate: (id: string) => void;
@@ -511,6 +512,30 @@ export const useEditor = create<S>()(
           commit({ elements: [...get().elements, ...items] });
           const last = items[items.length - 1];
           if (last.type !== 'line') set({ selectedId: last.id });
+        },
+
+        // Add, replace or remove Beauty sunglasses for the selected faces
+        // in a single Undo step. Only sunglasses created from Beauty are touched;
+        // manually placed stickers and face decorations are never modified.
+        setBeautyGlasses: (photoId, indices, stickers) => {
+          const current = get().elements;
+          const photo = current.find((el) =>
+            el.id === photoId && el.type === 'image');
+          if (!photo || photo.type !== 'image' || photo.hidden || photo.locked) return;
+          const targets = new Set(indices.filter((index) =>
+            Number.isInteger(index) && index >= 0 && index < 10));
+          if (!targets.size) return;
+          const matching = (el: CanvasEl) =>
+            el.type === 'sticker' && el.parentImageId === photoId &&
+            el.beautyGlassesFace !== undefined && targets.has(el.beautyGlassesFace);
+          const kept = current.filter((el) => !matching(el));
+          const additions = stickers.filter((el) => el.parentImageId === photoId &&
+            el.beautyGlassesFace !== undefined && targets.has(el.beautyGlassesFace));
+          if (kept.length === current.length && !additions.length) return;
+          commit({ elements: [...kept, ...additions] });
+          if (get().selectedId && current.some((el) => el.id === get().selectedId && matching(el))) {
+            set({ selectedId: photoId });
+          }
         },
 
         update: (id, patch) => {
