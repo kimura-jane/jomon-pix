@@ -1,6 +1,29 @@
-// ONNX Runtime 1.21.0 ships a browser WASM-only entrypoint but does not
-// expose its own package TypeScript declarations for that subpath.
-// The WASM entrypoint implements the same public API as the root module.
+// The upstream ONNX Runtime Web 1.21.0 "wasm" subpath has no exported
+// TypeScript declaration when imported through Vite's bundler resolution.
+// Declare only the API surface used by JOMON PIX. The integration test runs
+// the actual packaged JS/WASM and model to verify runtime compatibility.
 declare module 'onnxruntime-web/wasm' {
-  export * from 'onnxruntime-web';
+  export const env: {
+    wasm: {
+      numThreads: number;
+      proxy: boolean;
+      wasmPaths: string;
+    };
+  };
+  export class Tensor {
+    constructor(type: 'uint8', data: Uint8Array, dims: number[]);
+    readonly type: string;
+    readonly dims: readonly number[];
+    readonly data: Uint8Array;
+  }
+  export class InferenceSession {
+    static create(
+      model: ArrayBuffer,
+      options: { executionProviders: ('wasm')[]; graphOptimizationLevel: 'basic' },
+    ): Promise<InferenceSession>;
+    run(
+      feeds: { image: Tensor; mask: Tensor },
+    ): Promise<Record<string, Tensor>>;
+    release(): Promise<void>;
+  }
 }
