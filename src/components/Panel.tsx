@@ -1206,7 +1206,6 @@ function StampTab({
     if (chosen) setHairColor(chosen.id);
   }, [sub, selectedSticker?.id, selectedSticker?.label]);
 
-
   const parentPhoto = s.elements.find(
     (el) =>
       el.type === 'image' &&
@@ -1763,7 +1762,7 @@ function StampTab({
         </div>
       )}
 
-            {sub === '髪型' && (
+      {sub === '髪型' && (
         <div style={{ marginTop: 8, marginBottom: 12 }}>
           <div className="label" style={{ marginTop: 4 }}>髪色</div>
           <div className="row" role="group" aria-label="髪色を選択"
