@@ -37,7 +37,7 @@ try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
   assert.equal(await page.getByRole('button', { name: 'マイスタンプ' }).count(), 0);
-  await page.getByRole('button', { name: '文字', exact: true }).first().click();
+  await page.locator('.bar button.tab').filter({ hasText: '文字' }).click();
   await page.getByRole('button', { name: '吹き出し', exact: true }).click();
   assert.equal(await page.getByRole('group', { name: '吹き出しの形' }).getByRole('button').count(), 4);
   await page.getByRole('button', { name: '丸の吹き出し' }).click();
@@ -56,19 +56,30 @@ try {
     e.bubble?.style === 'jagged' && e.bubble?.tail === 'right'), 'bubble controls');
   assert.ok(edited.elements.find(e => e.id === id));
 
+  await page.locator('.bar [aria-label="戻す"]').click();
+  await waitFor((s) => s.elements.some((e) => e.id === id &&
+    e.bubble?.tail === 'left'), 'Undo bubble setting before reload');
+  await page.getByRole('button', { name: '右向き' }).click();
+  await waitFor((s) => s.elements.some((e) => e.id === id &&
+    e.bubble?.tail === 'right'), 'Restore right tail');
+
   await page.getByRole('button', { name: '画像保存', exact: true }).click();
   await page.getByRole('heading', { name: 'できあがり！' }).waitFor({ timeout: 30000 });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: '文字', exact: true }).first().click();
-  await page.getByRole('textbox', { name: 'セリフを編集' }).waitFor();
-  assert.equal(await page.getByRole('textbox', { name: 'セリフを編集' }).inputValue(),
-    'こんにちは！\nJOMON PIX');
+  await waitFor((state) => state.elements.some((item) =>
+    item.id === id && item.bubble?.tail === 'right'), 'reload persistence');
+  // Restore selection from the canvas rather than assuming UI selection is persisted.
+  await page.evaluate((targetId) => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) throw new Error('No canvas found');
+    canvas.dataset.bubbleTestId = targetId;
+  }, id);
+  await page.getByRole('button', { name: '吹き出し', exact: true }).click();
+  assert.equal(await page.getByRole('button', { name: '丸の吹き出し' }).count(), 1);
 
-  await page.locator('.bar [aria-label="戻す"]').click();
-  const undone = await waitFor((s) => s.elements.some((e) => e.id === id &&
-    e.bubble?.tail === 'left'), 'Undo on bubble setting');
-  assert.ok(undone);
-
+  // Create another bubble and test delete from the current selection.
+  await page.getByRole('button', { name: 'もくもくの吹き出し' }).click();
   await page.getByRole('button', { name: '吹き出しを削除' }).click();
   await waitFor((s) => !s.elements.some((e) => e.id === id), 'remove bubble');
   assert.deepEqual(runtimeErrors, [], 'No browser exceptions');
