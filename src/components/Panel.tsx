@@ -422,7 +422,7 @@ function TextTab({
                     aria-pressed={el.bubble?.tail === tail}
                     disabled={!!el.locked}
                     onClick={() => up({ bubble: { ...el.bubble!, tail } })}
-                    style={el.bubble.tail === tail
+                    style={el.bubble?.tail === tail
                       ? { borderColor: '#ed55a5', background: '#fff0f7' } : {}}>
                     {tail === 'left' ? '左向き' : '右向き'}
                   </button>
