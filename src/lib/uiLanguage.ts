@@ -1,0 +1,350 @@
+// JOMON PIX UI localization. User content and canvas drawings are never translated.
+// Existing UI strings remain the source-of-truth for behavior/state; translation only
+// changes presentation and must not change saved projects or category identifiers.
+export type UiLanguage = 'ja' | 'en';
+const KEY = 'jomon-pix-ui-language';
+let currentLanguage: UiLanguage = readLanguage();
+const EVENT = 'jomon-pix-language-change';
+
+function readLanguage(): UiLanguage {
+  try {
+    return window.localStorage.getItem(KEY) === 'en' ? 'en' : 'ja';
+  } catch {
+    return 'ja';
+  }
+}
+
+export function getUiLanguage(): UiLanguage {
+  return currentLanguage;
+}
+
+export function setUiLanguage(language: UiLanguage): void {
+  if (currentLanguage === language) return;
+  currentLanguage = language;
+  try { window.localStorage.setItem(KEY, language); } catch { /* private mode */ }
+  document.documentElement.lang = language;
+  window.dispatchEvent(new Event(EVENT));
+  refreshUiTranslation();
+}
+
+export function onUiLanguageChange(callback: () => void): () => void {
+  window.addEventListener(EVENT, callback);
+  return () => window.removeEventListener(EVENT, callback);
+}
+
+// These translations refer exclusively to app chrome, not captions/artwork.
+const messages: Record<string, string> = {
+  '作品を読み込み中…': 'Loading your project…',
+  '文字': 'Text', 'ペン': 'Draw', 'スタンプ': 'Stickers',
+  'モザイク': 'Mosaic', 'ビューティー': 'Beauty',
+  '加工': 'Edit', 'フレーム': 'Frames', 'レイヤー': 'Layers',
+  '画像': 'Photo', 'プライバシー': 'Privacy',
+  'プライバシーポリシー': 'Privacy Policy',
+  '画像保存': 'Save Image', '作成中…': 'Creating…',
+  '保存中…': 'Saving…', '✓ 自動保存': '✓ Autosaved',
+  '⚠ 保存失敗': '⚠ Save failed', '⚠ 自動保存に失敗しました': '⚠ Autosave failed',
+  '戻す': 'Undo', 'やり直す': 'Redo', '閉じる': 'Close',
+  '作品のバックアップと復元': 'Back up / restore project',
+  '作品のバックアップ': 'Project backup',
+  '編集できる状態で作品を保存・復元': 'Save or restore an editable project',
+  '作品をバックアップ': 'Back up project',
+  'バックアップを読み込む': 'Import backup',
+  '処理中…': 'Processing…',
+  '※復元すると今の作品が置き換わります。バックアップには写真も含まれます。':
+    'Restoring replaces the current project. Backups also include the original photos.',
+  '作品を自動保存できませんでした。': 'Could not autosave this project.',
+  '既存の作品データを保護するため、この画面では自動保存を停止しています。':
+    'Autosave has stopped to protect the existing project data.',
+  'ブラウザのデータを削除したり、新しい作品を作ったりしないでください。':
+    'Do not clear browser data or start a new project.',
+  'このまま画面を閉じると、変更内容が失われる可能性があります。':
+    'Closing this screen may cause unsaved changes to be lost.',
+  '上の「画像保存」からPNG画像を書き出すか、📁から作品をバックアップしてください。':
+    'Export a PNG with “Save Image”, or back up the project using the folder button.',
+  'PNGは再編集用のバックアップではありません。':
+    'A PNG is not an editable project backup.',
+  '先に写真を追加してください。': 'Add a photo first.',
+  '写真を選択': 'Select photo', '写真を選ぶと使えるよ': 'Select a photo to use this.',
+  '＋ 写真を追加': '+ Add Photos', '✨ 新しく作る': '✨ New Project',
+  '＋ 文字を入れる': '+ Add Text', '＋ もう1つ文字を入れる': '+ Add Another Text',
+  '文字を入力': 'Enter text', 'スタイル': 'Style', 'フォント': 'Font',
+  '色': 'Color', 'ふちどり': 'Outline', '光る': 'Glow',
+  '形': 'Layout', '横書き': 'Horizontal', '縦書き': 'Vertical',
+  '左': 'Left', '中央': 'Center', '右': 'Right',
+  '吹き出し': 'Speech Bubbles',
+  '丸・ギザギザ・もくもく・LINE風の吹き出し': 'Round, jagged, cloud and chat bubbles',
+  '準備中だよ': 'Coming soon',
+  'ペンを描く写真': 'Photo to draw on', '消しゴム': 'Eraser',
+  'まじめ': 'Classic', 'かわいい': 'Cute',
+  'なし': 'None', 'ビビッド': 'Vivid', 'ふんわり': 'Soft',
+  'クール': 'Cool', 'セピア': 'Sepia', 'モノクロ': 'Monochrome',
+  '□ 正方形': '□ Square',
+  '顔デコ': 'Face Decor', 'サングラス': 'Sunglasses',
+  '犬': 'Dogs', '縄文': 'Jomon', '絵文字': 'Emoji',
+  'マイスタンプ': 'My Stickers', 'その他': 'Other',
+  '一緒に動かす写真を選ぶ': 'Attach to a photo',
+  'くっつけない': 'Detach',
+  '配置済みスタンプを選択': 'Select an added sticker',
+  '選択中のスタンプ': 'Selected sticker', '完了': 'Done',
+  '大きさ': 'Size', '− 小さく': '− Smaller',
+  '＋ 大きく': '+ Larger', '標準': 'Reset',
+  '⧉ 複製': '⧉ Duplicate', '🗑 削除': '🗑 Delete',
+  '自動配置': 'Auto Place', '手動配置': 'Manual Place',
+  '顔の位置を確認中…': 'Detecting faces…',
+  '顔を': 'Detected ', '人認識しました': ' faces',
+  '顔を選択': 'Select faces', '顔認識を実行中…': 'Detecting faces…',
+  'カメラロール → 背景を自動で消す → 登録':
+    'Choose photo → remove background → add sticker',
+  '選択した顔にスタンプを配置中…': 'Placing sticker on selected face…',
+  '顔を検出できませんでした。手動配置をお試しください。':
+    'No faces found. Try manual placement.',
+  '顔認識に失敗しました。手動配置をお試しください。':
+    'Face detection failed. Try manual placement.',
+  '顔を認識できません。手動配置をお試しください。':
+    'Face not found. Try manual placement.',
+  '写真のロック・非表示を解除してください。':
+    'Unlock and show the photo first.',
+  '編集するものを選択': 'Select an item to edit',
+  '配置': 'Arrange', '切り抜き': 'Cutout',
+  'キャンバス': 'Canvas', '背景': 'Background',
+  '配信・SNS': 'Streaming / Social', '枠': 'Border',
+  '⤒ 最前面': '⤒ Bring to Front', '↑ 1つ前へ': '↑ Move Forward',
+  '↓ 1つ後ろへ': '↓ Move Backward', '⤓ 最背面': '⤓ Send to Back',
+  '⇋ 左右反転': '⇋ Flip Horizontal', '⇵ 上下反転': '⇵ Flip Vertical',
+  '🔓 ロック解除': '🔓 Unlock', '🔒 ロック': '🔒 Lock',
+  '✂ 写真をトリミング': '✂ Crop Photo',
+  '✂️ 背景を消す': '✂️ Remove Background',
+  '背景を消しています…': 'Removing background…',
+  'キャンバスのサイズ': 'Canvas Size',
+  '✂ キャンバスを切り抜く': '✂ Crop Canvas',
+  '背景色': 'Background Color',
+  '写真': 'Photo',
+  'フレームを外す': 'Remove frame',
+  'シンプル': 'Simple', '二重フレーム': 'Double Border',
+  'ポラロイド': 'Polaroid', 'フィルム': 'Film',
+  '卒アル風': 'Yearbook', 'ネオン': 'Neon',
+  '雑誌風': 'Magazine', 'すっきりした縁取り': 'Clean outline',
+  '上品な二重線': 'Elegant double line',
+  '写真プリント風': 'Instant photo style',
+  '35mmフィルム風': '35mm film style',
+  '角留めの記念写真風': 'Photo album corners',
+  '光るフレーム': 'Glowing frame',
+  '表紙風の文字付き': 'Magazine cover style',
+  'フレームの色': 'Frame Color',
+  '切り抜く写真を選択': 'Select photo to cut out',
+  '写真の背景を消す': 'Remove Photo Background',
+  '切り抜き中…': 'Removing background…',
+  '縦9:16に変更': 'Switch to vertical 9:16',
+  '※配信画面風の画像加工です': 'Creates a streaming-style photo',
+  'まだ何もないよ': 'Nothing here yet',
+  '美肌': 'Smooth Skin', '明るさ': 'Brightness',
+  '血色': 'Warmth', '小顔': 'Slim Face',
+  'あごシャープ': 'Sharper Chin', '目の大きさ': 'Eye Size',
+  'リップ': 'Lip Color', 'チーク': 'Blush',
+  '写真のロックを解除してください。': 'Unlock the photo first.',
+  '加工前を表示中': 'Showing original', '長押しで比較': 'Hold to compare',
+  '加工をリセット': 'Reset Adjustments',
+  '範囲指定': 'Rectangle', 'ブラシ': 'Brush',
+  '写真全体': 'Entire Photo', '背景だけ': 'Background Only',
+  'モザイク加工': 'Mosaic Editor', '▦ モザイク加工': '▦ Mosaic Editor',
+  'ドラッグで範囲指定': 'Drag to select an area',
+  '指で塗る': 'Brush over an area',
+  '端末内AIで背景を判定します。': 'Background detection runs on your device.',
+  '初回はAIモデルを取得します。※AIの判定には誤差があります。':
+    'An AI model is downloaded on first use. Results may be imperfect.',
+  'モザイク対象の写真': 'Photo to pixelate',
+  '写真を読み込み中…': 'Loading photo…',
+  '指定した範囲をクリア': 'Clear Selection',
+  'キャンセル': 'Cancel',
+  '被写体を判定中…': 'Detecting subject…', '加工中…': 'Applying…',
+  '背景だけにモザイク': 'Mosaic Background',
+  'モザイクを適用': 'Apply Mosaic',
+  '▦ 全体にモザイク': '▦ Mosaic Entire Photo',
+  '▦ 背景だけモザイク': '▦ Mosaic Background',
+  '▦ 範囲を指定': '▦ Select Area',
+  '重なり順': 'Layer Order',
+  '重なり順パネルを移動': 'Move layer panel',
+  '指でドラッグして移動': 'Drag to move',
+  'レイヤー一覧を閉じる': 'Close layer list',
+  'レイヤー一覧を開く': 'Open layer list',
+  'レイヤー一覧（上ほど手前）': 'Layer list (top is front)',
+  '非表示': 'Hidden', '表示中': 'Visible', 'ロック中': 'Locked',
+  '手前へ移動': 'Move Forward', '奥へ移動': 'Move Backward',
+  '拡大': 'Zoom In', '縮小': 'Zoom Out',
+  '全体表示': 'Fit to Screen',
+  'できあがり！': 'All Done!',
+  '完成画像': 'Finished image',
+  'サイズ：': 'Size:', '準備中…': 'Preparing…',
+  '📷 写真に保存・共有': '📷 Save or Share',
+  '共有画面で「画像を保存」を選択': 'Choose “Save Image” in the share sheet',
+  '⬇ ファイルに保存': '⬇ Save to Files',
+  'キャンバスをトリミング': 'Crop Canvas',
+  'プレビューを作成中…': 'Generating preview…',
+  'プレビューを更新': 'Refresh Preview',
+  '比率': 'Aspect Ratio', '範囲': 'Area',
+  '切り抜き後：': 'After Crop:',
+  '切り抜く': 'Crop',
+  '写真をトリミング': 'Crop Photo',
+  'トリミング対象': 'Photo to Crop',
+  '作品全体のプレビュー': 'Project Preview',
+  '自由': 'Free', '正方形': 'Square',
+  '上': 'Top', '下': 'Bottom',
+  '画像の作成に失敗しました': 'Could not create the image.',
+  'バックアップを作成できませんでした。': 'Could not create a backup.',
+  '作品を復元しました。': 'Project restored.',
+  '作品を読み込めませんでした。': 'Could not load the project.',
+  '共有できませんでした。': 'Could not share the image.',
+  'もう一度お試しください。': 'Please try again.',
+  '画像を長押しして保存してください。': 'Press and hold the image to save.',
+  '写真を追加できませんでした': 'Could not add the photo.',
+  '今の作品を消して新しく作る？': 'Discard this project and start a new one?',
+  '写真がありません。先に写真を追加してください。': 'No photos yet. Add one first.',
+  '写真を読み込み中です': 'The photo is still loading.',
+  '写真を読み込めませんでした': 'Could not load the photo.',
+  'トリミングに失敗しました': 'Could not crop the photo.',
+  'モザイク加工に失敗しました': 'Could not apply the mosaic.',
+  'この端末で画像を加工できません': 'Image editing is not supported on this device.',
+  'この写真では、その比率に切り抜けません': 'This aspect ratio cannot be applied to the photo.',
+  'キャンバスが見つかりません': 'Canvas not found.',
+  'プレビューを作成できませんでした': 'Could not generate a preview.',
+  '切り抜き範囲が正しくありません': 'Invalid crop area.',
+  'このサイズでは、その比率に切り抜けません': 'This size cannot be cropped to that aspect ratio.',
+};
+
+const patterns: Array<[RegExp, (...args: string[]) => string]> = [
+  [/^モザイクの粗さ\s*(\d+)px$/, (_full, n) => 'Mosaic Size ' + n + 'px'],
+  [/^ブラシの太さ\s*(\d+)%$/, (_full, n) => 'Brush Size ' + n + '%'],
+  [/^ふちどりの太さ\s*(\d+)px$/, (_full, n) => 'Outline Width ' + n + 'px'],
+  [/^太さ\s*(\d+)(px|%)?$/, (_full, n, unit) => 'Width ' + n + (unit || '')],
+  [/^大きさ\s*(\d+)px$/, (_full, n) => 'Size ' + n + 'px'],
+  [/^字間\s*(-?\d+)$/, (_full, n) => 'Letter Spacing ' + n],
+  [/^透明度\s*(\d+)%$/, (_full, n) => 'Opacity ' + n + '%'],
+  [/^左から(\d+)人目$/, (_full, n) => 'Face ' + n + ' from left'],
+  [/^配置済みスタンプ(\d+)を選択$/, (_full, n) => 'Select sticker ' + n],
+  [/^(.+)を選択$/, (_full, name) => 'Select ' + translateLabel(name)],
+  [/^(.+)を追加$/, (_full, name) => 'Add ' + translateLabel(name)],
+  [/^(.+)を自動配置$/, (_full, name) => 'Auto place ' + translateLabel(name)],
+  [/^(.+)を顔デコ対象にする$/, (_full, name) => 'Decorate faces in ' + translateLabel(name)],
+  [/^(.+)に紐づける$/, (_full, name) => 'Attach to ' + translateLabel(name)],
+  [/^(.+)を描画対象にする$/, (_full, name) => 'Draw on ' + translateLabel(name)],
+  [/^フレームの色\s*(.+)$/, (_full, color) => 'Frame color ' + color],
+  [/^色\s*(.+)$/, (_full, color) => 'Color ' + color],
+  [/^(.+)の仕上がり参考画像$/, (_full, name) => 'Frame preview: ' + translateLabel(name)],
+  [/^写真\s*(\d+)$/, (_full, n) => 'Photo ' + n],
+];
+
+function translateLabel(text: string): string {
+  return messages[text] ?? text;
+}
+
+export function translateUiText(value: string): string {
+  // Use full-string translations to avoid changing project content or identifiers.
+  const match = /^(\s*)([\s\S]*?)(\s*)$/.exec(value);
+  if (!match) return value;
+  const leading = match[1];
+  const core = match[2];
+  const trailing = match[3];
+  let english = messages[core];
+  if (!english) {
+    for (const [regex, replacement] of patterns) {
+      const found = regex.exec(core);
+      if (found) { english = replacement(...found); break; }
+    }
+  }
+  return english ? leading + english + trailing : value;
+}
+
+type Snapshot = { ja: string; en: string };
+const textSnapshots = new WeakMap<Text, Snapshot>();
+const attributeSnapshots = new WeakMap<Element, Map<string, Snapshot>>();
+const ATTRIBUTES = ['aria-label', 'title', 'placeholder', 'alt'];
+const EXCLUDED = 'script,style,textarea,input,canvas,svg,pre,code,[contenteditable],.konvajs-content,[data-no-translate]';
+let observer: MutationObserver | null = null;
+
+function excluded(el: Element | null): boolean {
+  return Boolean(el?.closest(EXCLUDED));
+}
+
+function translateTextNode(node: Text): void {
+  if (excluded(node.parentElement)) return;
+  const text = node.nodeValue ?? '';
+  let previous = textSnapshots.get(node);
+  if (!previous || (text !== previous.ja && text !== previous.en)) {
+    const translated = translateUiText(text);
+    if (translated === text) return;
+    previous = { ja: text, en: translated };
+    textSnapshots.set(node, previous);
+  }
+  const intended = currentLanguage === 'en' ? previous.en : previous.ja;
+  if (text !== intended) node.nodeValue = intended;
+}
+
+function translateAttributes(el: Element): void {
+  if (excluded(el)) return;
+  let saved = attributeSnapshots.get(el);
+  if (!saved) {
+    saved = new Map();
+    attributeSnapshots.set(el, saved);
+  }
+  for (const name of ATTRIBUTES) {
+    const original = el.getAttribute(name);
+    if (original === null) continue;
+    let previous = saved.get(name);
+    if (!previous || (original !== previous.ja && original !== previous.en)) {
+      const translated = translateUiText(original);
+      if (translated === original) continue;
+      previous = { ja: original, en: translated };
+      saved.set(name, previous);
+    }
+    const intended = currentLanguage === 'en' ? previous.en : previous.ja;
+    if (original !== intended) el.setAttribute(name, intended);
+  }
+}
+
+function walk(root: Node): void {
+  if (root.nodeType === Node.TEXT_NODE) {
+    translateTextNode(root as Text);
+    return;
+  }
+  if (!(root instanceof Element) && root !== document.body) return;
+  if (root instanceof Element) {
+    if (excluded(root)) return;
+    translateAttributes(root);
+  }
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.nodeType === Node.TEXT_NODE) {
+      translateTextNode(node as Text);
+    } else {
+      translateAttributes(node as Element);
+    }
+  }
+}
+
+function refreshUiTranslation(): void {
+  if (typeof document === 'undefined' || !document.body) return;
+  walk(document.body);
+}
+
+export function mountUiTranslation(): () => void {
+  document.documentElement.lang = currentLanguage;
+  refreshUiTranslation();
+  if (observer) observer.disconnect();
+  observer = new MutationObserver((records) => {
+    for (const record of records) {
+      if (record.type === 'characterData') {
+        walk(record.target);
+      } else if (record.type === 'attributes') {
+        walk(record.target);
+      } else {
+        for (const node of Array.from(record.addedNodes)) walk(node);
+      }
+    }
+  });
+  observer.observe(document.body, {
+    subtree: true, childList: true, characterData: true,
+    attributes: true, attributeFilter: ATTRIBUTES,
+  });
+  return () => { observer?.disconnect(); observer = null; };
+}
