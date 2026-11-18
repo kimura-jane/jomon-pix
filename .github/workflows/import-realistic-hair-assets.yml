@@ -1,0 +1,46 @@
+name: Import original realistic hair assets (feature branch only)
+on:
+  push:
+    branches: [feature/realistic-hair-replace-v2]
+    paths:
+      - scripts/build_hair_stickers.py
+      - .github/workflows/import-realistic-hair-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-hair-assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/realistic-hair-replace-v2
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Pillow
+        run: python -m pip install Pillow==11.3.0
+      - name: Fetch studio asset created for JOMON PIX
+        run: |
+          mkdir -p assets
+          curl -fLsS --retry 2 --max-time 90 'https://at.adobe.com/nXp4OPfX5XI7BiSB' -o assets/hair-source-3x3.png
+          file assets/hair-source-3x3.png
+          python - <<'PY'
+          from PIL import Image
+          source = Image.open('assets/hair-source-3x3.png')
+          assert source.size == (1254, 1254) and source.mode == 'RGBA', (source.size, source.mode)
+          print('Original hairstyle sheet verified')
+          PY
+      - name: Create 9 styles in 8 hair colors
+        run: python scripts/build_hair_stickers.py
+      - name: Commit bundled WebP assets to feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/hair-source-3x3.png public/stickers/hair/v2
+          git diff --cached --quiet || git commit -m 'Bundle original realistic hair assets (9 styles x 8 colors)'
+          git push origin HEAD:feature/realistic-hair-replace-v2
