@@ -14,6 +14,7 @@ const TABS: { id: Tab; ic: string; label: string }[] = [
   { id: 'pen', ic: '✏️', label: 'ペン' },
   { id: 'stamp', ic: '🐶', label: 'スタンプ' },
   { id: 'mosaic', ic: '▦', label: 'モザイク' },
+  { id: 'magic', ic: '✦', label: 'スマート消去' },
   { id: 'beauty', ic: '💄', label: 'ビューティー' },
   { id: 'edit', ic: '🎨', label: '加工' },
   { id: 'frame', ic: '🖼', label: 'フレーム' },
