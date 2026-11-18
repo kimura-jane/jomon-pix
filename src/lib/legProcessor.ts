@@ -262,10 +262,11 @@ function lengthenLegs(
   const hipCenter = (body.hipLeft.x + body.hipRight.x) / 2;
   const ankleCenter = (ankles[0].x + ankles[1].x) / 2;
   const shoulderSpan = Math.abs(body.shoulderLeft.x - body.shoulderRight.x);
+  const hipGap = dist(body.hipLeft, body.hipRight);
   const shoulderRadius = Math.max(12, shoulderSpan * 0.60);
-  const hipRadius = Math.max(12, body.hipGap * 0.85);
+  const hipRadius = Math.max(12, hipGap * 0.85);
   const ankleRadius = Math.max(12, Math.max(...ankles.map((p) =>
-    Math.abs(p.x - ankleCenter))) + body.hipGap * 0.36);
+    Math.abs(p.x - ankleCenter))) + hipGap * 0.36);
   // Refuse unusually wide or tilted silhouettes instead of warping the
   // background or an adjacent subject across a large fraction of the photo.
   if (Math.max(shoulderRadius, hipRadius, ankleRadius) > w * 0.30) return null;
