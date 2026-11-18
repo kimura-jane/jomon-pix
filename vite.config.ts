@@ -29,6 +29,19 @@ function bundleNonSimdVision() {
         }
         copyFileSync(input, resolve(destination, name));
       }
+      // Redistribute the matching Apache-2.0 notice with both web and native
+      // bundles; the app's privacy page links to this local license file.
+      const packageRoot = resolve('node_modules/@mediapipe/tasks-vision');
+      const candidates = ['LICENSE', 'LICENSE.md', 'LICENSE.txt'];
+      const license = candidates
+        .map((name) => resolve(packageRoot, name))
+        .find((name) => existsSync(name) && statSync(name).size > 1000);
+      if (!license) {
+        throw new Error('MediaPipe Apache-2.0 license text missing from the npm package');
+      }
+      const notices = resolve(outDir, 'third-party');
+      mkdirSync(notices, { recursive: true });
+      copyFileSync(license, resolve(notices, 'MEDIAPIPE-APACHE-2.0.txt'));
     },
   };
 }
