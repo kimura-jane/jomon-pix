@@ -1,0 +1,42 @@
+name: Verify JOMON PIX Japanese / English UI
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/uiLanguage.ts'
+      - 'src/App.tsx'
+      - 'src/components/**'
+      - 'src/App.css'
+      - 'public/privacy-policy.html'
+      - 'scripts/test_language_switch.mjs'
+      - '.github/workflows/test-language-switch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  language-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Typecheck and build
+        run: npm run typecheck && npm run build
+      - name: Test bilingual interface and privacy policy in Chromium
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/jomon-language-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/test_language_switch.mjs
