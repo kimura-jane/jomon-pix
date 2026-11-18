@@ -1,0 +1,45 @@
+name: Test JOMON PIX speech bubbles
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/Panel.tsx'
+      - 'src/components/ElementNode.tsx'
+      - 'src/components/SpeechBubbleGraphic.tsx'
+      - 'src/lib/factory.ts'
+      - 'src/types.ts'
+      - 'src/components/TopBar.tsx'
+      - 'src/lib/uiLanguage.ts'
+      - 'src/App.css'
+      - 'scripts/test_speech_bubbles.mjs'
+      - '.github/workflows/test-speech-bubbles.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bubbles:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install chromium
+      - name: Build and typecheck
+        run: npm run typecheck && npm run build
+      - name: Test bubble editing and persisted artwork in Chromium
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/jomon-bubble.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/test_speech_bubbles.mjs

@@ -95,11 +95,21 @@ export type ImageEl = Base & {
   beautyFaceOverrides?: Record<string, Partial<BeautySettings>>;
 };
 
+export type SpeechBubbleStyle = 'round' | 'jagged' | 'cloud' | 'chat';
+export type SpeechBubble = {
+  style: SpeechBubbleStyle;
+  background: string;
+  outline: string;
+  tail: 'left' | 'right';
+  width: number;
+};
+
 export type TextEl = Base & {
   type: 'text';
   // 紐づけ先の写真。座標は写真内のローカル座標。
   parentImageId?: string;
   text: string;
+  bubble?: SpeechBubble;
   fontFamily: string;
   fontSize: number;
   fill: string;

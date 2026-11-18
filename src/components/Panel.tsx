@@ -1,6 +1,6 @@
 import { uiMessage } from '../lib/uiLanguage';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useEditor, type CanvasPreset } from '../store';
 import {
@@ -8,6 +8,7 @@ import {
   addSticker,
   addLibrarySticker,
   addText,
+  addSpeechBubble,
 } from '../lib/factory';
 import {
   STICKER_CATEGORIES,
@@ -15,7 +16,6 @@ import {
 } from '../lib/stickers';
 import { FACE_STICKERS } from '../lib/stickerPacks';
 import { findAttachmentPhoto, getPhotoLabel } from '../lib/photoAttachments';
-import { isNativeApp } from '../lib/nativeFileShare';
 import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
 import {
   REAL_HANIWA_STICKERS,
@@ -43,6 +43,7 @@ import type {
   ImageEl,
   StickerEl,
   TextEl,
+  SpeechBubbleStyle,
 } from '../types';
 
 const COLORS = [
@@ -132,23 +133,6 @@ function Seg({
           {item}
         </button>
       ))}
-    </div>
-  );
-}
-
-function Soon({
-  em,
-  children,
-}: {
-  em: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="soon">
-      <span className="em">{em}</span>
-      {children}
-      <br />
-      準備中だよ
     </div>
   );
 }
@@ -350,7 +334,8 @@ function TextTab({
 }: {
   el?: TextEl;
 }) {
-  const [sub, setSub] = useState('文字');
+  const [sub, setSub] = useState(el?.bubble ? '吹き出し' : '文字');
+  useEffect(() => setSub(el?.bubble ? '吹き出し' : '文字'), [el?.id]);
   const [group, setGroup] = useState<string>(
     FONT_GROUPS[0],
   );
@@ -365,18 +350,116 @@ function TextTab({
 
   return (
     <>
-      {!isNativeApp() && (
-        <Seg
-          items={['文字', '吹き出し']}
-          value={sub}
-          onChange={setSub}
-        />
-      )}
+      <Seg
+        items={['文字', '吹き出し']}
+        value={sub}
+        onChange={setSub}
+      />
 
       {sub === '吹き出し' ? (
-        <Soon em="💬">
-          丸・ギザギザ・もくもく・LINE風の吹き出し
-        </Soon>
+        <>
+          <div className="label">吹き出しの形</div>
+          <div className="bubble-style-grid" role="group" aria-label="吹き出しの形">
+            {([
+              { id: 'round', label: '丸', symbol: '●' },
+              { id: 'jagged', label: 'ギザギザ', symbol: '✹' },
+              { id: 'cloud', label: 'もくもく', symbol: '☁' },
+              { id: 'chat', label: 'LINE風', symbol: '▢' },
+            ] as const).map((style) => (
+              <button
+                key={style.id}
+                type="button"
+                className={`bubble-style-card ${el?.bubble?.style === style.id ? 'on' : ''}`}
+                aria-label={style.label + 'の吹き出し'}
+                aria-pressed={el?.bubble?.style === style.id}
+                disabled={!!el?.locked}
+                onClick={() => {
+                  if (el?.bubble) up({ bubble: { ...el.bubble, style: style.id } });
+                  else addSpeechBubble(style.id as SpeechBubbleStyle);
+                }}>
+                <span className="bubble-style-icon" aria-hidden="true">{style.symbol}</span>
+                <span>{style.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {el?.bubble ? (
+            <>
+              <div className="label">セリフを編集</div>
+              <textarea
+                className="input"
+                aria-label="セリフを編集"
+                rows={3}
+                maxLength={500}
+                value={el.text}
+                disabled={!!el.locked}
+                onChange={(event) => up({ text: event.target.value })}
+              />
+
+              <div className="label">吹き出しの色</div>
+              <Dots
+                value={el.bubble.background}
+                colors={['#ffffff', '#fff9db', '#ffe7f4', '#e8f4ff', '#e9f7ee', '#2f2838']}
+                onPick={(color) => up({ bubble: { ...el.bubble!, background: color } })}
+              />
+              <div className="label">枠線の色</div>
+              <Dots
+                value={el.bubble.outline}
+                colors={['#33283b', '#ff4fa3', '#7155c3', '#4d9eaf', '#e8c155', '#ffffff']}
+                onPick={(color) => up({ bubble: { ...el.bubble!, outline: color } })}
+              />
+              <div className="label">文字の色</div>
+              <Dots
+                value={el.fill}
+                colors={['#262031', '#ffffff', '#ff4fa3', '#7155c3', '#1b7b58', '#dd4d48']}
+                onPick={(color) => up({ fill: color })}
+              />
+
+              <div className="label">しっぽの向き</div>
+              <div className="row">
+                {(['left', 'right'] as const).map((tail) => (
+                  <button type="button" key={tail} className="chip"
+                    aria-pressed={el.bubble?.tail === tail}
+                    disabled={!!el.locked}
+                    onClick={() => up({ bubble: { ...el.bubble!, tail } })}
+                    style={el.bubble?.tail === tail
+                      ? { borderColor: '#ed55a5', background: '#fff0f7' } : {}}>
+                    {tail === 'left' ? '左向き' : '右向き'}
+                  </button>
+                ))}
+              </div>
+
+              <HistorySlider
+                label={`吹き出しの幅 ${el.bubble.width}px`}
+                min={160} max={500} step={10}
+                value={el.bubble.width}
+                elementId={el.id}
+                disabled={!!el.locked}
+                onChange={(width) => up({ bubble: { ...el.bubble!, width } })}
+              />
+              <HistorySlider
+                label={`大きさ ${el.fontSize}px`}
+                min={16} max={100} step={1}
+                value={el.fontSize}
+                elementId={el.id}
+                disabled={!!el.locked}
+                onChange={(fontSize) => up({ fontSize })}
+              />
+              <PhotoAttachmentControls el={el} />
+              <button type="button" className="big-btn" onClick={() =>
+                addSpeechBubble(el.bubble!.style)}>
+                ＋ 吹き出しを追加
+              </button>
+              <button type="button" className="big-btn light"
+                disabled={!!el.locked}
+                onClick={() => useEditor.getState().remove(el.id)}>
+                吹き出しを削除
+              </button>
+            </>
+          ) : (
+            <p className="hint-s">吹き出しは写真の上で移動・拡大できます。</p>
+          )}
+        </>
       ) : (
         <>
           {!el && (
@@ -1476,7 +1559,6 @@ function StampTab({
           '犬',
           '縄文',
           '絵文字',
-          ...(!isNativeApp() ? ['マイスタンプ'] : []),
         ]}
         value={sub}
         onChange={setSub}
@@ -1621,12 +1703,6 @@ function StampTab({
               }}>{autoMessage}</p>
           )}
         </div>
-      )}
-
-      {sub === 'マイスタンプ' && (
-        <Soon em="📷">
-          カメラロール → 背景を自動で消す → 登録
-        </Soon>
       )}
 
       {group && (

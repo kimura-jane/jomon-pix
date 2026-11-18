@@ -11,6 +11,7 @@ import useImage from 'use-image';
 import { useEditor } from '../store';
 import { penProps } from '../lib/pens';
 import { PhotoFrame } from './PhotoFrame';
+import { SpeechBubbleGraphic } from './SpeechBubbleGraphic';
 import { useBeautyPreview } from './useBeautyPreview';
 import type {
   CanvasEl,
@@ -333,6 +334,19 @@ export function ElementNode({
         {...common}
         draggable={false}
       />
+    );
+  }
+
+  // 吹き出しは文字と背景を同じGroupで操作し、写真移動にも追従する。
+  if (el.bubble) {
+    const edit = () => {
+      const value = prompt('セリフを編集', el.text);
+      if (value !== null) update(el.id, { text: value.slice(0, 500) });
+    };
+    return (
+      <Group {...common} onDblClick={edit} onDblTap={edit}>
+        <SpeechBubbleGraphic el={el} />
+      </Group>
     );
   }
 
