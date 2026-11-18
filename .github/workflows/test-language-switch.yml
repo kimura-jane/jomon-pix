@@ -5,6 +5,8 @@ on:
     paths:
       - 'src/lib/uiLanguage.ts'
       - 'src/App.tsx'
+      - 'src/store.ts'
+      - 'package.json'
       - 'src/components/**'
       - 'src/App.css'
       - 'public/privacy-policy.html'
