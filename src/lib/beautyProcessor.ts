@@ -1,4 +1,5 @@
 import type { BeautySettings } from '../types';
+import { renderLegBeauty } from './legProcessor';
 
 export type Landmark = { x: number; y: number };
 // Shared detection limit for automatic face stickers and multi-face beauty.
@@ -8,12 +9,18 @@ type PixelPoint = { x: number; y: number };
 export const DEFAULT_BEAUTY: BeautySettings = {
   smooth: 0, bright: 0, warmth: 0, slim: 0,
   chin: 0, eyes: 0, lip: 0, blush: 0,
+  legSlim: 0, legLength: 0,
 };
 
 export const BEAUTY_FIELDS: (keyof BeautySettings)[] = [
   'smooth', 'bright', 'warmth', 'slim',
   'chin', 'eyes', 'lip', 'blush',
+  'legSlim', 'legLength',
 ];
+
+const FACE_BEAUTY_FIELDS: (keyof BeautySettings)[] = BEAUTY_FIELDS.filter(
+  (field) => field !== 'legSlim' && field !== 'legLength',
+);
 
 export function beautySignature(
   settings?: BeautySettings,
@@ -579,6 +586,9 @@ function makeup(canvas: HTMLCanvasElement, face: Landmark[], settings: BeautySet
 export type BeautyRender = {
   canvas: HTMLCanvasElement;
   faceCount: number;
+  legCount: number;
+  legUnavailable: boolean;
+  lengthApplied: boolean;
 };
 
 export async function renderBeauty(
@@ -586,17 +596,19 @@ export async function renderBeauty(
   settings: BeautySettings,
   faceOverrides?: Record<string, Partial<BeautySettings>>,
 ): Promise<BeautyRender | null> {
-  const faces = await detectFaceLandmarksEnhanced(source);
-  if (!faces.length) return null;
-
   const naturalW = source.naturalWidth;
   const naturalH = source.naturalHeight;
   if (naturalW <= 0 || naturalH <= 0) {
     throw new Error('写真が読み込めませんでした。');
   }
-  // iPhone Safari may terminate on several full-resolution 12MP ImageData
-  // buffers. The editor preview and PNG are already scaled to fit the
-  // stage; render a sufficient 1600px canvas and retain the original intact.
+  const needFace = FACE_BEAUTY_FIELDS.some((key) => (settings[key] ?? 0) > 0) ||
+    Object.values(faceOverrides ?? {}).some((patch) => FACE_BEAUTY_FIELDS.some(
+      (key) => (patch[key] ?? settings[key] ?? 0) > 0,
+    ));
+  const needLeg = (settings.legSlim ?? 0) > 0 || (settings.legLength ?? 0) > 0;
+
+  // Avoid loading the facial AI when the user only adjusts legs.
+  const faces = needFace ? await detectFaceLandmarksEnhanced(source) : [];
   const ratio = Math.min(1, 1600 / Math.max(naturalW, naturalH));
   const w = Math.max(1, Math.round(naturalW * ratio));
   const h = Math.max(1, Math.round(naturalH * ratio));
@@ -609,20 +621,35 @@ export async function renderBeauty(
       (face[152].x - face[10].x) * w,
       (face[152].y - face[10].y) * h,
     );
-    // Allow small group-photo faces without claiming that tiny faces
-    // have enough detail for reliable cosmetic adjustments.
     return width >= 18 && height >= 18;
   });
-  if (!usableFaces.length) return null;
 
-  const canvas = makeCanvas(w, h);
+  let canvas = makeCanvas(w, h);
   ctx2d(canvas).drawImage(source, 0, 0, w, h);
+  let legCount = 0;
+  let legUnavailable = false;
+  let lengthApplied = false;
+  let applied = false;
+  if (needLeg) {
+    try {
+      const result = await renderLegBeauty(
+        source, canvas, settings.legSlim ?? 0, settings.legLength ?? 0,
+      );
+      canvas = result.canvas;
+      legCount = result.legCount;
+      lengthApplied = result.lengthApplied;
+      applied = result.applied;
+    } catch (error) {
+      console.error('[JOMON PIX] Leg detection or adjustment failed:', error);
+      legUnavailable = true;
+    }
+  }
 
-  // All editing uses the shared, deduplicated face list.
-  // Distances use full 2D geometry so tilted faces aren't wrongly skipped.
+  // The face model only moves facial pixels; body adjustments are done first.
+  // Face overrides remain based on left-to-right face indices, unchanged.
   for (const { face, index } of usableFaces) {
-    const localSettings = { ...settings, ...faceOverrides?.[String(index)] };
-    if (!BEAUTY_FIELDS.some((key) => localSettings[key] > 0)) continue;
+    const localSettings = { ...DEFAULT_BEAUTY, ...settings, ...faceOverrides?.[String(index)] };
+    if (!FACE_BEAUTY_FIELDS.some((key) => localSettings[key] > 0)) continue;
     const width = Math.hypot(
       (face[454].x - face[234].x) * w,
       (face[454].y - face[234].y) * h,
@@ -634,7 +661,15 @@ export async function renderBeauty(
     reshape(canvas, face, localSettings, width, height);
     skinCorrection(canvas, face, localSettings, width);
     makeup(canvas, face, localSettings, width);
+    applied = true;
   }
 
-  return { canvas, faceCount: usableFaces.length };
+  if (!applied) {
+    if (legUnavailable) throw new Error('脚の解析に失敗しました。');
+    return null;
+  }
+  return {
+    canvas, faceCount: usableFaces.length, legCount,
+    legUnavailable, lengthApplied,
+  };
 }

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import zipfile
 from bundle_native_offline import (
     FONTS, bundle_model, bundle_fonts, rewrite_native_html, verify, select_resources
 )
@@ -16,6 +17,10 @@ class OfflineBundleTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.dist = self.root / 'dist'
         self.dist.mkdir()
+        pose = self.dist / 'mediapipe' / 'pose_landmarker_lite.task'
+        pose.parent.mkdir()
+        with zipfile.ZipFile(pose, 'w') as archive:
+            archive.writestr('pose_detector.tflite', b'fixture')
         (self.dist / 'index.html').write_text(
             '<html><head><link rel="preconnect" href="https://fonts.googleapis.com">'
             '<link rel="preconnect" href="https://fonts.gstatic.com">'

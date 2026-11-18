@@ -27,6 +27,8 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Include local AI model for leg controls
+        run: python3 scripts/fetch_pose_model.py --out dist/mediapipe/pose_landmarker_lite.task
       - name: Create installable PWABuilder assets and offline app shell
         run: |
           python3 -m pip install --quiet Pillow==11.3.0

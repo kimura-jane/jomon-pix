@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import shutil
 import time
+import zipfile
 from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
@@ -190,6 +191,9 @@ def rewrite_native_html(dest: Path):
 
 def verify(dest: Path, lock: Path):
     assert_version(lock)
+    pose = dest / 'mediapipe' / 'pose_landmarker_lite.task'
+    if not pose.is_file() or not zipfile.is_zipfile(pose):
+        raise ValueError('Native offline Pose Landmarker model missing or invalid')
     parent = dest / 'offline-background'
     selected = select_resources(json.loads((parent / 'resources.json').read_text(encoding='utf-8')))
     for item in selected.values():

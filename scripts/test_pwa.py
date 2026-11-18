@@ -25,6 +25,7 @@ class PWATests(unittest.TestCase):
         for dirname, name in (
             ('assets', 'index-abc.js'), ('assets', 'app-abc.css'),
             ('stickers', 'demo.webp'), ('frame-previews', 'frame.png'),
+            ('mediapipe', 'pose_landmarker_lite.task'),
             ('backgrounds', 'scene.svg'), ('mediapipe', 'face_landmarker.task'),
             ('mediapipe', 'vision_wasm_internal.wasm'),
             ('mediapipe', 'vision_wasm_module_internal.wasm')

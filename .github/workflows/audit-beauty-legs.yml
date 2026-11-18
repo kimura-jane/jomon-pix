@@ -1,0 +1,61 @@
+name: Test leg adjustments on real full-body photo
+on:
+  pull_request:
+    paths:
+      - 'src/types.ts'
+      - 'src/components/BeautyPanel.tsx'
+      - 'src/lib/legProcessor.ts'
+      - 'src/lib/beautyProcessor.ts'
+      - 'scripts/fetch_pose_model.py'
+      - 'scripts/audit_leg_beauty.mjs'
+      - '.github/workflows/audit-beauty-legs.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/types.ts'
+      - 'src/components/BeautyPanel.tsx'
+      - 'src/lib/legProcessor.ts'
+      - 'src/lib/beautyProcessor.ts'
+      - 'scripts/fetch_pose_model.py'
+      - 'scripts/audit_leg_beauty.mjs'
+      - '.github/workflows/audit-beauty-legs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  leg-beauty:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Bundle real local pose model and build
+        run: |
+          python3 scripts/fetch_pose_model.py
+          npm run typecheck
+          npm run build
+      - name: Download Google MediaPipe's public test pose photo
+        run: |
+          curl --fail --location --retry 3 --max-time 60 \
+            'https://raw.githubusercontent.com/google-ai-edge/mediapipe-samples-web/main/public/pose_model.png' \
+            --output /tmp/jomon-pix-pose-model.png
+          file /tmp/jomon-pix-pose-model.png | grep -q 'PNG image data'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify both leg sliders, on-device AI and source-photo preservation
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/jomon-pix-leg.log 2>&1 &
+          for n in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/audit_leg_beauty.mjs

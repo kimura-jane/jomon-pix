@@ -13,7 +13,8 @@ from PIL import Image
 BASE = '/jomon-pix/'
 SOURCE_ICON = Path('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png')
 BASE_PRECACHE = ('assets', 'stickers', 'frame-previews', 'backgrounds')
-REQUIRED_PUBLIC = ('mediapipe/face_landmarker.task', 'mediapipe/vision_wasm_internal.wasm',
+REQUIRED_PUBLIC = ('mediapipe/face_landmarker.task', 'mediapipe/pose_landmarker_lite.task',
+                   'mediapipe/vision_wasm_internal.wasm',
                    'mediapipe/vision_wasm_module_internal.wasm')
 
 def build(out: Path) -> None:

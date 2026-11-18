@@ -20,6 +20,8 @@ const CONTROLS: Control[] = [
   { key: 'eyes', label: '目の大きさ' },
   { key: 'lip', label: 'リップ' },
   { key: 'blush', label: 'チーク' },
+  { key: 'legSlim', label: '脚を細く' },
+  { key: 'legLength', label: '脚を長く' },
 ];
 
 export function BeautyPanel() {
@@ -35,7 +37,8 @@ export function BeautyPanel() {
       : undefined;
   const photo = photos.find((el) => el.id === targetId) ??
     (photos.length === 1 ? photos[0] : undefined);
-  const beauty = photo?.beauty ?? DEFAULT_BEAUTY;
+  // Saved projects from earlier versions have no leg fields.
+  const beauty = { ...DEFAULT_BEAUTY, ...photo?.beauty };
 
   const [target, setTarget] = useState<'all' | number>('all');
   const [faceInfo, setFaceInfo] = useState<{ photoId: string; src: string; count: number } | null>(null);
@@ -70,7 +73,7 @@ export function BeautyPanel() {
   const selectedIndex = target === 'all' ? null : target < count ? target : null;
   const override = selectedIndex === null
     ? undefined : photo?.beautyFaceOverrides?.[String(selectedIndex)];
-  const visibleSettings = { ...beauty, ...override };
+  const visibleSettings = { ...DEFAULT_BEAUTY, ...beauty, ...override };
 
   const status = useBeautyStatus((store) => photo ? store.byImage[photo.id] : undefined);
   const comparing = useBeautyStatus((store) => store.comparingId === photo?.id);
@@ -81,7 +84,8 @@ export function BeautyPanel() {
 
   const change = (field: keyof BeautySettings, value: number) => {
     if (!photo || photo.locked) return;
-    if (target === 'all') {
+    // Legs always belong to the photo, even when editing a single face.
+    if (target === 'all' || field === 'legSlim' || field === 'legLength') {
       editor.update(photo.id, { beauty: { ...beauty, [field]: value } });
     } else if (selectedIndex !== null) {
       editor.update(photo.id, {

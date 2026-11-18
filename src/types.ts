@@ -79,6 +79,8 @@ export type BeautySettings = {
   eyes: number;      // 目の大きさ
   lip: number;       // リップ
   blush: number;     // チーク
+  legSlim: number;   // 脚を細くする（写真全体）
+  legLength: number; // 脚を長くする（写真全体）
 };
 
 export type ImageEl = Base & {
