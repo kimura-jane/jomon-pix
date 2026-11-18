@@ -603,13 +603,15 @@ export async function renderBeauty(
   if (naturalW <= 0 || naturalH <= 0) {
     throw new Error('写真が読み込めませんでした。');
   }
-  const needFace = FACE_BEAUTY_FIELDS.some((key) => (settings[key] ?? 0) > 0) ||
+  const needFace = (settings.legLength ?? 0) > 0 ||
+    FACE_BEAUTY_FIELDS.some((key) => (settings[key] ?? 0) > 0) ||
     Object.values(faceOverrides ?? {}).some((patch) => FACE_BEAUTY_FIELDS.some(
       (key) => (patch[key] ?? settings[key] ?? 0) > 0,
     ));
   const needLeg = (settings.legSlim ?? 0) > 0 || (settings.legLength ?? 0) > 0;
 
-  // Avoid loading the facial AI when the user only adjusts legs.
+  // Leg slimming alone does not need face AI. Lengthening cross-checks face
+  // count so a second person missed by pose detection is not warped.
   const faces = needFace ? await detectFaceLandmarksEnhanced(source) : [];
   const ratio = Math.min(1, 1600 / Math.max(naturalW, naturalH));
   const w = Math.max(1, Math.round(naturalW * ratio));
@@ -654,8 +656,11 @@ export async function renderBeauty(
 
   if (needLeg) {
     try {
+      // Never lengthen when at least two faces are visible, even if pose
+      // inference missed the other person's body.
+      const requestedLength = usableFaces.length > 1 ? 0 : settings.legLength ?? 0;
       const result = await renderLegBeauty(
-        source, canvas, settings.legSlim ?? 0, settings.legLength ?? 0,
+        source, canvas, settings.legSlim ?? 0, requestedLength,
       );
       canvas = result.canvas;
       legCount = result.legCount;
