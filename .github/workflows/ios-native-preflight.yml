@@ -107,7 +107,7 @@ jobs:
           assert raw[0] in range(5), raw[0]
           with Path('ios/App/App/Info.plist').open('rb') as handle:
               info=plistlib.load(handle)
-          assert info['CFBundleDisplayName']=='JOMON pix'
+          assert info['CFBundleDisplayName']=='JOMON PIX'
           print('PNG icon and iOS Info.plist validated')
           PY
       - name: Upload generated iOS scaffold for manual review (no push)
