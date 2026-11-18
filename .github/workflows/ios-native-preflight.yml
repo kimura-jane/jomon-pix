@@ -11,6 +11,7 @@ on:
       - codemagic.yaml
       - scripts/prepare-ios.sh
       - scripts/bundle_native_offline.py
+      - scripts/fetch_pose_model.py
       - scripts/test_bundle_native_offline.py
       - src/lib/removeBg.ts
       - src/lib/stickers.ts
@@ -29,6 +30,7 @@ on:
       - codemagic.yaml
       - scripts/prepare-ios.sh
       - scripts/bundle_native_offline.py
+      - scripts/fetch_pose_model.py
       - scripts/test_bundle_native_offline.py
       - src/lib/removeBg.ts
       - src/lib/stickers.ts
