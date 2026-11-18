@@ -227,6 +227,14 @@ try {
     'vector stickers restored',
   ));
   assert.deepEqual(restoredVectors.slice(-2).map((el) => el.src), svgSources);
+  // The IndexedDB write can finish before the success alert is dispatched.
+  // Do not mistake this harmless dialog/event ordering for a failed restore.
+  const successDeadline = Date.now() + 15000;
+  while (Date.now() < successDeadline &&
+    report.dialogs.filter((d) => d.includes('作品を復元しました')).length <
+      previousVectorSuccess + 1) {
+    await page.waitForTimeout(50);
+  }
   assert.equal(
     report.dialogs.filter((d) => d.includes('作品を復元しました')).length,
     previousVectorSuccess + 1,
