@@ -396,6 +396,24 @@ function TextTab({
                 onChange={(event) => up({ text: event.target.value })}
               />
 
+              <div className="label">フォント</div>
+              <Seg items={FONT_GROUPS} value={group} onChange={setGroup} />
+              <div className="row" role="group" aria-label="吹き出しのフォント">
+                {FONTS.filter((font) => font.group === group).map((font) => (
+                  <button
+                    key={font.family}
+                    type="button"
+                    className={`chip ${el.fontFamily === font.family ? 'on' : ''}`}
+                    aria-pressed={el.fontFamily === font.family}
+                    disabled={!!el.locked}
+                    style={{ fontFamily: font.family }}
+                    onClick={() => up({ fontFamily: font.family })}
+                  >
+                    {font.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="label">吹き出しの色</div>
               <Dots
                 value={el.bubble.background}
