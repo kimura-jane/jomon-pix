@@ -1,6 +1,7 @@
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { getUiLanguage, onUiLanguageChange, setUiLanguage, translateUiText } from '../lib/uiLanguage';
 import { flushAutosave, useAutosaveStatus, useEditor, type CanvasPreset } from '../store';
 import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
@@ -331,6 +332,9 @@ export function TopBar() {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [workBusy, setWorkBusy] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const [uiLanguage, showUiLanguage] = useState(getUiLanguage);
+
+  useEffect(() => onUiLanguageChange(() => showUiLanguage(getUiLanguage())), []);
 
   const hasSaveError = autosaveStatus === 'failed';
   const isReadError = hasSaveError &&
@@ -346,7 +350,7 @@ export function TopBar() {
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       setBlob(await exportBlob());
     } catch (error) {
-      alert(error instanceof Error ? error.message : '画像の作成に失敗しました');
+      alert(uiLanguage === 'en' ? translateUiText(error instanceof Error ? error.message : '画像の作成に失敗しました') : (error instanceof Error ? error.message : '画像の作成に失敗しました'));
     } finally {
       setBusy(false);
     }
@@ -387,7 +391,7 @@ export function TopBar() {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'バックアップを作成できませんでした。');
+      alert(uiLanguage === 'en' ? translateUiText(error instanceof Error ? error.message : 'バックアップを作成できませんでした。') : (error instanceof Error ? error.message : 'バックアップを作成できませんでした。'));
     } finally {
       setWorkBusy(false);
     }
@@ -405,9 +409,13 @@ export function TopBar() {
       const artwork = parseBackup(await file.text());
 
       const confirmed = window.confirm(
-        '現在の作品は読み込む作品で置き換わります。\n' +
-        '現在の作品を残したい場合は、先に「作品をバックアップ」を実行してください。\n\n' +
-        '読み込みを続けますか？',
+        uiLanguage === 'en'
+          ? 'The imported project will replace the current project.\n' +
+            'To keep the current project, choose “Back up project” first.\n\n' +
+            'Continue importing?'
+          : '現在の作品は読み込む作品で置き換わります。\n' +
+            '現在の作品を残したい場合は、先に「作品をバックアップ」を実行してください。\n\n' +
+            '読み込みを続けますか？',
       );
       if (!confirmed) return;
 
@@ -448,9 +456,9 @@ export function TopBar() {
       }
 
       setWorkOpen(false);
-      alert('作品を復元しました。');
+      alert(uiLanguage === 'en' ? translateUiText('作品を復元しました。') : '作品を復元しました。');
     } catch (error) {
-      alert(error instanceof Error ? error.message : '作品を読み込めませんでした。');
+      alert(uiLanguage === 'en' ? translateUiText(error instanceof Error ? error.message : '作品を読み込めませんでした。') : (error instanceof Error ? error.message : '作品を読み込めませんでした。'));
     } finally {
       setWorkBusy(false);
     }
@@ -459,7 +467,7 @@ export function TopBar() {
   return (
     <header className="top">
       <div className="brand">
-        <span className="logo">JOMON pix</span>
+        <span className="logo">JOMON PIX</span>
 
         {autosaveStatus === 'saving' && (
           <span className="saved" role="status" style={{
@@ -489,6 +497,12 @@ export function TopBar() {
           aria-label="プライバシーポリシー"
           onClick={() => setPrivacyOpen(true)}>
           プライバシー
+        </button>
+        <button type="button" className="lang-switch"
+          aria-label={uiLanguage === 'ja' ? 'Switch to English' : '日本語に切り替え'}
+          title={uiLanguage === 'ja' ? 'Switch to English' : '日本語に切り替え'}
+          onClick={() => setUiLanguage(uiLanguage === 'ja' ? 'en' : 'ja')}>
+          {uiLanguage === 'ja' ? '日本語 / English' : 'English / 日本語'}
         </button>
       </div>
 
@@ -561,7 +575,7 @@ export function TopBar() {
             onClick={(event) => event.stopPropagation()}
             style={{ height: 'min(86dvh, 800px)', maxWidth: 720, minHeight: 0 }}>
             <iframe title="プライバシーポリシー"
-              src={`${import.meta.env.BASE_URL}privacy-policy.html`}
+              src={`${import.meta.env.BASE_URL}privacy-policy.html?lang=${uiLanguage}`}
               style={{ width: '100%', flex: 1, minHeight: 0, border: 0,
                 borderRadius: 12, background: '#fdf8fb' }} />
             <button type="button" className="btn big ghost"

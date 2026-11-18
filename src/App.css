@@ -21,13 +21,15 @@ button { font-family: inherit; color: inherit; }
 
 /* 上の列 */
 .top { padding: max(10px, env(safe-area-inset-top, 0px)) 12px 6px; display: flex; flex-direction: column; gap: 8px; }
-.brand { display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 7px; min-width: 0; flex-wrap: wrap; }
 .logo { font-family: 'Dela Gothic One', sans-serif; font-size: 20px; letter-spacing: 0.5px;
   background: linear-gradient(90deg, var(--pink), var(--purple)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .saved { font-size: 11px; color: var(--sub); background: var(--glass); padding: 4px 10px; border-radius: 99px; }
 .privacy-link { flex: none; font-size: 11px; color: #77566f; padding: 6px 3px;
   border: 0; background: transparent; text-decoration: underline;
   text-underline-offset: 3px; cursor: pointer; }
+.lang-switch { margin-left: auto; flex: none; border: 1px solid #e6c8db; border-radius: 999px; background: #fff9fc; color: #71465d; padding: 6px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.lang-switch:focus-visible { outline: 2px solid #c257a1; outline-offset: 2px; }
 .bar { display: flex; align-items: center; gap: 6px; background: var(--glass); backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px); border-radius: 22px; padding: 6px; box-shadow: 0 6px 24px rgba(255, 79, 163, 0.12); }
 .tabs { flex: 1; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }

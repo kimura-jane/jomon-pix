@@ -1,3 +1,4 @@
+import { uiMessage } from '../lib/uiLanguage';
 
 import { useEffect, useMemo, useState } from 'react';
 import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
@@ -55,8 +56,8 @@ export function SaveModal({ blob, onClose }: Props) {
     } catch (e) {
       const message = e instanceof Error ? e.message : '';
       if (!/abort|cancel|dismiss/i.test(message)) {
-        alert('共有できませんでした。' +
-          (native ? 'もう一度お試しください。' : '画像を長押しして保存してください。'));
+        alert(uiMessage('共有できませんでした。') +
+          (native ? uiMessage('もう一度お試しください。') : uiMessage('画像を長押しして保存してください。')));
       }
     } finally {
       setSaving(false);

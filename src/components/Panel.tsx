@@ -1,3 +1,4 @@
+import { uiMessage } from '../lib/uiLanguage';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -314,7 +315,7 @@ function ImageTab() {
               await addImageFromFile(file);
             }
           } catch {
-            alert('写真を追加できませんでした');
+            alert(uiMessage('写真を追加できませんでした'));
           }
         }}
       />
@@ -330,7 +331,7 @@ function ImageTab() {
         className="big-btn light"
         onClick={() => {
           if (
-            confirm('今の作品を消して新しく作る？')
+            confirm(uiMessage('今の作品を消して新しく作る？'))
           ) {
             clear();
           }

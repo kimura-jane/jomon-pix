@@ -1,3 +1,4 @@
+import { uiMessage } from '../lib/uiLanguage';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor } from '../store';
@@ -317,7 +318,7 @@ function MosaicDialog({
       state.update(photo.id, { src: result });
       const saved = useAutosaveStatus.getState();
       if (saved.status === 'failed') {
-        alert('加工は反映されましたが、自動保存できません。画像サイズや保存容量を確認してください。');
+        alert(uiMessage('加工は反映されましたが、自動保存できません。画像サイズや保存容量を確認してください。'));
       }
       onClose();
     } catch (e) {

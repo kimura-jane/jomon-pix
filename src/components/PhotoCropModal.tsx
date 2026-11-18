@@ -1,3 +1,4 @@
+import { uiMessage } from '../lib/uiLanguage';
 
 import { useState } from 'react';
 import { useEditor } from '../store';
@@ -66,7 +67,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
 
   const chooseRatio = (label: string, ratio: number) => {
     if (!imageSize.width || !imageSize.height) {
-      alert('写真を読み込み中です');
+      alert(uiMessage('写真を読み込み中です'));
       return;
     }
 
@@ -86,7 +87,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
       next.left + next.right > 90 ||
       next.top + next.bottom > 90
     ) {
-      alert('この写真では、その比率に切り抜けません');
+      alert(uiMessage('この写真では、その比率に切り抜けません'));
       return;
     }
 
