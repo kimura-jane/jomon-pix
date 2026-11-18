@@ -91,7 +91,7 @@ try {
     await policyPage.getByRole('button', { name: 'プライバシーポリシー' }).click();
     const privacyFrame = policyPage.frameLocator('iframe[title="プライバシーポリシー"]');
     await privacyFrame.getByRole('heading', { name: 'プライバシーポリシー' }).waitFor();
-    await privacyFrame.getByText('jomon@jomonkusama.com').waitFor();
+    await privacyFrame.locator('#policy-ja').getByRole('link', { name: 'jomon@jomonkusama.com' }).waitFor();
     await policyPage.getByRole('dialog', { name: 'プライバシーポリシー' })
       .getByRole('button', { name: '閉じる' }).click();
     report.checks.push('Privacy policy accessible in app and published on both asset bases');
