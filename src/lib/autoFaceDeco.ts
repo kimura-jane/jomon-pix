@@ -9,6 +9,8 @@ type FaceSlot = 'ears' | 'head' | 'eyes' | 'nose' | 'whiskers' | 'cheeks' | 'mou
 // The original SVG art uses a 200x200 viewBox. Position each art category so
 // its painted content—not the empty SVG margin—matches facial landmarks.
 function layoutFor(stickerId: string): { slot: FaceSlot; width: number; anchorY?: number } {
+  // Hair overlays have a transparent face opening; center on the forehead.
+  if (stickerId.startsWith('hair-')) return { slot: 'head', width: 2.04, anchorY: 0.33 };
   if (stickerId === 'face-cat-ears') return { slot: 'ears', width: 1.82, anchorY: 0.43 };
   if (stickerId === 'face-dog-ears') return { slot: 'ears', width: 1.52, anchorY: 0.31 };
   if (stickerId === 'face-rabbit-ears') return { slot: 'ears', width: 1.65, anchorY: 0.52 };

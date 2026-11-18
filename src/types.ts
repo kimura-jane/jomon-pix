@@ -25,6 +25,7 @@ export type Tab =
   | 'stamp'
   | 'glasses'
   | 'mosaic'
+  | 'magic'
   | 'beauty'
   | 'edit'
   | 'frame'
