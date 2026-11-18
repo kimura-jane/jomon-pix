@@ -123,6 +123,21 @@ const messages: Record<string, string> = {
   '消去する写真': 'Photo to erase', '不要なものを消す': 'Remove unwanted objects',
   '選択範囲をクリア': 'Clear Selection',
   '消去して補完': 'Erase and Fill', '補完中…': 'Filling…',
+  'AI消しゴム': 'AI Eraser', 'AI補完': 'AI Fill', '軽量補完': 'Light Fill',
+  'AIで消す': 'Erase with AI', 'この結果を適用': 'Apply Result',
+  '選択し直す': 'Reselect', '長押しで元画像を比較': 'Hold to Compare Original',
+  'AIを準備中…': 'Preparing AI…', 'AIモデルを読み込み中…': 'Loading AI Model…',
+  'AIが背景を生成中…': 'AI Rebuilding Background…',
+  '画像を仕上げ中…': 'Finishing Image…',
+  '補完が完了しました。比較してから適用できます。':
+    'Fill complete. Compare and apply when satisfied.',
+  'AIが不要物を消して背景を補完します。無料・端末内処理。適用前に比較できます。':
+    'AI reconstructs the background on your device for free. Preview before applying.',
+  '端末内AIが選択部分の背景を生成します。初回は約28MBのモデルを読み込みます。写真は送信しません。':
+    'On-device AI rebuilds the background. First use loads a 28 MB model. Photos never leave your device.',
+  '周囲の画像をコピーする従来方式です。AIが重い場合にも使えます。':
+    'Lightweight pixel-copy mode. Use it if AI is too slow.',
+  '仕上がりを確認してください。': 'Preview your result.',
   '周囲の画像を使って選択部分を補完します。模様が複雑な場所では不自然になることがあります。':
     'Fills the selected area using surrounding pixels. Complex backgrounds may look unnatural.',
   '無料・端末内処理。元の写真は「戻す」で復元できます。':

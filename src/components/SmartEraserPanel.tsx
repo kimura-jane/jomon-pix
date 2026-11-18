@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAutosaveStatus, useEditor } from '../store';
 import { getPhotoLabel } from '../lib/photoAttachments';
 import { smartErase } from '../lib/smartErase';
+import { aiSmartErase } from '../lib/aiInpaint';
 import type { ImageEl } from '../types';
 
 type Point = { x: number; y: number };
@@ -32,7 +33,10 @@ function SelectionDialog({
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [view, setView] = useState({ width: 0, height: 0 });
   const [mode, setMode] = useState<EraseMode>('brush');
-  const [brushPercent, setBrushPercent] = useState(9);
+  const [brushPercent, setBrushPercent] = useState(5);
+  const [engine, setEngine] = useState<'ai' | 'simple'>('ai');
+  const [preview, setPreview] = useState<string | null>(null);
+  const [progress, setProgress] = useState('');
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [rectangle, setRectangle] = useState<Rectangle | null>(null);
   const [error, setError] = useState('');
@@ -87,7 +91,7 @@ function SelectionDialog({
   };
 
   const pointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (working || !image || pointerId.current !== null ||
+    if (working || preview || !image || pointerId.current !== null ||
         (event.pointerType === 'mouse' && event.button !== 0)) return;
     const point = pointFromClient(event.clientX, event.clientY);
     if (!point) return;
@@ -104,7 +108,7 @@ function SelectionDialog({
   };
 
   const pointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (working || pointerId.current !== event.pointerId) return;
+    if (working || preview || pointerId.current !== event.pointerId) return;
     const point = pointFromClient(event.clientX, event.clientY);
     if (!point) return;
     if (mode === 'brush') {
@@ -136,6 +140,7 @@ function SelectionDialog({
     setError('');
     setStrokes([]);
     setRectangle(null);
+    setPreview(null);
   };
 
   const hasSelection = mode === 'brush'
@@ -148,6 +153,7 @@ function SelectionDialog({
     if (!image || !hasSelection || working) return;
     setWorking(true);
     setError('');
+    setProgress(engine === 'ai' ? 'AIを準備中…' : '補完中…');
     try {
       const selection = document.createElement('canvas');
       selection.width = image.naturalWidth;
@@ -184,23 +190,32 @@ function SelectionDialog({
         }
       }
 
-      const newSource = await smartErase(image, selection);
-      const state = useEditor.getState();
-      const latest = state.elements.find((item) => item.id === photo.id);
-      if (latest?.type !== 'image' || latest.src !== photo.src ||
-          latest.locked || latest.hidden) {
-        throw new Error('写真が変更されました。操作をやり直してください。');
-      }
-      state.update(photo.id, { src: newSource });
-      if (useAutosaveStatus.getState().status === 'failed') {
-        alert('画像は加工されましたが、自動保存できません。画像保存やバックアップを行ってください。');
-      }
-      onClose();
+      const result = engine === 'ai'
+        ? await aiSmartErase(image, selection, setProgress)
+        : await smartErase(image, selection);
+      setPreview(result);
+      setProgress('補完が完了しました。比較してから適用できます。');
     } catch (e) {
       setError(e instanceof Error ? e.message : '消去処理に失敗しました。');
     } finally {
       setWorking(false);
     }
+  };
+
+  const confirm = () => {
+    if (!preview || working) return;
+    const state = useEditor.getState();
+    const latest = state.elements.find((item) => item.id === photo.id);
+    if (latest?.type !== 'image' || latest.src !== photo.src ||
+        latest.locked || latest.hidden) {
+      setError('写真が変更されました。操作をやり直してください。');
+      return;
+    }
+    state.update(photo.id, { src: preview });
+    if (useAutosaveStatus.getState().status === 'failed') {
+      alert('画像は加工されましたが、自動保存できません。画像保存やバックアップを行ってください。');
+    }
+    onClose();
   };
 
   return createPortal(
@@ -210,12 +225,20 @@ function SelectionDialog({
         maxWidth: 650, maxHeight: 'calc(100dvh - 20px)',
         overflowY: 'auto', gap: 10,
       }}>
-        <h3>スマート消去</h3>
+        <h3>AI消しゴム</h3>
+        <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          <button type="button" className={engine === 'ai' ? 'on' : ''}
+            disabled={working} aria-pressed={engine === 'ai'}
+            onClick={() => { setEngine('ai'); setPreview(null); setError(''); }}>AI補完</button>
+          <button type="button" className={engine === 'simple' ? 'on' : ''}
+            disabled={working} aria-pressed={engine === 'simple'}
+            onClick={() => { setEngine('simple'); setPreview(null); setError(''); }}>軽量補完</button>
+        </div>
         <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button type="button" className={mode === 'brush' ? 'on' : ''}
-            disabled={working} onClick={() => changeMode('brush')}>指でなぞる</button>
+            disabled={working || !!preview} onClick={() => changeMode('brush')}>指でなぞる</button>
           <button type="button" className={mode === 'rectangle' ? 'on' : ''}
-            disabled={working} onClick={() => changeMode('rectangle')}>四角で囲む</button>
+            disabled={working || !!preview} onClick={() => changeMode('rectangle')}>四角で囲む</button>
         </div>
         <div ref={frameRef} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -233,10 +256,10 @@ function SelectionDialog({
                 width: view.width, height: view.height,
                 overflow: 'hidden', touchAction: 'none', cursor: 'crosshair',
               }}>
-              <img src={photo.src} alt="消去する写真" draggable={false}
+              <img src={preview ?? photo.src} alt="消去する写真" draggable={false}
                 style={{ display: 'block', width: '100%', height: '100%',
                   pointerEvents: 'none', userSelect: 'none' }} />
-              <svg viewBox={'0 0 ' + image.naturalWidth + ' ' + image.naturalHeight}
+              {!preview && <svg viewBox={'0 0 ' + image.naturalWidth + ' ' + image.naturalHeight}
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
                   pointerEvents: 'none' }}>
                 {mode === 'rectangle' && rectangle && (
@@ -259,11 +282,11 @@ function SelectionDialog({
                         strokeWidth={stroke.size} strokeLinecap="round"
                         strokeLinejoin="round" />
                 ))}
-              </svg>
+              </svg>}
             </div>
           ) : <p className="hint-s">写真を読み込み中…</p>}
         </div>
-        {mode === 'brush' && (
+        {!preview && mode === 'brush' && (
           <label className="slider">
             ブラシの太さ {brushPercent}%
             <input type="range" min={2} max={25} step={1}
@@ -272,21 +295,49 @@ function SelectionDialog({
           </label>
         )}
         <p className="hint-s" style={{ margin: 0 }}>
-          周囲の画像を使って選択部分を補完します。模様が複雑な場所では不自然になることがあります。
+          {engine === 'ai'
+            ? '端末内AIが選択部分の背景を生成します。初回は約28MBのモデルを読み込みます。写真は送信しません。'
+            : '周囲の画像をコピーする従来方式です。AIが重い場合にも使えます。'}
+          {preview && ' 仕上がりを確認してください。'}
         </p>
+        {progress && <p role="status" className="hint-s" style={{ margin: 0 }}>{progress}</p>}
         <button type="button" className="chip"
-          disabled={working || !hasSelection}
-          onClick={() => { setStrokes([]); setRectangle(null); }}>
+          disabled={working || !!preview || !hasSelection}
+          onClick={() => { setStrokes([]); setRectangle(null); setError(''); }}>
           選択範囲をクリア
         </button>
         {error && <p role="alert" style={{ color: '#c02660', fontSize: 13 }}>{error}</p>}
+        {preview && (
+          <button type="button" className="chip" disabled={working}
+            onPointerDown={() => {
+              const img = pictureRef.current?.querySelector('img');
+              if (img) img.src = photo.src;
+            }}
+            onPointerUp={() => {
+              const img = pictureRef.current?.querySelector('img');
+              if (img) img.src = preview;
+            }}
+            onPointerCancel={() => {
+              const img = pictureRef.current?.querySelector('img');
+              if (img) img.src = preview;
+            }}
+            onPointerLeave={() => {
+              const img = pictureRef.current?.querySelector('img');
+              if (img) img.src = preview;
+            }}>
+            長押しで元画像を比較
+          </button>
+        )}
         <div className="row" style={{ flexWrap: 'nowrap' }}>
           <button type="button" className="btn" style={{ flex: 1 }}
-            disabled={working} onClick={onClose}>キャンセル</button>
+            disabled={working} onClick={() => {
+              if (preview) { setPreview(null); setProgress(''); }
+              else onClose();
+            }}>{preview ? '選択し直す' : 'キャンセル'}</button>
           <button type="button" className="btn primary" style={{ flex: 1 }}
-            disabled={working || !image || !hasSelection}
-            onClick={() => { void apply(); }}>
-            {working ? '補完中…' : '消去して補完'}
+            disabled={working || (!preview && (!image || !hasSelection))}
+            onClick={() => { if (preview) confirm(); else void apply(); }}>
+            {working ? '補完中…' : preview ? 'この結果を適用' : engine === 'ai' ? 'AIで消す' : '消去して補完'}
           </button>
         </div>
       </div>
@@ -338,7 +389,7 @@ export function SmartEraserPanel() {
             不要なものを消す
           </button>
           <p className="hint-s">
-            無料・端末内処理。元の写真は「戻す」で復元できます。
+            AIが不要物を消して背景を補完します。無料・端末内処理。適用前に比較できます。
           </p>
         </>
       )}
