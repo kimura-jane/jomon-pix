@@ -29,7 +29,14 @@ class PWATests(unittest.TestCase):
             ('backgrounds', 'scene.svg'), ('mediapipe', 'face_landmarker.task'),
             ('mediapipe', 'vision_wasm_internal.wasm'),
             ('mediapipe', 'vision_wasm_module_internal.wasm'),
-            ('third-party', 'MEDIAPIPE-APACHE-2.0.txt')
+            ('third-party', 'MEDIAPIPE-APACHE-2.0.txt'),
+            # Synthetic stand-ins: real model digest is validated by the
+            # native bundler, not by this isolated PWA shell fixture.
+            ('ai/inpaint', 'migan_pipeline_v2.onnx'),
+            ('ai/inpaint', 'ort-wasm-simd-threaded.wasm'),
+            ('ai/inpaint', 'ort-wasm-simd-threaded.mjs'),
+            ('third-party', 'MI-GAN-MIT.txt'),
+            ('third-party', 'ONNXRUNTIME-MIT.txt')
         ):
             path = self.out / dirname / name
             path.parent.mkdir(exist_ok=True)
