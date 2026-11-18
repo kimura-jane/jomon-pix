@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 
 const base = process.env.JOMON_TEST_URL ?? 'http://127.0.0.1:4173/jomon-pix/';
-const engine = process.env.JOMON_BROWSER === 'webkit' ? webkit : chromium;
-const browser = await engine.launch({ headless: true, args: engine === chromium ? ['--no-sandbox'] : [] });
+const kind = process.env.JOMON_BROWSER;
+const engine = kind === 'webkit' ? webkit : chromium;
+const browser = await engine.launch(kind === 'system-chrome'
+  ? { headless: true, channel: 'chrome', args: ['--no-sandbox'] }
+  : { headless: true, args: engine === chromium ? ['--no-sandbox'] : [] });
 
 try {
   const page = await browser.newPage({ viewport: { width: 393, height: 852 } });
