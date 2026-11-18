@@ -10,6 +10,7 @@ on:
       - 'src/components/Panel.tsx'
   pull_request:
     paths:
+      - 'src/components/Panel.tsx'
       - 'src/lib/autoFaceDeco.ts'
       - 'src/lib/beautyProcessor.ts'
       - 'scripts/audit_auto_face_deco.mjs'
