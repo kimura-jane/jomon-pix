@@ -68,18 +68,18 @@ try {
     state.elements.some((item) => item.type === 'image'))).elements
     .find((item) => item.type === 'image').src;
 
-  // 6 styles + 8 colors; manual placement reuses existing sticker geometry.
+  // 9 styles + 8 colors; choosing a new style REPLACES the same sticker.
   await page.locator('.bar button.tab').filter({ hasText: 'スタンプ' }).click();
   await page.getByRole('button', { name: '髪型', exact: true }).click();
   await page.getByRole('button', { name: '手動配置', exact: true }).click();
-  assert.equal(await page.getByRole('button', { name: /髪型:.*を追加/ }).count(), 6);
+  assert.equal(await page.getByRole('button', { name: /髪型:.*を追加/ }).count(), 9);
   assert.equal(await page.getByRole('group', { name: '髪色を選択' }).locator('button').count(), 8);
   await page.getByRole('button', { name: /髪型:ボブ.*を追加/ }).click();
   const withHair = await waitSaved((state) =>
     state.elements.filter((item) => item.type === 'sticker').length === 1);
   const firstHair = withHair.elements.find((item) => item.type === 'sticker');
   assert.equal(firstHair.parentImageId, withHair.elements.find((item) => item.type === 'image').id);
-  assert.ok(firstHair.src.startsWith('data:image/svg+xml'), 'Transparent SVG is bundled');
+  assert.ok(firstHair.src.endsWith('/stickers/hair/v2/bob-dark-brown.webp'), 'Realistic transparent WebP is bundled');
 
   await page.getByRole('button', { name: 'ピンク', exact: true }).click();
   const pink = await waitSaved((state) =>
@@ -88,6 +88,32 @@ try {
   const pinkHair = pink.elements.find((item) => item.type === 'sticker');
   assert.notEqual(pinkHair.src, firstHair.src, 'Hair color changes the rendered asset');
   assert.equal(pinkHair.parentImageId, firstHair.parentImageId);
+
+  for (const [label, file] of [
+    ['角刈り', 'flattop'],
+    ['アフロ', 'afro'],
+    ['リーゼント', 'pompadour'],
+  ]) {
+    await page.getByRole('button', { name: new RegExp('髪型:' + label + '.*を追加') }).click();
+    const updated = await waitSaved((state) => state.elements.some((item) =>
+      item.type === 'sticker' &&
+      item.label.startsWith('髪型:' + label + '（') &&
+      item.src.includes('/' + file + '-pink.webp'),
+    ));
+    const allHair = updated.elements.filter((item) => item.type === 'sticker' &&
+      item.label.startsWith('髪型:'));
+    assert.equal(allHair.length, 1, 'Trying a new cut must not stack another hair layer');
+    assert.equal(allHair[0].id, firstHair.id, 'Replacement keeps the editable sticker ID');
+    assert.equal(allHair[0].parentImageId, firstHair.parentImageId,
+      'Replacement keeps the original photo attachment');
+  }
+  await page.locator('.bar [aria-label="戻す"]').click();
+  await waitSaved((state) => state.elements.some((item) =>
+    item.type === 'sticker' && item.label.startsWith('髪型:アフロ（')));
+  // Switch to another new style to ensure Undo/redo history is not corrupted.
+  await page.getByRole('button', { name: /髪型:リーゼント.*を追加/ }).click();
+  await waitSaved((state) => state.elements.some((item) =>
+    item.type === 'sticker' && item.label.startsWith('髪型:リーゼント（')));
 
   // Actual photo-fill, with brush and rectangle selection in touch UI.
   await page.locator('.bar button.tab').filter({ hasText: 'スマート消去' }).click();
