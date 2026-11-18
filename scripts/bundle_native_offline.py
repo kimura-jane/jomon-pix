@@ -197,6 +197,20 @@ def verify(dest: Path, lock: Path):
     legal = dest / 'third-party' / 'MEDIAPIPE-APACHE-2.0.txt'
     if not legal.is_file() or legal.stat().st_size < 1000:
         raise ValueError('MediaPipe Apache-2.0 license text missing from native bundle')
+    # Native erase must never call a remote model host at runtime.
+    # ONNX is an original-author MIT model with a pinned content digest.
+    ai = dest / 'ai' / 'inpaint'
+    model = ai / 'migan_pipeline_v2.onnx'
+    if (not model.is_file() or model.stat().st_size != 28079181 or
+            hash_file(model) != '6f1f3530a1a2324b19752018ce756088b07973cda8d7d890034ace5c8a48c40b'):
+        raise ValueError('Native MI-GAN model missing or altered')
+    for name in ('ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs'):
+        if not (ai / name).is_file() or (ai / name).stat().st_size < 10000:
+            raise ValueError('Native offline ONNX Runtime asset missing: ' + name)
+    for name in ('MI-GAN-MIT.txt', 'ONNXRUNTIME-MIT.txt'):
+        notice = dest / 'third-party' / name
+        if not notice.is_file() or 'MIT License' not in notice.read_text(encoding='utf-8'):
+            raise ValueError('Missing offline AI license notice: ' + name)
     parent = dest / 'offline-background'
     selected = select_resources(json.loads((parent / 'resources.json').read_text(encoding='utf-8')))
     for item in selected.values():
