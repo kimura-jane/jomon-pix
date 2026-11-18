@@ -106,7 +106,7 @@ try {
 
   // English labels for the Home and mosaic styles.
   await page.locator('.lang-switch').click();
-  await page.getByText('Home', { exact: true }).first().waitFor();
+  await page.locator('.bar button.tab').filter({ hasText: 'Home' }).waitFor();
   await page.locator('.panel .seg button').filter({ hasText: 'Entire Photo' }).click();
   await page.getByRole('button', { name: '▦ Mosaic Entire Photo' }).click();
   const labels = await page.locator('.mosaic-style span:last-child').allTextContents();
