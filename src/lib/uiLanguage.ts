@@ -36,7 +36,7 @@ export function onUiLanguageChange(callback: () => void): () => void {
 const messages: Record<string, string> = {
   '作品を読み込み中…': 'Loading your project…',
   '文字': 'Text', 'ペン': 'Draw', 'スタンプ': 'Stickers',
-  'モザイク': 'Mosaic', 'ビューティー': 'Beauty',
+  'モザイク': 'Mosaic', 'スマート消去': 'Smart Erase', 'ビューティー': 'Beauty',
   '加工': 'Edit', 'フレーム': 'Frames', 'レイヤー': 'Layers',
   '画像': 'Photo', 'ホーム': 'Home', 'プライバシー': 'Privacy',
   'プライバシーポリシー': 'Privacy Policy',
@@ -105,7 +105,26 @@ const messages: Record<string, string> = {
   'なし': 'None', 'ビビッド': 'Vivid', 'ふんわり': 'Soft',
   'クール': 'Cool', 'セピア': 'Sepia', 'モノクロ': 'Monochrome',
   '□ 正方形': '□ Square',
-  '顔デコ': 'Face Decor', 'サングラス': 'Sunglasses',
+  '顔デコ': 'Face Decor', '髪型': 'Hairstyles', 'サングラス': 'Sunglasses',
+  '髪色（選択中の髪型にも反映）': 'Hair color (updates selected hair too)',
+  '髪色を選択': 'Select hair color',
+  '透過ヘアスタンプを重ねます。写真の髪そのものをAIで変える機能ではありません。':
+    'This overlays a transparent hairstyle; it does not modify real hair with AI.',
+  '黒髪': 'Black', 'ダークブラウン': 'Dark Brown', 'ブラウン': 'Brown',
+  'ブロンド': 'Blonde', 'アッシュ': 'Ash', 'レッド': 'Red',
+  'ピンク': 'Pink', 'シルバー': 'Silver',
+  'ボブ': 'Bob', 'ストレートロング': 'Long Straight', 'ショート': 'Short',
+  'ウェーブ': 'Waves', 'レイヤー': 'Layers', '前髪ありミディアム': 'Medium with Bangs',
+  '指でなぞる': 'Brush', '四角で囲む': 'Rectangle',
+  '消去する写真': 'Photo to erase', '不要なものを消す': 'Remove unwanted objects',
+  '選択範囲をクリア': 'Clear Selection', 'キャンセル': 'Cancel',
+  '消去して補完': 'Erase and Fill', '補完中…': 'Filling…',
+  '周囲の画像を使って選択部分を補完します。模様が複雑な場所では不自然になることがあります。':
+    'Fills the selected area using surrounding pixels. Complex backgrounds may look unnatural.',
+  '無料・端末内処理。元の写真は「戻す」で復元できます。':
+    'Free, on-device processing. Use Undo to restore the original.',
+  '先に写真を追加し、ロックを解除してください。':
+    'Add a photo and unlock it first.',
 
   '全員': 'Everyone', '加工する顔を選択': 'Select Faces to Edit',
   'サングラス装備': 'Sunglasses', 'サングラスの種類': 'Sunglasses Styles',
