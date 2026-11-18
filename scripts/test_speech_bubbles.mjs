@@ -42,11 +42,25 @@ try {
   assert.equal(await page.getByRole('group', { name: '吹き出しの形' }).getByRole('button').count(), 4);
   await page.getByRole('button', { name: '丸の吹き出し' }).click();
 
+  // The same four groups and 15 choices as the normal Text editor.
+  const fontChoices = page.getByRole('group', { name: '吹き出しのフォント' });
+  let totalFonts = 0;
+  for (const group of ['かわいい', '手書き', 'まじめ', 'インパクト']) {
+    await page.getByRole('button', { name: group, exact: true }).click();
+    totalFonts += await fontChoices.getByRole('button').count();
+  }
+  assert.equal(totalFonts, 15, 'Bubble picker should list all 15 existing fonts');
+  await page.getByRole('button', { name: '手書き', exact: true }).click();
+  await fontChoices.getByRole('button', { name: 'よもぎ' }).click();
+  assert.equal(await fontChoices.getByRole('button', { name: 'よもぎ' })
+    .getAttribute('aria-pressed'), 'true');
+
   const textbox = page.getByRole('textbox', { name: 'セリフを編集' });
   await textbox.waitFor();
   await textbox.fill('こんにちは！\nJOMON PIX');
   const textState = await waitFor((s) => s.elements.some((e) => e.type === 'text' &&
-    e.bubble?.style === 'round' && e.text === 'こんにちは！\nJOMON PIX'), 'first bubble');
+    e.bubble?.style === 'round' && e.fontFamily === 'Yomogi' &&
+    e.text === 'こんにちは！\nJOMON PIX'), 'first bubble with selected font');
   const id = textState.elements.find((e) => e.type === 'text' && e.bubble)?.id;
   assert.ok(id);
 
@@ -64,7 +78,8 @@ try {
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('.bar button.tab').filter({ hasText: '文字' }).click();
   await waitFor((state) => state.elements.some((item) =>
-    item.id === id && item.bubble?.tail === 'left'), 'reload persistence');
+    item.id === id && item.bubble?.tail === 'left' &&
+    item.fontFamily === 'Yomogi'), 'reload font persistence');
   // A selected layer is intentionally not persisted across reload.
   await page.getByRole('button', { name: '吹き出し', exact: true }).click();
   assert.equal(await page.getByRole('button', { name: '丸の吹き出し' }).count(), 1);

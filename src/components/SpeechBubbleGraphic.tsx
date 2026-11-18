@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import Konva from 'konva';
 import { Group, Shape, Text } from 'react-konva';
 import type { TextEl, SpeechBubbleStyle } from '../types';
@@ -67,6 +68,21 @@ function decorativeBubble(
 export function SpeechBubbleGraphic({ el }: { el: TextEl }) {
   if (!el.bubble) return null;
   const bubble = el.bubble;
+  const [, refreshFont] = useState(0);
+  useEffect(() => {
+    let current = true;
+    // The font may load after the canvas first paints. Re-measure the
+    // dialogue so bubble height follows the actual glyph metrics.
+    void document.fonts?.load(
+      `${el.fontSize}px "${el.fontFamily.replace(/["\\]/g, '')}"`,
+      el.text || ' ',
+    ).then(() => {
+      if (current) refreshFont((value) => value + 1);
+    }).catch(() => {
+      // If a web font is unavailable, the browser's fallback remains usable.
+    });
+    return () => { current = false; };
+  }, [el.fontFamily, el.fontSize, el.text]);
   const w = Math.max(160, Math.min(500, bubble.width));
   const paddingX = 23;
   const paddingY = 19;
