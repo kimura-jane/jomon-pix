@@ -24,7 +24,7 @@ try {
     // A clearly striped body plus static background grid proves that the
     // image changed, while distant background and face region stay identical.
     for (let y = 100; y < 610; y += 8) {
-      ctx.fillStyle = (y / 8) % 2 === 0 ? '#d5479a' : '#185b97';
+      ctx.fillStyle = (Math.floor((y - 100) / 8) % 2) === 0 ? '#d5479a' : '#185b97';
       ctx.fillRect(175, y, 130, 8);
     }
     for (let x = 181; x <= 295; x += 12) {
