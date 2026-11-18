@@ -87,6 +87,11 @@ const messages: Record<string, string> = {
   '吹き出しの幅': 'Bubble Width',
   '吹き出しを削除': 'Delete Bubble',
   '吹き出しを選択': 'Select a speech bubble',
+  '文字の色': 'Text Color',
+  '丸の吹き出し': 'Round Bubble',
+  'ギザギザの吹き出し': 'Jagged Bubble',
+  'もくもくの吹き出し': 'Cloud Bubble',
+  'LINE風の吹き出し': 'Chat Bubble',
   'セリフを編集': 'Edit Dialogue',
   '吹き出しをもう1つ追加': 'Add Another Bubble',
   '吹き出しは写真の上で移動・拡大できます。':
@@ -129,7 +134,7 @@ const messages: Record<string, string> = {
   'スクエア白': 'White Square', 'クラブキラキラ': 'Glitter Club',
 
   '犬': 'Dogs', '縄文': 'Jomon', '絵文字': 'Emoji',
-  'マイスタンプ': 'My Stickers', 'その他': 'Other',
+  'その他': 'Other',
   '一緒に動かす写真を選ぶ': 'Attach to a photo',
   'くっつけない': 'Detach',
   '配置済みスタンプを選択': 'Select an added sticker',
