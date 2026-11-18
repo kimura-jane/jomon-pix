@@ -3,10 +3,13 @@ import { TopBar } from './components/TopBar';
 import { Editor } from './components/Editor';
 import { Panel } from './components/Panel';
 import { useEditor } from './store';
+import { mountUiTranslation } from './lib/uiLanguage';
 import './App.css';
 
 export default function App() {
   const [hydrated, setHydrated] = useState(() => useEditor.persist.hasHydrated());
+
+  useEffect(() => mountUiTranslation(), []);
 
   useEffect(() => {
     // The editor used to hydrate synchronously from localStorage.
