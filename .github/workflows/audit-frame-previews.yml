@@ -9,6 +9,13 @@ on:
       - 'scripts/audit_frame_previews.mjs'
       - '.github/workflows/audit-frame-previews.yml'
       - 'public/frame-previews/**'
+  pull_request:
+    paths:
+      - 'src/components/Panel.tsx'
+      - 'src/App.css'
+      - 'scripts/audit_frame_previews.mjs'
+      - '.github/workflows/audit-frame-previews.yml'
+      - 'public/frame-previews/**'
   workflow_dispatch:
 
 permissions:
