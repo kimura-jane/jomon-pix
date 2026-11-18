@@ -85,7 +85,7 @@ try {
     c.fillStyle='#fdf0dd';c.beginPath();c.arc(300,335,130,0,Math.PI*2);c.fill();
     return canvas.toDataURL('image/png');
   });
-  await page.locator('button.tab').filter({hasText:'画像'}).click();
+  await page.locator('.bar button.tab').filter({hasText:'ホーム'}).click();
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles({name:'frame-test.png',mimeType:'image/png',
       buffer:Buffer.from(png.split(',')[1],'base64')});
