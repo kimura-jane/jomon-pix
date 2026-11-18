@@ -6,6 +6,8 @@ const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] }
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
+page.on('console', (message) => { if (message.type() === 'error') errors.push('console: ' + message.text()); });
+page.on('requestfailed', (request) => errors.push('fetch: ' + request.url()));
 
 async function savedImage() {
   return page.evaluate(async () => {
@@ -62,17 +64,34 @@ try {
   await page.keyboard.press('End');
   const first = await waitSetting('legSlim');
   assert.equal(first.src, before.src, 'Original photo must never be overwritten');
-  await page.getByRole('status')
-    .filter({ hasText: 'ビューティーの加工を表示しています。' })
-    .waitFor({ timeout: 120000 });
+  let status = '';
+  for (let attempt = 0; attempt < 65; attempt++) {
+    const messages = await page.getByRole('status').allTextContents();
+    status = messages.join(' / ');
+    if (status.includes('ビューティーの加工を表示しています。')) break;
+    if (status.includes('失敗') || status.includes('検出できません')) break;
+    await page.waitForTimeout(500);
+  }
+  console.log('Leg slim status:', status, 'browser errors:', JSON.stringify(errors));
+  assert.ok(status.includes('ビューティーの加工を表示しています。'),
+    'Leg slim did not apply. Status: ' + status + ' / errors: ' + errors.join('; '));
 
   await length.focus();
   await page.keyboard.press('End');
   const second = await waitSetting('legLength');
   assert.equal(second.src, before.src);
-  await page.getByRole('status')
-    .filter({ hasText: 'ビューティーの加工を表示しています。' })
-    .waitFor({ timeout: 120000 });
+  let lengthStatus = '';
+  for (let attempt = 0; attempt < 65; attempt++) {
+    const messages = await page.getByRole('status').allTextContents();
+    lengthStatus = messages.join(' / ');
+    if (lengthStatus.includes('ビューティーの加工を表示しています。')) break;
+    if (lengthStatus.includes('失敗') || lengthStatus.includes('検出できません') ||
+        lengthStatus.includes('全身が写った')) break;
+    await page.waitForTimeout(500);
+  }
+  console.log('Leg length status:', lengthStatus, 'browser errors:', JSON.stringify(errors));
+  assert.ok(lengthStatus.includes('ビューティーの加工を表示しています。'),
+    'Leg length did not apply. Status: ' + lengthStatus + ' / errors: ' + errors.join('; '));
   assert.deepEqual(errors, []);
   console.log('Leg slimming, length and non-destructive save: PASS');
 } finally {
