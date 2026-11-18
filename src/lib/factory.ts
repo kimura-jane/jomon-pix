@@ -1,6 +1,6 @@
 
 import { useEditor, newId } from '../store';
-import type { TextEl } from '../types';
+import type { TextEl, SpeechBubbleStyle } from '../types';
 import type { LibrarySticker } from './stickers';
 import { findAttachmentPhoto } from './photoAttachments';
 
@@ -193,5 +193,25 @@ export function addText(preset?: Partial<TextEl>) {
     vertical: false,
     align: 'center',
     ...preset,
+  });
+}
+
+// 吹き出しも文字レイヤーとして保存し、移動・拡大・Undoに対応させる。
+export function addSpeechBubble(style: SpeechBubbleStyle) {
+  addText({
+    text: 'セリフを入力',
+    fontFamily: 'Hachi Maru Pop',
+    fontSize: 32,
+    fill: '#262031',
+    stroke: '',
+    strokeWidth: 0,
+    glow: '',
+    letterSpacing: 0,
+    vertical: false,
+    align: 'center',
+    bubble: {
+      style, background: '#ffffff', outline: '#33283b',
+      tail: 'left', width: 300,
+    },
   });
 }
