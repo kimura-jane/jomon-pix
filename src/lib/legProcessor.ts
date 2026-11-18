@@ -163,6 +163,11 @@ function narrowLegs(
   const offsetsX = new Float32Array(w * h);
   const offsetsY = new Float32Array(w * h);
   const weights = new Float32Array(w * h);
+  const knots = [
+    [0, 0], [0.08, 0.60], [0.22, 1.00], [0.39, 0.55],
+    [0.50, 0.30], [0.64, 0.55], [0.76, 0.58],
+    [0.92, 0.18], [1, 0],
+  ];
   for (const seg of segments) {
     const vx = seg.b.x - seg.a.x;
     const vy = seg.b.y - seg.a.y;
@@ -186,11 +191,6 @@ function narrowLegs(
         const progress = seg.start + t * seg.span;
         // Strongest near the upper thigh, gentle at the knee; calf tapers off
         // smoothly toward the ankle. Interpolate between stable anchors.
-        const knots = [
-          [0, 0], [0.08, 0.60], [0.22, 1.00], [0.39, 0.55],
-          [0.50, 0.30], [0.64, 0.55], [0.76, 0.58],
-          [0.92, 0.18], [1, 0],
-        ];
         let taper = 0;
         for (let k = 1; k < knots.length; k++) {
           const [end, vEnd] = knots[k];
