@@ -84,7 +84,8 @@ export function BeautyPanel() {
 
   const change = (field: keyof BeautySettings, value: number) => {
     if (!photo || photo.locked) return;
-    if (target === 'all') {
+    // Legs always belong to the photo, even when editing a single face.
+    if (target === 'all' || field === 'legSlim' || field === 'legLength') {
       editor.update(photo.id, { beauty: { ...beauty, [field]: value } });
     } else if (selectedIndex !== null) {
       editor.update(photo.id, {
@@ -246,8 +247,7 @@ export function BeautyPanel() {
           )}
 
           <div style={{ display: 'grid', gap: 13, margin: '12px 0' }}>
-            {CONTROLS.filter((control) => target === 'all' ||
-              (control.key !== 'legSlim' && control.key !== 'legLength')).map((control) => (
+            {CONTROLS.map((control) => (
               <div key={control.key} style={{
                 padding: 10, background: '#ffffff',
                 border: '1px solid #ecdde8', borderRadius: 12,
