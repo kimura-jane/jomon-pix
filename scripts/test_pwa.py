@@ -39,7 +39,7 @@ class PWATests(unittest.TestCase):
             ('third-party', 'ONNXRUNTIME-MIT.txt')
         ):
             path = self.out / dirname / name
-            path.parent.mkdir(exist_ok=True)
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b'for local browser rendering')
         self.icon = self.root / 'approved.png'
         Image.new('RGB', (1024, 1024), '#ef2390').save(self.icon)
