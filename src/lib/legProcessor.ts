@@ -213,15 +213,17 @@ function narrowLegs(
 function lengthenLegs(
   source: HTMLCanvasElement, bodies: Body[], value: number,
 ): HTMLCanvasElement | null {
-  if (bodies.length !== 1 || bodies[0].legs.length !== 2) return null;
+  if (bodies.length !== 1 || bodies[0].legs.length < 1) return null;
   const body = bodies[0];
   const w = source.width, h = source.height;
   const shoulder = Math.max(0, body.shoulderY);
   const hip = body.hipY;
   const ankle = body.ankleY;
-  if (shoulder < h * 0.08 || shoulder >= hip - h * 0.06 ||
-      ankle <= hip + h * 0.16 || ankle > h - 1 ||
-      Math.abs(body.legs[0].ankle.y - body.legs[1].ankle.y) > h * 0.17) {
+  // One reliably detected leg is sufficient when the other is partly
+  // obscured or crossed. Require an upper-body landmark and enough visible
+  // leg length; refuse images that only show a cropped lower body.
+  if (shoulder >= hip - h * 0.045 ||
+      ankle <= hip + h * 0.13 || ankle > h) {
     return null;
   }
   const extra = Math.min((ankle - hip) * 0.12, (hip - shoulder) * 0.20) *
