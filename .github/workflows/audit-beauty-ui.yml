@@ -8,6 +8,13 @@ on:
       - .github/workflows/audit-beauty-ui.yml
       - src/lib/beautyProcessor.ts
       - src/components/useBeautyPreview.ts
+  pull_request:
+    paths:
+      - scripts/audit_beauty_ui.mjs
+      - .github/workflows/audit-beauty-ui.yml
+      - src/lib/beautyProcessor.ts
+      - src/lib/autoFaceDeco.ts
+      - src/components/useBeautyPreview.ts
   workflow_dispatch:
 
 permissions:
@@ -15,7 +22,7 @@ permissions:
 
 jobs:
   browser-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4

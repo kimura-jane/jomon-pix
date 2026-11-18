@@ -205,6 +205,38 @@ try {
   await page.keyboard.press('End');
   await page.getByText('2人の顔を検出').waitFor({ timeout: 60000 });
   report.checks.push('Two visible people both detected and processed');
+
+  // Group-photo regression: faces occupy a much smaller portion of a wide
+  // image, similar to two people standing in a room (not a pair of selfies).
+  const groupImage = await page.evaluate(async (base64) => {
+    const portrait = new Image();
+    portrait.src = 'data:image/jpeg;base64,' + base64;
+    await portrait.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = 1400;
+    canvas.height = 950;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#d2d1cf';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const ratio = Math.min(430 / portrait.naturalWidth, 650 / portrait.naturalHeight);
+    const width = portrait.naturalWidth * ratio;
+    const height = portrait.naturalHeight * ratio;
+    ctx.drawImage(portrait, 130, 130, width, height);
+    ctx.drawImage(portrait, 790, 130, width, height);
+    return canvas.toDataURL('image/png');
+  }, portrait64);
+  await page.locator('button.tab').first().click();
+  await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
+    name: 'small-faces-in-wide-photo.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(groupImage.split(',')[1], 'base64'),
+  });
+  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.getByRole('slider', { name: '美肌' }).focus();
+  await page.keyboard.press('End');
+  await page.getByText('2人の顔を検出').waitFor({ timeout: 60000 });
+  report.checks.push('Detected two smaller faces within a wide group photograph');
+
   assert.equal(report.outboundPostUrls.length, 0, 'Image pixels must never be sent to a network service');
   assert.equal(report.errors.length, 0, report.errors.join('\n'));
   report.status = 'success';
