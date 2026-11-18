@@ -5,7 +5,13 @@ import { transform } from 'esbuild';
 // Exercise the actual pure production face ordering function. No AI inference
 // is mocked into the editor; browser integration tests cover real MediaPipe.
 const source = fs.readFileSync('src/lib/beautyProcessor.ts', 'utf8');
-const compiled = await transform(source, { loader: 'ts', format: 'esm' });
+// The face ordering unit runs in a data: URL; it does not execute pose AI.
+// Remove only this import because relative imports cannot resolve in data: URLs.
+const pureFaceSource = source.replace(
+  "import { renderLegBeauty } from './legProcessor';", '',
+);
+assert.notEqual(pureFaceSource, source, 'Expected the leg module import');
+const compiled = await transform(pureFaceSource, { loader: 'ts', format: 'esm' });
 const moduleUrl = 'data:text/javascript;base64,' +
   Buffer.from(compiled.code, 'utf8').toString('base64');
 const { indexDetectedFaces, MAX_FACE_TARGETS } = await import(moduleUrl);
