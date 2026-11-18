@@ -71,6 +71,17 @@ try {
   // 9 styles + 8 colors; choosing a new style REPLACES the same sticker.
   await page.locator('.bar button.tab').filter({ hasText: 'スタンプ' }).click();
   await page.getByRole('button', { name: '髪型', exact: true }).click();
+  const controlLabels = (await page.locator('.panel .label').allTextContents())
+    .map((label) => label.trim());
+  const positions = ['配置', '髪色', '髪型'].map((label) =>
+    controlLabels.indexOf(label));
+  assert.ok(positions.every((index) => index >= 0),
+    'The placement, hair color and hairstyle labels must all be visible');
+  assert.ok(positions[0] < positions[1] && positions[1] < positions[2],
+    'Control order must be placement → hair color → hairstyle');
+  const firstSelected = page.getByRole('group', { name: '髪色を選択' })
+    .getByRole('button', { name: 'ダークブラウン' });
+  assert.equal(await firstSelected.getAttribute('aria-pressed'), 'true');
   await page.getByRole('button', { name: '手動配置', exact: true }).click();
   assert.equal(await page.getByRole('button', { name: /髪型:.*を追加/ }).count(), 9);
   assert.equal(await page.getByRole('group', { name: '髪色を選択' }).locator('button').count(), 8);
@@ -82,6 +93,17 @@ try {
   assert.ok(firstHair.src.endsWith('/stickers/hair/v2/bob-dark-brown.webp'), 'Realistic transparent WebP is bundled');
 
   await page.getByRole('button', { name: 'ピンク', exact: true }).click();
+  const pinkButton = page.getByRole('group', { name: '髪色を選択' })
+    .getByRole('button', { name: 'ピンク' });
+  assert.equal(await pinkButton.getAttribute('aria-pressed'), 'true');
+  assert.equal(await firstSelected.getAttribute('aria-pressed'), 'false');
+  const ring = await pinkButton.evaluate((button) => {
+    const css = getComputedStyle(button);
+    return { width: css.borderTopWidth, style: css.borderTopStyle, color: css.borderTopColor };
+  });
+  assert.equal(ring.width, '2px', 'Active hair color must have a visible border');
+  assert.equal(ring.style, 'solid');
+  assert.equal(ring.color, 'rgb(212, 46, 132)', 'Selected color ring must be pink');
   const pink = await waitSaved((state) =>
     state.elements.some((item) => item.type === 'sticker' &&
       item.label.includes('ピンク')));

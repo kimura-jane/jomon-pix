@@ -105,7 +105,7 @@ const messages: Record<string, string> = {
   'なし': 'None', 'ビビッド': 'Vivid', 'ふんわり': 'Soft',
   'クール': 'Cool', 'セピア': 'Sepia', 'モノクロ': 'Monochrome',
   '□ 正方形': '□ Square',
-  '顔デコ': 'Face Decor', '髪型': 'Hairstyles', 'サングラス': 'Sunglasses',
+  '顔デコ': 'Face Decor', '髪型': 'Hairstyles', '髪色': 'Hair Color', 'サングラス': 'Sunglasses',
   '髪色（選択中の髪型にも反映）': 'Hair color (updates selected hair too)',
   '髪色を選択': 'Select hair color',
   '実写風の透過ヘア素材です。別の髪型を選ぶと同じ人の髪型だけ差し替えます。':
