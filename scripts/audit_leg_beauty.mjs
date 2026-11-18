@@ -45,7 +45,13 @@ try {
     name: 'pose-model.png', mimeType: 'image/png', buffer: photo,
   });
   await page.getByRole('button', { name: 'ビューティー' }).click();
-  const before = await savedImage();
+  // Autosave is asynchronous and IndexedDB may not have committed yet.
+  let before = null;
+  for (let attempt = 0; attempt < 160; attempt++) {
+    before = await savedImage();
+    if (before?.src?.startsWith('data:image/')) break;
+    await page.waitForTimeout(250);
+  }
   assert.ok(before?.src?.startsWith('data:image/'), 'Original photo must be persisted');
 
   const slim = page.getByRole('slider', { name: '脚を細く' });
