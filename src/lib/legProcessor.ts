@@ -137,7 +137,7 @@ function canvasCopy(source: HTMLCanvasElement): HTMLCanvasElement {
 
 // Sample an original snapshot, not previously displaced pixels. This makes
 // the result stable on slider updates and avoids cumulative degradation.
-function narrowLegs(
+export function narrowLegs(
   source: HTMLCanvasElement, bodies: Body[], value: number,
 ): HTMLCanvasElement {
   const w = source.width;
@@ -236,7 +236,7 @@ function narrowLegs(
 // Deform only a soft local strip around a single standing body. The face and
 // feet stay fixed. This conservative warp cannot perfectly segment a person
 // from a patterned background, so it is intentionally limited in strength.
-function lengthenLegs(
+export function lengthenLegs(
   source: HTMLCanvasElement, body: Body, value: number,
 ): HTMLCanvasElement | null {
   if (!body.shoulderLeft || !body.shoulderRight || body.legs.length !== 2) {
