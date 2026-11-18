@@ -7,7 +7,7 @@ export type MosaicEffect =
   | 'triangle' | 'black' | 'heart' | 'brushstroke';
 
 export const MOSAIC_EFFECT_OPTIONS: ReadonlyArray<{ id: MosaicEffect; label: string }> = [
-  { id: 'pixel', label: '標準' },
+  { id: 'pixel', label: '標準モザイク' },
   { id: 'blur', label: 'ぼかし' },
   { id: 'dot', label: 'ドット' },
   { id: 'hexagon', label: '六角形' },
