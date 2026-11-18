@@ -1,4 +1,4 @@
-# JOMON pix iOS / Codemagic setup
+# JOMON PIX iOS / Codemagic setup
 
 This project packages the actual React/Vite editor inside Capacitor's WKWebView
 (no GitHub Pages URL loaded in the native app). The website remains published
@@ -6,9 +6,9 @@ normally at https://kimura-jane.github.io/jomon-pix/.
 
 ## Chosen identifiers (new application)
 
-- Display name: **JOMON pix**
+- Display name: **JOMON PIX**
 - iOS Bundle ID: **com.jomonpix.app** (not registered automatically)
-- App version: **1.0.2** (read from `package.json` during signing)
+- App version: **1.0.3** (read from `package.json` during signing)
 - Native framework: Capacitor **7.6.10**; iOS minimum **15**
 - Git repository: **kimura-jane/jomon-pix**, nothing else may be modified
 
@@ -29,7 +29,7 @@ identifier in both capacitor.config.ts and codemagic.yaml before signing.
    one line. Configure an Apple Distribution certificate and App Store
    provisioning profile for **com.jomonpix.app** in Codemagic.
 5. Run **ios-ipa** manually (Codemagic shows this as
-   **JOMON pix — signed IPA + TestFlight upload (manual)**). It creates a
+   **JOMON PIX — signed IPA + TestFlight upload (manual)**). It creates a
    signed IPA and **uploads it to App Store Connect** automatically using the
    configured Apple integration. Apple processes the build before it appears
    in TestFlight. Starting this workflow is still a manual action.
@@ -44,6 +44,38 @@ Codemagic regenerates or syncs the iOS platform with
 `npm run build:native` sets base `/` so that /assets, /mediapipe and
 /stickers load from the app bundle. `npm run build` keeps the website's
 `/jomon-pix/` base unchanged.
+
+## iOS 27 SDK / Apple ITMS-90725 (November 2026)
+
+Apple accepted JOMON PIX **1.0.3 Build 10**, but reported it was built using
+the **iOS 26.5 SDK**. That delivery is successful; the mandatory iOS 27 SDK
+deadline is **April 2027**. The repository now pins **Xcode 27.2** for both
+Codemagic workflows, and checks the actual selected Xcode and iOS SDK **before
+compilation**. The signed `.ipa` is also inspected **before TestFlight upload**:
+`DTSDKName` must indicate iphoneos27 or newer and `DTXcode` must indicate
+Xcode 27 or newer. A mismatch stops the workflow.
+
+**Important:** The previous Codemagic YAML specified Xcode 26.6 even though
+Apple reported SDK 26.5. This suggests the actual build environment may
+not have followed that YAML version, but the cause is **not confirmed**.
+On the next manual Codemagic build, select a workflow defined in
+**`codemagic.yaml`** (not a stale visual workflow), and check the
+"Verify Xcode 27 and iOS 27 SDK before compilation" log. It should
+report **Xcode 27.2 and iOS SDK 27.2**.
+
+For another 1.0.3 delivery, **Build 10 cannot be reused**: Build **11 or
+later** is required. Both the build-number setter and IPA verifier
+fail on 1.0.3 numbers at or below 10. The version remains 1.0.3
+and the minimum supported iOS remains 15. An SDK update **does not**
+upgrade the deployment target.
+
+Recommended flow: first `ios-simulator-check` (no signing, no upload),
+then `ios-ipa` after reviewing its results. `ios-ipa` automatically
+**uploads the signed IPA to App Store Connect**, but does not automatically
+submit for App Store review. Neither GitHub/Linux preflight nor the
+simulator check proves that the signed IPA compiles on Codemagic;
+a real Codemagic build is still required. See the final IPA verification
+log before checking for a new TestFlight build.
 
 ## App Store Connect privacy policy
 
