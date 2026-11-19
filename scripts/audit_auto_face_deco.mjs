@@ -274,6 +274,23 @@ try {
   const stateBeforeRemove = await readState();
   assert(images(stateBeforeRemove).at(-1).src === originalSrc);
   report.checks.push('Original photograph survives hair processing; reversible overlay metadata saved');
+  // The most recent hairstyle remains selected after replacing it.
+  await page.getByRole('button', { name: '🗑 削除', exact: true }).click();
+  const cleared = await waitForState((saved) =>
+    !stickers(saved).some((item) =>
+      item.parentImageId === hairPhoto.id && item.label?.startsWith('髪型:')),
+    'remove hairstyle',
+  );
+  assert.equal(images(cleared).at(-1).src, originalSrc);
+  await page.getByRole('button', { name: '戻す' }).click();
+  const restored = await waitForState((saved) =>
+    stickers(saved).some((item) =>
+      item.parentImageId === hairPhoto.id &&
+      item.label.startsWith('髪型:角刈り（') && item.hairRetouch?.src),
+    'undo remove hairstyle',
+  );
+  assert.equal(images(restored).at(-1).src, originalSrc);
+  report.checks.push('Removing and undoing hair restores patch without editing original photo');
 
   assert.deepEqual(report.errors, []);
   assert.deepEqual(report.unexpectedPosts, []);
