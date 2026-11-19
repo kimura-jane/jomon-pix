@@ -95,7 +95,8 @@ try {
   }
 
   // A drawn rectangle must use picture-local rather than modal-local coords.
-  await page.setViewportSize({ width: 390, height: 844 });
+  await checkBounds({ width: 390, height: 844 });
+  await page.waitForTimeout(200); // Wait for ResizeObserver after landscape → portrait
   await dialog.getByRole('button', { name: '囲む', exact: true }).click();
   const photo = dialog.getByRole('img', { name: '消去する写真' });
   const rect = await photo.boundingBox();
@@ -117,7 +118,7 @@ try {
   assert.ok(Math.abs(xy.x - 72) < 3 && Math.abs(xy.y - 252) < 5,
     'Selection coordinates must map correctly to portrait image');
   assert.ok(Math.abs(xy.w - 144) < 3 && Math.abs(xy.h - 210) < 5,
-    'Selection dimensions must map correctly to portrait image');
+    'Selection dimensions must map correctly to portrait image: ' + JSON.stringify(xy));
   assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).count(), 1);
   await dialog.getByRole('button', { name: '選択をクリア' }).click();
   assert.equal(await dialog.locator('svg rect').count(), 0);
