@@ -87,11 +87,11 @@ export function BeautyPanel() {
   const setComparing = useBeautyStatus((store) => store.setComparing);
   const hasLeg = beauty.legSlim > 0 || beauty.legLength > 0;
   const hasFaceOverride = !!override && Object.keys(override).length > 0;
+  const hasMakeup = !!photo?.makeupStyle ||
+    Object.values(photo?.makeupFaceStyles ?? {}).some((style) => style !== 'none');
   const hasValue = target === 'all'
     ? BEAUTY_FIELDS.some((key) => beauty[key] > 0) || hasMakeup
     : hasFaceOverride || faceHasMakeup || hasLeg;
-  const hasMakeup = !!photo?.makeupStyle ||
-    Object.values(photo?.makeupFaceStyles ?? {}).some((style) => style !== 'none');
 
   const change = (field: keyof BeautySettings, value: number) => {
     if (!photo || photo.locked) return;
