@@ -63,7 +63,7 @@ export async function shareNativeFile(
       throw new Error('保存したファイルのサイズが一致しません。');
     }
     await Share.share({
-      title: 'JOMON pix',
+      title: 'JOMON PIX',
       files: [uri],
       dialogTitle: '画像・作品を保存',
     });
