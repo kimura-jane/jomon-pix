@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import tempfile
 import unittest
-from PIL import Image
+from PIL import Image, ImageDraw
 import build_pwa
 
 class PWATests(unittest.TestCase):
@@ -62,8 +62,22 @@ class PWATests(unittest.TestCase):
             with Image.open(self.out / 'pwa-icons' / name) as image:
                 self.assertEqual(image.size,(size,size))
         with Image.open(self.out / 'pwa-icons/icon-maskable-512.png') as image:
-            self.assertEqual(image.getpixel((0,0)), (255,246,251))
+            # Full-bleed background, not the old large white margin.
+            self.assertEqual(image.getpixel((0,0)), (239,35,144))
             self.assertEqual(image.getpixel((256,256)), (239,35,144))
+
+    def test_maskable_artwork_is_not_miniaturized(self):
+        # A detail near the left edge must stay visible at Android icon size.
+        with Image.open(self.icon) as image:
+            source = image.copy()
+        ImageDraw.Draw(source).rectangle(
+            (120, 470, 200, 550), fill=(17, 34, 51)
+        )
+        source.save(self.icon)
+        build_pwa.build(self.out)
+        with Image.open(self.out / 'pwa-icons/icon-maskable-512.png') as image:
+            self.assertEqual(image.getpixel((110, 256)), (17, 34, 51))
+            self.assertNotEqual(image.getpixel((0, 0)), (255, 246, 251))
 
     def test_offline_shell_includes_stickers_frames_and_js(self):
         build_pwa.build(self.out)
