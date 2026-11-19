@@ -85,7 +85,7 @@ export function PhotoFrame({ width: w, height: h, frame }: Props) {
             stroke="#e8e0d5" strokeWidth={Math.max(1, t * 0.10)} />
           <Text x={t * 2} y={h - t * 2.25}
             width={Math.max(0, w - 4 * t)}
-            text="JOMON pix" fontFamily="sans-serif"
+            text="JOMON PIX" fontFamily="sans-serif"
             fontSize={Math.max(10, t * 0.85)} fill="#777070" align="center" />
         </>
       )}
