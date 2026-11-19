@@ -36,6 +36,7 @@ function SelectionDialog({
   const [brushPercent, setBrushPercent] = useState(5);
   const [engine, setEngine] = useState<'ai' | 'simple'>('ai');
   const [preview, setPreview] = useState<string | null>(null);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [progress, setProgress] = useState('');
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [rectangle, setRectangle] = useState<Rectangle | null>(null);
@@ -63,8 +64,11 @@ function SelectionDialog({
     if (!image || !frameRef.current) return;
     const frame = frameRef.current;
     const resize = () => {
-      const width = Math.max(100, frame.clientWidth - 8);
-      const height = Math.max(150, window.innerHeight * 0.44);
+      // The image must fit the ACTUAL preview area, not a different
+      // percentage of viewport height. A flex-shrunk panel used to let
+      // portrait photos overlap the mode buttons and action bar on iOS.
+      const width = Math.max(1, frame.clientWidth - 8);
+      const height = Math.max(1, frame.clientHeight - 8);
       const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
       setView({
         width: Math.max(1, Math.floor(image.naturalWidth * scale)),
@@ -141,6 +145,7 @@ function SelectionDialog({
     setStrokes([]);
     setRectangle(null);
     setPreview(null);
+    setShowOriginal(false);
   };
 
   const hasSelection = mode === 'brush'
@@ -194,7 +199,7 @@ function SelectionDialog({
         ? await aiSmartErase(image, selection, setProgress)
         : await smartErase(image, selection);
       setPreview(result);
-      setProgress('補完が完了しました。比較してから適用できます。');
+      setProgress('');
     } catch (e) {
       setError(e instanceof Error ? e.message : '消去処理に失敗しました。');
     } finally {
@@ -223,26 +228,28 @@ function SelectionDialog({
       aria-label="スマート消去" style={{ zIndex: 100, padding: 10 }}>
       <div className="modal" style={{
         maxWidth: 650, maxHeight: 'calc(100dvh - 20px)',
-        overflowY: 'auto', gap: 10,
+        overflowY: 'auto', overscrollBehavior: 'contain', gap: 8,
       }}>
         <h3>AI消しゴム</h3>
         <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button type="button" className={engine === 'ai' ? 'on' : ''}
             disabled={working} aria-pressed={engine === 'ai'}
-            onClick={() => { setEngine('ai'); setPreview(null); setError(''); }}>AI補完</button>
+            onClick={() => { setEngine('ai'); setPreview(null); setShowOriginal(false); setError(''); }}>AI補完</button>
           <button type="button" className={engine === 'simple' ? 'on' : ''}
             disabled={working} aria-pressed={engine === 'simple'}
-            onClick={() => { setEngine('simple'); setPreview(null); setError(''); }}>軽量補完</button>
+            onClick={() => { setEngine('simple'); setPreview(null); setShowOriginal(false); setError(''); }}>軽量補完</button>
         </div>
         <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button type="button" className={mode === 'brush' ? 'on' : ''}
-            disabled={working || !!preview} onClick={() => changeMode('brush')}>指でなぞる</button>
+            disabled={working || !!preview} onClick={() => changeMode('brush')}>なぞる</button>
           <button type="button" className={mode === 'rectangle' ? 'on' : ''}
-            disabled={working || !!preview} onClick={() => changeMode('rectangle')}>四角で囲む</button>
+            disabled={working || !!preview} onClick={() => changeMode('rectangle')}>囲む</button>
         </div>
-        <div ref={frameRef} style={{
+        <div ref={frameRef} data-testid="eraser-preview-frame" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: '100%', minHeight: 155, padding: 4, borderRadius: 12,
+          width: '100%', height: 'min(42dvh, 360px)', minHeight: 160,
+          boxSizing: 'border-box', flex: '0 0 auto',
+          overflow: 'hidden', padding: 4, borderRadius: 12,
           background: '#f6eef4',
         }}>
           {image && view.width > 0 ? (
@@ -254,9 +261,10 @@ function SelectionDialog({
               style={{
                 position: 'relative', flexShrink: 0,
                 width: view.width, height: view.height,
+                maxWidth: '100%', maxHeight: '100%',
                 overflow: 'hidden', touchAction: 'none', cursor: 'crosshair',
               }}>
-              <img src={preview ?? photo.src} alt="消去する写真" draggable={false}
+              <img src={preview && !showOriginal ? preview : photo.src} alt="消去する写真" draggable={false}
                 style={{ display: 'block', width: '100%', height: '100%',
                   pointerEvents: 'none', userSelect: 'none' }} />
               {!preview && <svg viewBox={'0 0 ' + image.naturalWidth + ' ' + image.naturalHeight}
@@ -294,13 +302,9 @@ function SelectionDialog({
               onChange={(event) => setBrushPercent(Number(event.target.value))} />
           </label>
         )}
-        <p className="hint-s" style={{ margin: 0 }}>
-          {engine === 'ai'
-            ? '端末内AIが選択部分の背景を生成します。初回は約28MBのモデルを読み込みます。写真は送信しません。'
-            : '周囲の画像をコピーする従来方式です。AIが重い場合にも使えます。'}
-          {preview && ' 仕上がりを確認してください。'}
-        </p>
-        {progress && <p role="status" className="hint-s" style={{ margin: 0 }}>{progress}</p>}
+        {working && progress && (
+          <p role="status" className="hint-s" style={{ margin: 0 }}>{progress}</p>
+        )}}
         <button type="button" className="chip"
           disabled={working || !!preview || !hasSelection}
           onClick={() => { setStrokes([]); setRectangle(null); setError(''); }}>
@@ -309,29 +313,23 @@ function SelectionDialog({
         {error && <p role="alert" style={{ color: '#c02660', fontSize: 13 }}>{error}</p>}
         {preview && (
           <button type="button" className="chip" disabled={working}
-            onPointerDown={() => {
-              const img = pictureRef.current?.querySelector('img');
-              if (img) img.src = photo.src;
-            }}
-            onPointerUp={() => {
-              const img = pictureRef.current?.querySelector('img');
-              if (img) img.src = preview;
-            }}
-            onPointerCancel={() => {
-              const img = pictureRef.current?.querySelector('img');
-              if (img) img.src = preview;
-            }}
-            onPointerLeave={() => {
-              const img = pictureRef.current?.querySelector('img');
-              if (img) img.src = preview;
+            aria-label="長押しで比較"
+            onPointerDown={() => setShowOriginal(true)}
+            onPointerUp={() => setShowOriginal(false)}
+            onPointerCancel={() => setShowOriginal(false)}
+            onPointerLeave={() => setShowOriginal(false)}
+            onContextMenu={(event) => event.preventDefault()}
+            style={{
+              userSelect: 'none', WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none', touchAction: 'none',
             }}>
-            長押しで元画像を比較
+            長押しで比較
           </button>
         )}
         <div className="row" style={{ flexWrap: 'nowrap' }}>
           <button type="button" className="btn" style={{ flex: 1 }}
             disabled={working} onClick={() => {
-              if (preview) { setPreview(null); setProgress(''); }
+              if (preview) { setPreview(null); setShowOriginal(false); setProgress(''); }
               else onClose();
             }}>{preview ? '選択し直す' : 'キャンセル'}</button>
           <button type="button" className="btn primary" style={{ flex: 1 }}
@@ -388,9 +386,7 @@ export function SmartEraserPanel() {
             disabled={!target} onClick={() => setOpen(true)}>
             不要なものを消す
           </button>
-          <p className="hint-s">
-            AIが不要物を消して背景を補完します。無料・端末内処理。適用前に比較できます。
-          </p>
+
         </>
       )}
       {open && target && (
