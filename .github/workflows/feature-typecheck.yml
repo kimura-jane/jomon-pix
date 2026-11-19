@@ -6,6 +6,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/test_hair_smart_erase.mjs'
+      - 'scripts/test_eraser_portrait_layout.mjs'
       - '.github/workflows/feature-typecheck.yml'
   workflow_dispatch:
 
@@ -40,3 +41,4 @@ jobs:
             sleep 2
           done
           node scripts/test_hair_smart_erase.mjs
+          node scripts/test_eraser_portrait_layout.mjs
