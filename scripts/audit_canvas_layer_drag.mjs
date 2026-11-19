@@ -26,8 +26,10 @@ try {
     'Fresh project must begin at portrait 9:16');
   report.checks.push('New project defaults to portrait 9:16');
 
-  // Canvas size controls now live on Home; the former 加工 tab was removed.
+  // The top-level 加工 tab was removed. Canvas sizes are accessed through
+  // Home -> キャンバス設定, which opens the edit panel's キャンバス section.
   await page.locator('.bar button.tab').filter({ hasText: 'ホーム' }).click();
+  await page.getByRole('button', { name: 'キャンバス設定', exact: true }).click();
 
   const landscape = page.getByRole('button', { name: /16:9/ });
   const portrait = page.getByRole('button', { name: /9:16/ });
