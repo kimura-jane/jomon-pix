@@ -228,7 +228,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
     value.opacity < 0 ||
     value.opacity > 1 ||
     (value.hidden !== undefined && typeof value.hidden !== 'boolean') ||
-    (value.locked !== undefined && typeof value.locked !== 'boolean')
+    (value.locked !== undefined && typeof value.locked !== 'boolean') ||
+    (value.transformLocked !== undefined && typeof value.transformLocked !== 'boolean')
   ) {
     return false;
   }

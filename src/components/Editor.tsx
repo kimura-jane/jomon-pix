@@ -315,27 +315,11 @@ function FloatingLayers({
     event.stopPropagation();
   };
 
-  // 写真と連動する文字・スタンプは、右の簡易一覧では親写真にまとめる。
-  // 単独レイヤーと、親画像が見つからない過去のデータは従来どおり表示。
-  const ordered = [...elements].filter((el) => {
-    if (el.type === 'line') return false;
-    if ((el.type === 'sticker' || el.type === 'text') && el.parentImageId) {
-      return !elements.some(
-        (photo) => photo.type === 'image' && photo.id === el.parentImageId,
-      );
-    }
-    return true;
-  }).reverse();
-
-  const selectedElement = elements.find((el) => el.id === selectedId);
-  const activeId =
-    selectedElement &&
-    (selectedElement.type === 'sticker' || selectedElement.type === 'text') &&
-    selectedElement.parentImageId &&
-    ordered.some((photo) => photo.id === selectedElement.parentImageId)
-      ? selectedElement.parentImageId
-      : selectedId;
-  const selected = ordered.find((el) => el.id === activeId);
+  // Show attached stickers/text separately, not merged into their photo:
+  // users must be able to lock the large background while keeping the
+  // overlaid sticker independently draggable.
+  const ordered = [...elements].filter((el) => el.type !== 'line').reverse();
+  const selected = ordered.find((el) => el.id === selectedId);
 
   const choose = (el: CanvasEl) => {
     const state = useEditor.getState();
@@ -445,54 +429,77 @@ function FloatingLayers({
             }}
           >
             {ordered.map((el, index) => {
-              const active = el.id === activeId;
-              const attachedCount = el.type === 'image'
-                ? elements.filter((child) =>
-                    (child.type === 'sticker' || child.type === 'text') &&
-                    child.parentImageId === el.id,
-                  ).length
-                : 0;
+              const active = el.id === selectedId;
               const name = LAYER_LABEL[el.type];
-              const description = attachedCount > 0
-                ? `${name}（スタンプ・文字 ${attachedCount}個付き）`
-                : name;
+              const fixed = !!el.transformLocked;
+              const lockLabel = el.locked
+                ? `${name}${index + 1}は編集ロック中`
+                : `${name}${index + 1}の位置とサイズを${fixed ? '解除' : '固定'}`;
               return (
-                <button
-                  type="button"
-                  role="listitem"
-                  key={el.id}
-                  onClick={() => choose(el)}
-                  aria-label={`${description}、${index + 1}番目（最前面から）、${el.hidden ? '非表示' : '表示中'}`}
-                  aria-pressed={active}
-                  title={`${index === 0 ? '最前面' : `前から${index + 1}番目`}・${name}${el.locked ? '・ロック中' : ''}`}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 2,
-                    width: '100%',
-                    border: active ? '2px solid #ff4fa3' : '2px solid transparent',
-                    borderRadius: 12,
-                    padding: '3px 1px',
-                    background: active ? '#fff0f7' : 'transparent',
-                    opacity: el.hidden ? 0.45 : 1,
-                    touchAction: 'manipulation',
-                  }}
-                >
-                  <LayerPreview el={el} />
-                  <span
+                <div key={el.id} role="listitem" style={{
+                  position: 'relative',
+                  width: '100%',
+                  border: active ? '2px solid #ff4fa3' : '2px solid transparent',
+                  borderRadius: 12,
+                  background: active ? '#fff0f7' : 'transparent',
+                  opacity: el.hidden ? 0.5 : 1,
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => choose(el)}
+                    aria-label={`${name}、${index + 1}番目（最前面から）、${el.hidden ? '非表示' : '表示中'}`}
+                    aria-pressed={active}
+                    title={`${name}を選択`}
                     style={{
-                      fontSize: 9,
-                      lineHeight: 1.2,
-                      maxWidth: '100%',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 2,
+                      width: '100%',
+                      border: 0,
+                      borderRadius: 10,
+                      padding: '4px 1px',
+                      background: 'transparent',
+                      touchAction: 'manipulation',
                     }}
                   >
-                    {el.locked ? '🔒 ' : ''}{index + 1}. {name}{attachedCount > 0 ? ` +${attachedCount}` : ''}
-                  </span>
-                </button>
+                    <LayerPreview el={el} />
+                    <span style={{
+                      fontSize: 9, lineHeight: 1.2,
+                      maxWidth: '100%', overflow: 'hidden',
+                      whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                      color: '#62465a',
+                    }}>
+                      {index + 1}. {name}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={lockLabel}
+                    title={el.locked ? '編集ロック中（レイヤー画面で解除）'
+                      : fixed ? '位置・サイズ固定を解除' : '位置・サイズを固定'}
+                    aria-pressed={fixed || !!el.locked}
+                    disabled={!!el.locked}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      useEditor.getState().update(el.id, { transformLocked: !fixed });
+                    }}
+                    style={{
+                      position: 'absolute', right: 2, top: 2,
+                      width: 29, height: 29, padding: 0,
+                      display: 'grid', placeItems: 'center',
+                      border: fixed || el.locked ? '1px solid #ce3b8e' : '1px solid #e8d4e0',
+                      borderRadius: 9,
+                      background: fixed || el.locked ? '#f9d5e9' : '#ffffff',
+                      fontSize: 15, color: '#a52c73',
+                      cursor: el.locked ? 'not-allowed' : 'pointer',
+                      touchAction: 'manipulation',
+                      boxShadow: '0 1px 4px rgba(0,0,0,.08)',
+                    }}
+                  >
+                    {fixed || el.locked ? '🔒' : '🔓'}
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -654,6 +661,7 @@ export function Editor() {
       el &&
       tool === 'select' &&
       !el.locked &&
+      !el.transformLocked &&
       !el.hidden &&
       el.type !== 'line';
 

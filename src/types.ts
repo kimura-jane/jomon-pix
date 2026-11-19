@@ -41,6 +41,9 @@ type Base = {
   opacity: number;
   hidden?: boolean;
   locked?: boolean;
+  // Position/size/rotation lock only; unlike "locked", does not block
+  // filters, face decorations or editing stickers attached to this photo.
+  transformLocked?: boolean;
 };
 
 export type ImageStroke = {

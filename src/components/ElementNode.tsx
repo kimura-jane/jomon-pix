@@ -93,7 +93,7 @@ function useCommon(el: CanvasEl) {
   } = useEditor();
 
   const canMove =
-    tool === 'select' && !el.locked;
+    tool === 'select' && !el.locked && !el.transformLocked;
 
   // 親写真のGroupへタップが伝わると、選択が写真で上書きされてしまう。
   // 子スタンプ・文字だけを確実に選ぶため、クリックをここで止める。
@@ -134,6 +134,10 @@ function useCommon(el: CanvasEl) {
       // ネストした子のDragEndを親写真で処理しない。
       if (e.target.id() !== el.id) return;
       e.cancelBubble = true;
+      if (el.locked || el.transformLocked) {
+        e.target.position({ x: el.x, y: el.y });
+        return;
+      }
       update(el.id, {
         x: e.target.x(),
         y: e.target.y(),
@@ -147,6 +151,12 @@ function useCommon(el: CanvasEl) {
       const node = e.target;
       if (node.id() !== el.id) return;
       e.cancelBubble = true;
+      if (el.locked || el.transformLocked) {
+        node.position({ x: el.x, y: el.y });
+        node.rotation(el.rotation);
+        node.scale({ x: el.scaleX, y: el.scaleY });
+        return;
+      }
 
       update(el.id, {
         x: node.x(),

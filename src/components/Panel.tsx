@@ -1239,6 +1239,7 @@ function StampTab({
     if (
       !selectedSticker ||
       selectedSticker.locked ||
+      selectedSticker.transformLocked ||
       selectedSticker.hidden
     ) {
       return;
@@ -1263,6 +1264,7 @@ function StampTab({
     if (
       selectedSticker &&
       !selectedSticker.locked &&
+      !selectedSticker.transformLocked &&
       !selectedSticker.hidden
     ) {
       s.beginHistoryGroup(
@@ -1377,7 +1379,7 @@ function StampTab({
                     </span>
                   )}
                   <span style={{ fontSize: 10 }}>
-                    {selected ? '✓ ' : ''}{index + 1}{sticker.locked ? ' 🔒' : ''}
+                    {selected ? '✓ ' : ''}{index + 1}{sticker.locked || sticker.transformLocked ? ' 🔒' : ''}
                   </span>
                 </button>
               );
@@ -1421,19 +1423,26 @@ function StampTab({
               選択中のスタンプ
             </strong>
 
-            <button
-              type="button"
-              className="chip"
-              style={{
-                padding: '6px 10px',
-                fontSize: 12,
-              }}
-              onClick={() =>
-                s.select(null)
-              }
-            >
-              完了
-            </button>
+            <div className="row" style={{ gap: 5 }}>
+              <button type="button" className="chip"
+                aria-pressed={!!selectedSticker.transformLocked}
+                aria-label={selectedSticker.transformLocked ? 'スタンプの位置とサイズの固定を解除' : 'スタンプの位置とサイズを固定'}
+                disabled={!!selectedSticker.locked}
+                onClick={() => s.update(selectedSticker.id, {
+                  transformLocked: !selectedSticker.transformLocked,
+                })}
+                style={{ padding: '6px 9px', fontSize: 12 }}>
+                {selectedSticker.transformLocked ? '🔒 固定中' : '🔓 固定'}
+              </button>
+              <button
+                type="button"
+                className="chip"
+                style={{ padding: '6px 10px', fontSize: 12 }}
+                onClick={() => s.select(null)}
+              >
+                完了
+              </button>
+            </div>
           </div>
 
           <div
@@ -1477,6 +1486,7 @@ function StampTab({
             )}
             disabled={
               !!selectedSticker.locked ||
+              !!selectedSticker.transformLocked ||
               !!selectedSticker.hidden
             }
             aria-label="スタンプの大きさ"
@@ -1548,6 +1558,7 @@ function StampTab({
               className="chip"
               disabled={
                 !!selectedSticker.locked ||
+                !!selectedSticker.transformLocked ||
                 !!selectedSticker.hidden
               }
               onClick={() =>
@@ -1564,6 +1575,7 @@ function StampTab({
               className="chip"
               disabled={
                 !!selectedSticker.locked ||
+                !!selectedSticker.transformLocked ||
                 !!selectedSticker.hidden
               }
               onClick={() =>
@@ -1580,6 +1592,7 @@ function StampTab({
               className="chip"
               disabled={
                 !!selectedSticker.locked ||
+                !!selectedSticker.transformLocked ||
                 !!selectedSticker.hidden
               }
               onClick={() =>
@@ -2004,6 +2017,17 @@ function EditTab({
           <div className="row">
             <button
               className="chip"
+              disabled={off || !!el?.locked}
+              aria-pressed={!!el?.transformLocked}
+              aria-label={el?.transformLocked ? '位置とサイズの固定を解除' : '位置とサイズを固定'}
+              onClick={() => el && s.update(el.id, {
+                transformLocked: !el.transformLocked,
+              })}
+            >
+              {el?.transformLocked ? '🔒 位置・サイズ固定中' : '🔓 位置・サイズ固定'}
+            </button>
+            <button
+              className="chip"
               disabled={off}
               onClick={() =>
                 el &&
@@ -2049,8 +2073,9 @@ function EditTab({
             <button
               className="chip"
               disabled={off}
+              disabled={off || !!el?.locked || !!el?.transformLocked}
               onClick={() =>
-                el &&
+                el && !el.transformLocked &&
                 s.update(el.id, {
                   scaleX: -el.scaleX,
                 })
@@ -2062,8 +2087,9 @@ function EditTab({
             <button
               className="chip"
               disabled={off}
+              disabled={off || !!el?.locked || !!el?.transformLocked}
               onClick={() =>
-                el &&
+                el && !el.transformLocked &&
                 s.update(el.id, {
                   scaleY: -el.scaleY,
                 })
@@ -2732,15 +2758,29 @@ function LayerTab() {
               {el.hidden ? '🙈' : '👁'}
             </button>
 
-            <button
+            {el.type !== 'line' && (
+              <button type="button"
+                aria-label={el.transformLocked ? '位置とサイズの固定を解除' : '位置とサイズを固定'}
+                title={el.transformLocked ? '位置・サイズ固定を解除' : '位置・サイズを固定'}
+                aria-pressed={!!el.transformLocked}
+                disabled={!!el.locked}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  update(el.id, { transformLocked: !el.transformLocked });
+                }}
+              >
+                {el.transformLocked ? '🔒' : '🔓'}
+              </button>
+            )}
+            <button type="button"
+              title={el.locked ? '編集ロックを解除' : '編集ロック'}
+              aria-label={el.locked ? '編集ロックを解除' : '編集ロック'}
               onClick={(event) => {
                 event.stopPropagation();
-                update(el.id, {
-                  locked: !el.locked,
-                });
+                update(el.id, { locked: !el.locked });
               }}
             >
-              {el.locked ? '🔒' : '🔓'}
+              {el.locked ? '編集🔒' : '編集'}
             </button>
           </div>
         );
