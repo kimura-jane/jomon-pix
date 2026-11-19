@@ -1,4 +1,5 @@
 :root {
+  --app-background: #fdf7fb;
   --pink: #ff4fa3;
   --pink2: #ff8ac6;
   --purple: #a77bff;
@@ -8,19 +9,20 @@
   --line: rgba(255, 79, 163, 0.14);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body, #root { margin: 0; height: 100%; }
+html, body, #root { margin: 0; height: 100%; min-height: 100%; background: var(--app-background); }
 body {
   font-family: 'Zen Maru Gothic', sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at 10% 0%, #ffe3f1 0, transparent 45%),
-    radial-gradient(circle at 100% 30%, #ece3ff 0, transparent 45%), #fdf7fb;
+  background: var(--app-background);
   overscroll-behavior: none;
 }
 button { font-family: inherit; color: inherit; }
-.app { height: 100dvh; display: flex; flex-direction: column; }
+.app { height: 100dvh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--app-background); }
 
 /* 上の列 */
-.top { padding: max(10px, env(safe-area-inset-top, 0px)) 12px 6px; display: flex; flex-direction: column; gap: 8px; }
+.top { padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 6px; display: flex; flex-direction: column; gap: 8px;
+  position: relative; z-index: 2; flex: none; background: var(--app-background);
+  border-bottom: 1px solid rgba(255, 79, 163, 0.08); }
 .brand { display: flex; align-items: center; gap: 7px; min-width: 0; flex-wrap: nowrap; }
 .logo { font-family: 'Dela Gothic One', sans-serif; font-size: clamp(16px, 4.8vw, 20px); letter-spacing: 0.5px; flex: none; white-space: nowrap;
   background: linear-gradient(90deg, var(--pink), var(--purple)); -webkit-background-clip: text; background-clip: text; color: transparent; }

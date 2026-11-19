@@ -2,6 +2,7 @@ import type { ImageEl, StickerEl } from '../types';
 import { newId } from '../store';
 import type { LibrarySticker } from './stickers';
 import { detectFaceLandmarksEnhanced, type Landmark } from './beautyProcessor';
+import { getHairPlacement } from './hairStickers';
 
 type Point = { x: number; y: number };
 type FaceSlot = 'ears' | 'head' | 'eyes' | 'nose' | 'whiskers' | 'cheeks' | 'mouth' | 'face';
@@ -9,20 +10,9 @@ type FaceSlot = 'ears' | 'head' | 'eyes' | 'nose' | 'whiskers' | 'cheeks' | 'mou
 // The original SVG art uses a 200x200 viewBox. Position each art category so
 // its painted content—not the empty SVG margin—matches facial landmarks.
 function layoutFor(stickerId: string): { slot: FaceSlot; width: number; anchorY?: number } {
-  // Hair overlays have a transparent face opening; center on the forehead.
-  if (stickerId.startsWith('hair-')) {
-    // Studio hair photos have different silhouette / face opening heights.
-    // The face remains visible in the transparent central cutout.
-    if (stickerId.startsWith('hair-flattop-')) return { slot: 'head', width: 1.86, anchorY: 0.47 };
-    if (stickerId.startsWith('hair-afro-')) return { slot: 'head', width: 2.02, anchorY: 0.50 };
-    if (stickerId.startsWith('hair-pompadour-')) return { slot: 'head', width: 2.03, anchorY: 0.48 };
-    if (stickerId.startsWith('hair-pixie-')) return { slot: 'head', width: 1.97, anchorY: 0.40 };
-    if (stickerId.startsWith('hair-bangs-')) return { slot: 'head', width: 2.05, anchorY: 0.48 };
-    if (stickerId.startsWith('hair-bob-')) return { slot: 'head', width: 2.05, anchorY: 0.37 };
-    if (stickerId.startsWith('hair-long-')) return { slot: 'head', width: 2.05, anchorY: 0.35 };
-    if (stickerId.startsWith('hair-wave-')) return { slot: 'head', width: 2.10, anchorY: 0.36 };
-    return { slot: 'head', width: 2.05, anchorY: 0.39 };
-  }
+  // Individual hair silhouettes need different painted-forehead anchors.
+  const hair = getHairPlacement(stickerId);
+  if (hair) return { slot: 'head', width: hair.width, anchorY: hair.anchorY };
   if (stickerId === 'face-cat-ears') return { slot: 'ears', width: 1.82, anchorY: 0.43 };
   if (stickerId === 'face-dog-ears') return { slot: 'ears', width: 1.52, anchorY: 0.31 };
   if (stickerId === 'face-rabbit-ears') return { slot: 'ears', width: 1.65, anchorY: 0.52 };
@@ -107,8 +97,15 @@ function makePosition(
   // React-Konva rotates around its upper-left origin, not its center.
   const referenceX = size * 0.5;
   const referenceY = size * anchorY;
-  const x = anchor.x - (cosine * referenceX - sine * referenceY);
-  const y = anchor.y - (sine * referenceX + cosine * referenceY);
+  const hair = getHairPlacement(sticker.id);
+  // Offsets rotate with the face (they are NOT absolute screen pixels).
+  // This prevents asymmetric hairstyles drifting sideways on tilted heads.
+  const shiftX = (hair?.offsetX ?? 0) * faceWidth;
+  const shiftY = (hair?.offsetY ?? 0) * faceHeight;
+  const x = anchor.x + cosine * shiftX - sine * shiftY -
+    (cosine * referenceX - sine * referenceY);
+  const y = anchor.y + sine * shiftX + cosine * shiftY -
+    (sine * referenceX + cosine * referenceY);
 
   return {
     x: Math.round(x * 100) / 100,

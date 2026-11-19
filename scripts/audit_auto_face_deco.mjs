@@ -67,6 +67,12 @@ const images = (s) => s.elements.filter((x) => x.type === 'image');
 const stickers = (s) => s.elements.filter((x) => x.type === 'sticker');
 try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/', { waitUntil: 'networkidle' });
+  const theme = await page.locator('meta[name="theme-color"]').getAttribute('content');
+  const shell = await page.locator('.top').evaluate((node) =>
+    getComputedStyle(node).backgroundColor);
+  assert.equal(theme, '#fdf7fb');
+  assert.equal(shell, 'rgb(253, 247, 251)');
+  report.checks.push('Theme-color and app header use one light, status-bar-safe color');
   // No-photo guidance is visible even though automatic placement is disabled.
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
   await page.getByRole('status').filter({ hasText: '先に写真を追加してください。' })
@@ -216,6 +222,35 @@ try {
   await waitForState((saved) => stickers(saved).length === 5,
     'small faces in six-person group');
   report.checks.push('Small faces in a group photo are individually detected and editable');
+
+  // Real portrait landmarks: hairstyle-specific dimensions/offsets should
+  // replace the chosen person's hair, not stack or move to another face.
+  await page.getByRole('button', { name: '髪型', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: /顔を(?:[3-9]|10)人認識しました/ })
+    .waitFor({ timeout: 65000 });
+  const hairResults = [];
+  for (const [name, filename] of [
+    ['ボブ', 'bob'],
+    ['ストレートロング', 'long'],
+    ['角刈り', 'flattop'],
+  ]) {
+    await page.getByRole('button', { name: new RegExp('髪型:' + name + '.*を自動配置') }).click();
+    const after = await waitForState((saved) =>
+      stickers(saved).some((item) => item.parentImageId === targetPhoto.id &&
+        item.label.startsWith('髪型:' + name + '（') &&
+        item.src.includes('/' + filename + '-')),
+      name + ' automatic placement',
+    );
+    const hair = stickers(after).filter((item) =>
+      item.parentImageId === targetPhoto.id && item.label.startsWith('髪型:'));
+    assert.equal(hair.length, 1, 'Changing a style must replace hair on the selected photo');
+    assert(hair[0].size > 12 && Number.isFinite(hair[0].x) && Number.isFinite(hair[0].y));
+    if (hairResults.length) assert.equal(hair[0].id, hairResults[0].id);
+    hairResults.push(hair[0]);
+  }
+  assert(hairResults[0].size > hairResults[2].size,
+    'The shorter flattop uses a smaller face-relative silhouette than bob');
+  report.checks.push('Bob, long hair and flattop auto-placement use distinct calibrated geometry');
 
   assert.deepEqual(report.errors, []);
   assert.deepEqual(report.unexpectedPosts, []);

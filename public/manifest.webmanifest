@@ -7,8 +7,8 @@
   "start_url": "/jomon-pix/",
   "scope": "/jomon-pix/",
   "display": "standalone",
-  "background_color": "#fff6fb",
-  "theme_color": "#ec4899",
+  "background_color": "#fdf7fb",
+  "theme_color": "#fdf7fb",
   "orientation": "portrait",
   "icons": [
     {

@@ -32,6 +32,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
+        // Match the HTML theme while WKWebView is loading and behind the status bar.
+        window?.backgroundColor = UIColor(
+            red: 253.0 / 255.0, green: 247.0 / 255.0,
+            blue: 251.0 / 255.0, alpha: 1.0
+        )
         if let context = connectionOptions.urlContexts.first {
             _ = ApplicationDelegateProxy.shared.application(
                 UIApplication.shared, open: context.url, options: [:]

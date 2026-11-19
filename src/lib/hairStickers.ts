@@ -34,6 +34,36 @@ export const HAIR_STYLES: ReadonlyArray<{ id: HairStyleId; label: string }> = [
   { id: 'pompadour', label: 'リーゼント' },
 ];
 
+
+// Per-style placement is expressed in face coordinates, not screen pixels.
+// width is the sticker-square/cheek-width ratio; anchorY is the location
+// within the transparent square that meets the forehead landmark.
+// offsetX is measured in face widths, offsetY in forehead-to-chin heights.
+// Adjusting hair never changes saved sticker geometry or other face decals.
+export type HairPlacement = Readonly<{
+  width: number;
+  anchorY: number;
+  offsetX: number;
+  offsetY: number;
+}>;
+
+export const HAIR_PLACEMENTS: Readonly<Record<HairStyleId, HairPlacement>> = {
+  bob:       { width: 1.98, anchorY: 0.39, offsetX: 0.00, offsetY: -0.04 },
+  long:      { width: 2.02, anchorY: 0.40, offsetX: 0.00, offsetY: -0.08 },
+  pixie:     { width: 1.93, anchorY: 0.42, offsetX: 0.00, offsetY: -0.03 },
+  wave:      { width: 2.08, anchorY: 0.40, offsetX: -0.02, offsetY: -0.05 },
+  layered:   { width: 2.05, anchorY: 0.40, offsetX: 0.02, offsetY: -0.06 },
+  bangs:     { width: 1.98, anchorY: 0.47, offsetX: 0.00, offsetY: -0.03 },
+  flattop:   { width: 1.82, anchorY: 0.45, offsetX: 0.00, offsetY: 0.07 },
+  afro:      { width: 2.02, anchorY: 0.50, offsetX: 0.00, offsetY: -0.02 },
+  pompadour: { width: 1.98, anchorY: 0.47, offsetX: 0.02, offsetY: 0.02 },
+};
+
+export function getHairPlacement(stickerId: string): HairPlacement | null {
+  const match = HAIR_STYLES.find(({ id }) => stickerId.startsWith('hair-' + id + '-'));
+  return match ? HAIR_PLACEMENTS[match.id] : null;
+}
+
 const cache = new Map<HairColorId, LibrarySticker[]>();
 export function getHairStickers(color: HairColorId): LibrarySticker[] {
   const found = cache.get(color);
