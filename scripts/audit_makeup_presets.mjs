@@ -49,6 +49,8 @@ try {
   await menu.getByRole('button', { name: 'ナチュラル' }).click();
   const natural = await waitWork((s) => image(s)?.beauty?.smooth === 18, 'natural preset');
   assert.equal(image(natural).beauty.lip, 10);
+  assert.equal(image(natural).makeupStyle, 'natural',
+    'Applied style must persist separately from numeric Beauty settings');
   assert.equal(image(natural).beauty.legSlim, 0);
   assert.equal(image(natural).src, source, 'Original photo must not be modified');
   assert.equal(await menu.getByRole('button', { name: 'ナチュラル' }).getAttribute('aria-pressed'), 'true');
@@ -56,6 +58,7 @@ try {
   await menu.getByRole('button', { name: 'ギャル風' }).click();
   const gyaru = await waitWork((s) => image(s)?.beauty?.slim === 20, 'gyaru preset');
   assert.equal(image(gyaru).beauty.eyes, 22);
+  assert.equal(image(gyaru).makeupStyle, 'gyaru');
   assert.equal(await menu.getByRole('button', { name: 'ギャル風' }).getAttribute('aria-pressed'), 'true');
   await page.getByRole('button', { name: '戻す' }).click();
   await waitWork((s) => image(s)?.beauty?.smooth === 18 && image(s)?.beauty?.slim === 6, 'one-step undo');
@@ -64,8 +67,9 @@ try {
   await page.getByRole('slider', { name: '美肌' }).focus();
   await page.keyboard.press('End');
   await waitWork((s) => image(s)?.beauty?.smooth === 100, 'manual fine tuning');
-  assert.equal(await menu.getByRole('button', { name: 'ナチュラル' }).getAttribute('aria-pressed'), 'false',
-    'Manual slider movement must clear selected preset');
+  assert.equal(await menu.getByRole('button', { name: 'ナチュラル' }).getAttribute('aria-pressed'), 'true',
+    'Fine tuning must retain the chosen actual makeup rendering');
+  assert.equal(image(await readWork()).makeupStyle, 'natural');
 
   // A group photo must allow one person to use a different preset without
   // modifying the other person. Applying to everyone overrides per-face looks.
@@ -96,6 +100,7 @@ try {
   const personalized = await waitWork((s) => image(s)?.beautyFaceOverrides?.['1']?.eyes === 18,
     'one-face idol preset');
   assert.equal(image(personalized).beautyFaceOverrides['1'].blush, 20);
+  assert.equal(image(personalized).makeupFaceStyles['1'], 'idol');
   assert.equal(image(personalized).beautyFaceOverrides['0'], undefined);
   assert.equal(image(personalized).beauty?.smooth ?? 0, 0);
   await page.getByRole('button', { name: '全員', exact: true }).click();
@@ -103,12 +108,28 @@ try {
   const everyone = await waitWork((s) => image(s)?.beauty?.blush === 24 &&
     !image(s)?.beautyFaceOverrides?.['1'], 'everyone preset override');
   assert.equal(image(everyone).beauty.eyes, 20);
+  assert.equal(image(everyone).makeupStyle, 'pien');
+  assert.equal(image(everyone).makeupFaceStyles, undefined);
   assert.equal(await menu.getByRole('button', { name: 'ぴえん系' }).getAttribute('aria-pressed'), 'true');
   await page.getByRole('button', { name: '戻す' }).click();
   const undo = await waitWork((s) =>
     image(s)?.beautyFaceOverrides?.['1']?.eyes === 18 &&
     (image(s)?.beauty?.smooth ?? 0) === 0, 'undo everyone restores individual makeup');
   assert.equal(image(undo).beautyFaceOverrides['1'].lip, 18);
+  assert.equal(image(undo).makeupFaceStyles['1'], 'idol');
+  await menu.getByRole('button', { name: 'ギャル風' }).click();
+  const alternative = await waitWork((s) =>
+    image(s)?.makeupStyle === 'gyaru' &&
+    image(s)?.beautyFaceOverrides?.['1'] === undefined, 'apply another style globally');
+  assert.equal(image(alternative).makeupStyle, 'gyaru');
+  await page.getByRole('button', { name: 'メイクを外す' }).click();
+  const cleared = await waitWork((s) =>
+    !image(s)?.makeupStyle && !image(s)?.makeupFaceStyles &&
+    image(s)?.beauty?.lip === 0, 'remove all makeup');
+  assert.equal(image(cleared).beauty.legSlim, 0);
+  await page.getByRole('button', { name: '戻す' }).click();
+  const back = await waitWork((s) => image(s)?.makeupStyle === 'gyaru', 'undo makeup removal');
+  assert.equal(image(back).makeupStyle, 'gyaru');
   assert.deepEqual(errors, []);
   console.log('Makeup presets: offline values, per-face, everyone, manual adjustment, Undo: PASS');
 } finally {
