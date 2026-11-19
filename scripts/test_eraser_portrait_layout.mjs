@@ -118,8 +118,9 @@ try {
   }
 
   // A drawn rectangle must use picture-local rather than modal-local coords.
-  const portrait = await checkBounds({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 390, height: 844 });
   await dialog.getByRole('button', { name: '囲む', exact: true }).click();
+  const portrait = await checkBounds({ width: 390, height: 844 });
   const rect = portrait.content;
   const stableFrame = await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
   assert.ok(rect && stableFrame);
@@ -141,7 +142,7 @@ try {
     h: Number(el.getAttribute('height')),
   }));
   assert.ok(Math.abs(xy.x - 72) < 3 && Math.abs(xy.y - 252) < 5,
-    'Selection coordinates must map correctly to portrait image');
+    'Selection coordinates must map correctly to portrait image: ' + JSON.stringify(xy));
   assert.ok(Math.abs(xy.w - 144) < 3 && Math.abs(xy.h - 210) < 5,
     'Selection dimensions must map correctly to portrait image: ' + JSON.stringify(xy));
   assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).count(), 1);
