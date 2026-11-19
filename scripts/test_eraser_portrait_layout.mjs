@@ -101,13 +101,17 @@ try {
   await dialog.getByRole('button', { name: '囲む', exact: true }).click();
   const photo = dialog.getByRole('img', { name: '消去する写真' });
   const rect = await photo.boundingBox();
-  assert.ok(rect);
+  const stableFrame = await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
+  assert.ok(rect && stableFrame);
   const start = { x: rect.x + rect.width * .2, y: rect.y + rect.height * .3 };
   const end = { x: rect.x + rect.width * .6, y: rect.y + rect.height * .55 };
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
   await page.mouse.move(end.x, end.y, { steps: 6 });
   await page.mouse.up();
+  const afterFrame = await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
+  assert.ok(afterFrame && Math.abs(afterFrame.y - stableFrame.y) < 1,
+    'Opening selection controls must not move the preview during painting');
   const mask = dialog.locator('svg rect').first();
   assert.ok(await mask.count(), 'Selection overlay must appear');
   const xy = await mask.evaluate((el) => ({
@@ -123,7 +127,7 @@ try {
   assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).count(), 1);
   await dialog.getByRole('button', { name: '選択をクリア' }).click();
   assert.equal(await dialog.locator('svg rect').count(), 0);
-  assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).count(), 0);
+  assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).isDisabled(), true);
   assert.deepEqual(errors, [], 'No uncaught errors during portrait resizing and tool use');
   console.log('Portrait Magic Eraser image fit, compact labels and mask coordinates: PASS');
 } finally {
