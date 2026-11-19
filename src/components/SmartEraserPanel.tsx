@@ -239,11 +239,15 @@ function SelectionDialog({
             disabled={working} aria-pressed={engine === 'simple'}
             onClick={() => { setEngine('simple'); setPreview(null); setShowOriginal(false); setError(''); }}>軽量補完</button>
         </div>
-        <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
           <button type="button" className={mode === 'brush' ? 'on' : ''}
             disabled={working || !!preview} onClick={() => changeMode('brush')}>なぞる</button>
           <button type="button" className={mode === 'rectangle' ? 'on' : ''}
             disabled={working || !!preview} onClick={() => changeMode('rectangle')}>囲む</button>
+          <button type="button" aria-label="選択をクリア"
+            disabled={working || !!preview || !hasSelection}
+            style={{ paddingInline: 8 }}
+            onClick={() => { setStrokes([]); setRectangle(null); setError(''); }}>クリア</button>
         </div>
         <div ref={frameRef} data-testid="eraser-preview-frame" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -304,13 +308,6 @@ function SelectionDialog({
         )}
         {working && progress && (
           <p role="status" className="hint-s" style={{ margin: 0 }}>{progress}</p>
-        )}
-        {!preview && hasSelection && (
-          <button type="button" className="chip"
-            disabled={working}
-            onClick={() => { setStrokes([]); setRectangle(null); setError(''); }}>
-            選択をクリア
-          </button>
         )}
         {error && <p role="alert" style={{ color: '#c02660', fontSize: 13 }}>{error}</p>}
         {preview && (
