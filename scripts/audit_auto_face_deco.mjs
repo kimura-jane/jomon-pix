@@ -263,19 +263,23 @@ try {
       'Hair styling must never overwrite the photograph');
     if (hairResults.length) {
       assert.equal(entry.id, hairResults[0].id, 'Changing hair keeps the editable sticker');
-      assert(Math.abs(entry.size / entry.hairAutoPlacement.size - editedRatio) < 0.08,
+      assert(Math.abs(entry.size * Math.abs(entry.scaleX) / entry.hairAutoPlacement.size - editedRatio) < 0.08,
         'Manual size adjustment must survive a new face-aligned haircut');
     }
     if (label === 'ボブ') {
-      const before = entry.size;
+      // The generic sticker size control changes scaleX/scaleY, not the
+      // stored base size. Assert real displayed dimensions rather than size.
+      const before = entry.size * Math.abs(entry.scaleX);
       await page.getByRole('button', { name: '＋ 大きく' }).click();
       const edited = await waitForState((saved) =>
-        stickers(saved).some((item) => item.id === entry.id && item.size > before * 1.01),
+        stickers(saved).some((item) => item.id === entry.id &&
+          item.size * Math.abs(item.scaleX) > before * 1.01),
       'manual hair resizing');
       const resized = stickers(edited).find((item) => item.id === entry.id);
       assert.deepEqual(resized.hairAutoPlacement, entry.hairAutoPlacement,
         'Manual editing must not corrupt the face-placement baseline');
-      editedRatio = resized.size / entry.hairAutoPlacement.size;
+      editedRatio = resized.size * Math.abs(resized.scaleX) /
+        entry.hairAutoPlacement.size;
       hair = [resized];
     }
     hairResults.push(hair[0]);
