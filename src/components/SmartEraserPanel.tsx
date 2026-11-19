@@ -305,11 +305,13 @@ function SelectionDialog({
         {working && progress && (
           <p role="status" className="hint-s" style={{ margin: 0 }}>{progress}</p>
         )}}
-        <button type="button" className="chip"
-          disabled={working || !!preview || !hasSelection}
-          onClick={() => { setStrokes([]); setRectangle(null); setError(''); }}>
-          選択範囲をクリア
-        </button>
+        {!preview && hasSelection && (
+          <button type="button" className="chip"
+            disabled={working}
+            onClick={() => { setStrokes([]); setRectangle(null); setError(''); }}>
+            選択をクリア
+          </button>
+        )}
         {error && <p role="alert" style={{ color: '#c02660', fontSize: 13 }}>{error}</p>}
         {preview && (
           <button type="button" className="chip" disabled={working}
