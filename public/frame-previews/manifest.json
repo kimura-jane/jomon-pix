@@ -4,113 +4,113 @@
   "previews": [
     {
       "file": "border-none.png",
-      "bytes": 77680,
-      "sha256": "b3dc3084781ad1cb71ab91ef06e8638d28742c5ea4ac2272a6eed85c0a27ad52"
+      "bytes": 76861,
+      "sha256": "5cd22aa6049ca87dba326e9af339a0cc95f28102cd48f96591c44bd6f0ca4fbe"
     },
     {
       "file": "border-simple.png",
-      "bytes": 68810,
-      "sha256": "8006a7f6ce51b7c58dff71bd7ccb466deaf9253f560c204d6ce8eaa346ee4577"
+      "bytes": 67936,
+      "sha256": "bd9c13930424e6c584b9d29134f409a1a4b92447a1134af21c741d5640fab37b"
     },
     {
       "file": "border-double.png",
-      "bytes": 67063,
-      "sha256": "4b0253263b726669803a0305006a0ee553088799d6c8053eb8c2ccb845d48082"
+      "bytes": 66160,
+      "sha256": "58987895eb7413b00a424c5d59eb46709e9e15ea7f010c38a2f25d27485df193"
     },
     {
       "file": "border-polaroid.png",
-      "bytes": 66432,
-      "sha256": "efdf930d98b3721c4267df9213f463df5a1f3baf8b8a986426ae694e9f98876d"
+      "bytes": 66071,
+      "sha256": "32221df3b67787ecb14fa83a16069c5d2238e7c068fae0a944fc7f9240a63447"
     },
     {
       "file": "border-film.png",
-      "bytes": 70760,
-      "sha256": "22a22f59ff362e56cbb3112262654eabb2863f87462f7965acca89662f85caf3"
+      "bytes": 69978,
+      "sha256": "1eb2a4a634e0775440e3d43a2b0d3accc1553b83c3cc326126b61b32109e2625"
     },
     {
       "file": "border-album.png",
-      "bytes": 70262,
-      "sha256": "6dffc66f1a1eb2e06bc06e571ef73e2537246a336f92cf053b09ec15a4708454"
+      "bytes": 69434,
+      "sha256": "6e0240f3fa744703fdcc1530732d93809e75e56c0296f512cbfd4ad385ad24dc"
     },
     {
       "file": "border-neon.png",
-      "bytes": 90106,
-      "sha256": "02553eb777305b88eb00d11be3741c4cbfc26ec0a074a615eb451c987009e3f0"
+      "bytes": 89544,
+      "sha256": "fb82d7237ceaafcae1944a8ae807bfe2f29d5dd8d30b48755e460270b89078d3"
     },
     {
       "file": "border-magazine.png",
-      "bytes": 79651,
-      "sha256": "905101f17aaadab0b2120ec81917b4a769c372a54a2126074cf75501c1e51e65"
+      "bytes": 78751,
+      "sha256": "7c4fda990c7e4a0dedd50d773eed71c35862f6177a4abc4f3a975f7eb5fff5ff"
     },
     {
       "file": "scene-none.png",
-      "bytes": 34035,
-      "sha256": "08090299fc8ee8d1e6ef87e869f9f498c9856c110ecb1343c52ea7dd722a81a2"
+      "bytes": 33469,
+      "sha256": "944770f4ba31198587be836a1e0848744a634e6e97ecbdcbdfb5cbe9e2f5c9f7"
     },
     {
       "file": "scene-fuji.png",
-      "bytes": 90577,
-      "sha256": "20a91a73cd66485e25ce5dddb2f615220a4fce5dc3d047dd9389e28e3109ca41"
+      "bytes": 90001,
+      "sha256": "d6126eebf244c18cae4d643576aca77f53ac945aa0cfc6b89b2f08d59a5c5791"
     },
     {
       "file": "scene-sakura.png",
-      "bytes": 63756,
-      "sha256": "4e2bf2fcb9e53851f03da82d91c12ff37a7272d99cac7ddb44e68680341549b7"
+      "bytes": 63091,
+      "sha256": "53185c53df8daed688a07fd20683ffe17e161f10d85873b79efafff74174caf4"
     },
     {
       "file": "scene-coast.png",
-      "bytes": 70850,
-      "sha256": "71dee697525f9aab36f8b7a9b91ce198762a2871538b284b40c520fb819df96c"
+      "bytes": 70080,
+      "sha256": "a859c4f24ef63e3bbdaf30692aa85935ba648c270ae4e5963d0b264c1cc1c572"
     },
     {
       "file": "scene-shrine.png",
-      "bytes": 52738,
-      "sha256": "f429853c9902672e8083c92fd49aab01282b33cf474e825c4ee8134b8281d555"
+      "bytes": 52053,
+      "sha256": "ddd71f04caefacfbaee5771158014a9dc12cbd675939e77360e6c1db5d58b26a"
     },
     {
       "file": "scene-skyline.png",
-      "bytes": 48297,
-      "sha256": "3eab4b73608f51d0129c5cb92134ea4a92aeef2aa9a3f59af63d04d0fa27c02f"
+      "bytes": 47635,
+      "sha256": "0d9d181fbe497a48f66a6351dbb76786572c0d390caf8cf28cdb7586fff3d79b"
     },
     {
       "file": "scene-dreamy.png",
-      "bytes": 94485,
-      "sha256": "ab2d0c11862229ea0f18295e437506e03b821581adf95759ddc5c24b4902d321"
+      "bytes": 93856,
+      "sha256": "58aa210dfff76a5261a08243129629d7019ff8cca6c67ccac2fb926a3b13e02f"
     },
     {
       "file": "social-none.png",
-      "bytes": 77680,
-      "sha256": "b3dc3084781ad1cb71ab91ef06e8638d28742c5ea4ac2272a6eed85c0a27ad52"
+      "bytes": 76861,
+      "sha256": "5cd22aa6049ca87dba326e9af339a0cc95f28102cd48f96591c44bd6f0ca4fbe"
     },
     {
       "file": "social-live.png",
-      "bytes": 91504,
-      "sha256": "162aac7023b9c4a882eb72ebf6e429aee1c96575ff74f38f1b33b2de5caf89fa"
+      "bytes": 90713,
+      "sha256": "df6723a2d558ba8bd12742bcd332ee92fbb596336102e27ceb4c7592525db969"
     },
     {
       "file": "social-game.png",
-      "bytes": 89476,
-      "sha256": "c47313492f95cce53def841ea6f619947521b7454ac4b1e23e82820f23ddb33d"
+      "bytes": 88671,
+      "sha256": "a436480090237e022a1806e8899ccc5808ba1bec6a0c7655acb6fb44d500934f"
     },
     {
       "file": "social-video.png",
-      "bytes": 86778,
-      "sha256": "4e5700333a17be166c3e32e261309b39ec6d8524d42fba9b78db6eaa69fe341e"
+      "bytes": 85961,
+      "sha256": "b5f812322229ebd896cba66a08f64f55cdf56cf93bd52c479012d3d3ca90e5bf"
     },
     {
       "file": "social-shorts.png",
-      "bytes": 91807,
-      "sha256": "70bb8e051dccdaa4bf679257f7d6f6377df1536098c87be696ddc4cf7115a91c"
+      "bytes": 90975,
+      "sha256": "535af43cb3cd10d08e71dde6b763e0d4f5155ef1cf95ba894fab7deb1733934e"
     },
     {
       "file": "social-social.png",
-      "bytes": 85342,
-      "sha256": "78e05927d54b8105fbdba4b2ab4245d5282508b3536616921394384a5e4491cd"
+      "bytes": 84507,
+      "sha256": "397a8e74fd696473a00e6842fd30ae35c460c8673275536e6f8719412b00ac78"
     },
     {
       "file": "social-story.png",
-      "bytes": 84785,
-      "sha256": "caf777b885226901427d5fb504116e935717dc33c116239f9b39f92dc7e4fd76"
+      "bytes": 84002,
+      "sha256": "2d4ff2fd6e4f60f0a54fdb0b28995bcd926a1b6df020831bf8c72c796b1d98c6"
     }
   ]
 }
