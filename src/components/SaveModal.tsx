@@ -8,14 +8,8 @@ type Props = {
   onClose: () => void;
 };
 
-type ImageSize = {
-  width: number;
-  height: number;
-};
-
 export function SaveModal({ blob, onClose }: Props) {
   const [url, setUrl] = useState<string>();
-  const [imageSize, setImageSize] = useState<ImageSize | null>(null);
   const [saving, setSaving] = useState(false);
   const native = isNativeApp();
 
@@ -23,7 +17,6 @@ export function SaveModal({ blob, onClose }: Props) {
     const u = URL.createObjectURL(blob);
 
     setUrl(u);
-    setImageSize(null);
 
     return () => URL.revokeObjectURL(u);
   }, [blob]);
@@ -105,14 +98,6 @@ export function SaveModal({ blob, onClose }: Props) {
             className="preview"
             src={url}
             alt="完成画像"
-            onLoad={(event) => {
-              const img = event.currentTarget;
-
-              setImageSize({
-                width: img.naturalWidth,
-                height: img.naturalHeight,
-              });
-            }}
             style={{
               width: 'auto',
               height: 'auto',
