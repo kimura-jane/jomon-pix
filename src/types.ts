@@ -140,6 +140,15 @@ export type HairRetouch = {
   height: number;
 };
 
+// Baseline generated from the detected face. After the user drags or resizes
+// a wig, the delta is preserved when switching to another hairstyle.
+export type HairAutoPlacement = {
+  x: number;
+  y: number;
+  size: number;
+  rotation: number;
+};
+
 // 絵文字とイラスト画像の両方に対応
 // 既存の絵文字スタンプもそのまま使える
 export type StickerEl = Base & {
@@ -154,6 +163,8 @@ export type StickerEl = Base & {
   // For hair try-on, one independently replaceable hairstyle per detected face.
   // Missing on legacy manually placed hair; those are still recognized by label.
   hairFaceIndex?: number;
+  hairAutoPlacement?: HairAutoPlacement;
+  // Accepted for legacy backups only. No longer generated or rendered.
   hairRetouch?: HairRetouch;
 };
 

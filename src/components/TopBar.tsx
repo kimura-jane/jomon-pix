@@ -185,6 +185,14 @@ function isSpeechBubble(value: unknown): boolean {
     isFiniteNumber(value.width) && value.width >= 160 && value.width <= 500;
 }
 
+function isHairAutoPlacement(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return ['x', 'y', 'size', 'rotation'].every((key) =>
+    isFiniteNumber(value[key]) &&
+    Math.abs(value[key]) < 100000) &&
+    value.size > 0;
+}
+
 function isHairRetouch(value: unknown): boolean {
   return isRecord(value) &&
     typeof value.src === 'string' &&
@@ -268,6 +276,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         (value.label === undefined || typeof value.label === 'string') &&
         (value.beautyGlassesFace === undefined || (Number.isInteger(value.beautyGlassesFace) && (value.beautyGlassesFace as number) >= 0 && (value.beautyGlassesFace as number) < 10)) &&
          (value.hairFaceIndex === undefined || (Number.isInteger(value.hairFaceIndex) && (value.hairFaceIndex as number) >= 0 && (value.hairFaceIndex as number) < 10)) &&
+        (value.hairAutoPlacement === undefined || (typeof value.label === 'string' &&
+          value.label.startsWith('髪型:') && isHairAutoPlacement(value.hairAutoPlacement))) &&
         (value.hairRetouch === undefined || (typeof value.label === 'string' &&
           value.label.startsWith('髪型:') && isHairRetouch(value.hairRetouch))) &&
         isParentReference(value)

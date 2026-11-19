@@ -588,10 +588,37 @@ export const useEditor = create<S>()(
 
           if (previous) {
             if (previous.locked || previous.hidden) return false;
+            const nextBase = sticker.hairAutoPlacement;
+            const oldBase = previous.hairAutoPlacement;
+            const autoRetarget = nextBase !== undefined &&
+              sticker.hairFaceIndex !== undefined;
+            // Each haircut has a DIFFERENT painted silhouette and anchor.
+            // Always recompute its face-based geometry when changing styles,
+            // but keep any manual movement / size / rotation deltas.
+            const edited = autoRetarget && oldBase &&
+              previous.hairFaceIndex === sticker.hairFaceIndex;
+            const x = autoRetarget
+              ? sticker.x + (edited ? previous.x - oldBase.x : 0)
+              : previous.x;
+            const y = autoRetarget
+              ? sticker.y + (edited ? previous.y - oldBase.y : 0)
+              : previous.y;
+            const size = autoRetarget
+              ? sticker.size * (edited && oldBase.size > 0
+                ? previous.size / oldBase.size : 1)
+              : previous.size;
+            const rotation = autoRetarget
+              ? sticker.rotation + (edited ? previous.rotation - oldBase.rotation : 0)
+              : previous.rotation;
             const replacing = {
-              ...previous, src: sticker.src, label: sticker.label,
+              ...previous,
+              src: sticker.src, label: sticker.label,
+              x, y, size, rotation,
               hairFaceIndex: sticker.hairFaceIndex ?? previous.hairFaceIndex,
-              hairRetouch: sticker.hairRetouch ?? previous.hairRetouch,
+              hairAutoPlacement: autoRetarget ? nextBase : undefined,
+              // Previous releases stored an AI forehead-repair patch.
+              // Hair is now a normal movable sticker; never retain that patch.
+              hairRetouch: undefined,
             };
             commit({ elements: current.map((item) =>
               item.id === previous.id ? replacing : item) });
