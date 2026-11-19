@@ -423,13 +423,9 @@ function MosaicDialog({
             </button>
           ))}
         </div>
-        {mode !== 'all' && (
+        {mode === 'background' && !isNativeApp() && (
           <p className="hint-s" style={{ margin: 0 }}>
-            {mode === 'rectangle' ? 'ドラッグで範囲指定'
-              : mode === 'brush' ? '指で塗る'
-              : isNativeApp()
-                ? '端末内AIで背景を判定します。'
-                : '初回はAIモデルを取得します。※AIの判定には誤差があります。'}
+            初回はAIデータを取得します。
           </p>
         )}
 
@@ -531,10 +527,6 @@ function MosaicDialog({
             <p className="hint-s">写真を読み込み中…</p>
           )}
         </div>
-
-        {mode === 'background' && (
-          <p className="hint-s" style={{ margin: 0 }}>背景だけの仕上がりは適用後に確認できます。</p>
-        )}
 
         {effect !== 'black' && <label className="slider">
           {effect === 'blur' ? 'ぼかしの強さ' : 'モザイクの粗さ'} {tileSize}px

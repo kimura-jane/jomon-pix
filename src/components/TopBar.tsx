@@ -627,7 +627,6 @@ export function TopBar() {
           <div className="modal" onClick={(event) => event.stopPropagation()}
             style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
             <h3>作品のバックアップ</h3>
-             <p className="hint">編集できる状態で作品を保存・復元</p>
 
             <button type="button" className="btn primary big"
               disabled={workBusy} onClick={exportWork}>

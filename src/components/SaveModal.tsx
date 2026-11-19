@@ -125,14 +125,6 @@ export function SaveModal({ blob, onClose }: Props) {
           />
         )}
 
-        {imageSize && (
-          <p className="hint">
-            サイズ：
-            {imageSize.width} × {imageSize.height} px
-          </p>
-        )}
-
-
         {canShare && (
           <button
             type="button"

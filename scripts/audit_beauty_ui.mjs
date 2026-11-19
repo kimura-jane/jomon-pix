@@ -74,8 +74,10 @@ try {
   await smooth.focus();
   await page.keyboard.press('End');
   assert.equal(await smooth.inputValue(), '100');
-  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 60000 });
-  report.checks.push('Local face landmarker recognized real portrait');
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 60000 });
+  assert.equal(await page.getByText(/顔の加工を表示しています。/).count(), 0,
+    'Successful processing must not display redundant text');
+  report.checks.push('Local face landmarker recognized real portrait without noisy success banner');
   await page.waitForTimeout(250);
   const visualDelta = await page.evaluate(() => {
     const canvas = document.querySelector('.konvajs-content canvas');
@@ -139,7 +141,7 @@ try {
 
   await page.getByRole('slider', { name: '小顔' }).focus();
   await page.keyboard.press('End');
-  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 45000 });
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 45000 });
   const state2 = await waitWork(
     (work) => work.elements.some((el) => el.type === 'image' && el.beauty?.slim === 100),
     'beauty slim saved in IndexedDB',
@@ -149,12 +151,12 @@ try {
 
   await page.getByRole('slider', { name: '目の大きさ' }).focus();
   await page.keyboard.press('End');
-  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 45000 });
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 45000 });
   report.checks.push('Eye enlargement preview');
 
   await page.getByRole('slider', { name: 'リップ' }).focus();
   await page.keyboard.press('End');
-  await page.getByText(/顔の加工を表示しています。/).waitFor({ timeout: 45000 });
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 45000 });
   report.checks.push('Makeup preview');
 
   await page.getByRole('button', { name: '画像保存', exact: true }).click();

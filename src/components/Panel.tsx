@@ -480,7 +480,7 @@ function TextTab({
               </button>
             </>
           ) : (
-            <p className="hint-s">吹き出しは写真の上で移動・拡大できます。</p>
+            null
           )}
         </>
       ) : (
@@ -1718,10 +1718,7 @@ function StampTab({
                   <p role="status" className="hint-s" style={{ margin: '6px 0', fontWeight: 700 }}>
                     顔を{faceInfo.count}人認識しました
                   </p>
-                  {(faceInfo.count > 1 || sub === 'サングラス') && (
-                    <p className="hint-s" style={{ margin: '4px 0 7px', fontWeight: 700 }}>顔を選択</p>
-                  )}
-                  {(faceInfo.count > 1 || sub === 'サングラス') && (
+                   {(faceInfo.count > 1 || sub === 'サングラス') && (
                     <div className="row" role="group"
                       aria-label={sub === 'サングラス' ? 'サングラスをつける顔を選ぶ' : 'スタンプを付ける顔を選ぶ' }
                       style={{ flexWrap: 'nowrap', overflowX: 'auto', gap: 7, paddingBottom: 5 }}>
@@ -2008,8 +2005,7 @@ function EditTab({
 
       {sub === '配置' && (
         <>
-          {off && <p className="hint-s">編集するものを選択</p>}
-
+ 
           <div className="row">
             <button
               className="chip"
@@ -2629,7 +2625,6 @@ function SocialFrameTab() {
           onClick={() => editor.setCanvasPreset('9:16')}>
           縦9:16に変更
         </button>
-        <p className="hint-s" style={{ marginBottom: 0 }}>※配信画面風の画像加工です</p>
       </div>
     </>
   );

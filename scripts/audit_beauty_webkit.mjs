@@ -50,16 +50,15 @@ try {
   results.steps.push('slider input');
   const start = Date.now();
   await page.waitForFunction(() => {
-    const statuses = Array.from(document.querySelectorAll('[role="status"]'));
-    return statuses.some((item) => {
-      const message = item.textContent ?? '';
-      return message.includes('顔の加工を表示') || message.includes('顔認識を利用') || message.includes('顔を検出できません');
-    });
+    const state = document.querySelector('[data-beauty-state]')?.getAttribute('data-beauty-state');
+    return state === 'ready' || state === 'error' || state === 'no-face';
   }, { timeout: 60000 });
-  const faceResult = (await page.locator('[role="status"]').allTextContents())
-    .find((item) => item.includes('顔の加工を表示') || item.includes('顔認識を利用') || item.includes('顔を検出できません')) ?? '';
+  const faceResult = await page.locator('[data-beauty-state]').getAttribute('data-beauty-state');
   results.faceResult = faceResult;
-  assert(faceResult.includes('顔の加工を表示'), 'Face processing failed on WebKit: ' + faceResult);
+  assert.equal(faceResult, 'ready', 'Face processing failed on WebKit: ' +
+    JSON.stringify(await page.locator('[role="status"]').allTextContents()));
+  assert.equal(await page.getByText(/顔の加工を表示しています。/).count(), 0,
+    'Successful rendering must not show redundant status text');
   results.firstPreviewMs = Date.now() - start;
   results.steps.push('local FaceLandmarker initialized on WebKit');
   await page.getByRole('button', { name: '画像保存', exact: true }).click();

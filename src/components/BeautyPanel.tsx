@@ -83,6 +83,20 @@ export function BeautyPanel() {
     photo?.makeupFaceStyles?.[String(selectedIndex)] !== undefined;
 
   const status = useBeautyStatus((store) => photo ? store.byImage[photo.id] : undefined);
+  const [showSlowProcessing, setShowSlowProcessing] = useState(false);
+  useEffect(() => {
+    setShowSlowProcessing(false);
+    if (status?.state !== 'processing') return;
+    // Avoid a flashing explanatory message for every fast slider change.
+    const timer = window.setTimeout(() => setShowSlowProcessing(true), 550);
+    return () => window.clearTimeout(timer);
+  }, [status?.state, photo?.id]);
+  const showBeautyNotice = !!status && (
+    status.state === 'error' ||
+    status.state === 'no-face' ||
+    (status.state === 'processing' && showSlowProcessing) ||
+    (status.state === 'ready' && /失敗|できません|調整できます/.test(status.message))
+  );
   const comparing = useBeautyStatus((store) => store.comparingId === photo?.id);
   const setComparing = useBeautyStatus((store) => store.setComparing);
   const hasLeg = beauty.legSlim > 0 || beauty.legLength > 0;
@@ -250,11 +264,10 @@ export function BeautyPanel() {
               写真のロックを解除してください。
             </p>
           )}
-          <div style={{
+          <div data-beauty-state={status?.state ?? 'idle'} style={{
             padding: 11, background: '#fff7fb',
             border: '1px solid #f0c9df', borderRadius: 12, marginTop: 10,
           }}>
-            <strong style={{ fontSize: 13 }}>加工する顔を選択</strong>
             {faceBusy && <p className="hint-s" role="status">顔の位置を確認中…</p>}
             {!faceBusy && count > 0 && (
               <>
@@ -286,13 +299,13 @@ export function BeautyPanel() {
 
           {faceError && <p role="status" className="hint-s">{faceError}</p>}
 
-          {status && status.state !== 'idle' && (
+          {showBeautyNotice && (
             <p role="status" className="hint-s" style={{
               padding: 9, borderRadius: 9,
-              background: status.state === 'error' || status.state === 'no-face'
+              background: status?.state === 'error' || status?.state === 'no-face'
                 ? '#fff4e6' : '#f8eefb',
             }}>
-              {status.message}
+              {status?.state === 'processing' ? '加工中…' : status?.message}
             </p>
           )}
 

@@ -69,13 +69,13 @@ try {
   for (let attempt = 0; attempt < 65; attempt++) {
     const messages = await page.getByRole('status').allTextContents();
     status = messages.join(' / ');
-    if (status.includes('ビューティーの加工を表示しています。') ||
+    if (await page.locator('[data-beauty-state="ready"]').count() ||
         status.includes('脚の細さは、両脚を認識できる写真で調整できます。')) break;
     if (status.includes('失敗') || status.includes('検出できません')) break;
     await page.waitForTimeout(500);
   }
   console.log('Leg slim status:', status, 'browser diagnostics:', JSON.stringify([...errors, ...diagnostics]));
-  assert.ok(status.includes('ビューティーの加工を表示しています。') ||
+  assert.ok(await page.locator('[data-beauty-state="ready"]').count() ||
     status.includes('脚の細さは、両脚を認識できる写真で調整できます。'),
     'Leg slim did not apply. Status: ' + status + ' / errors: ' + [...errors, ...diagnostics].join('; '));
 
@@ -97,14 +97,14 @@ try {
   for (let attempt = 0; attempt < 65; attempt++) {
     const messages = await page.getByRole('status').allTextContents();
     lengthStatus = messages.join(' / ');
-    if (lengthStatus.includes('ビューティーの加工を表示しています。') ||
+    if (await page.locator('[data-beauty-state="ready"]').count() ||
         lengthStatus.includes('脚長は、全身が写った1人の写真で調整できます。')) break;
     if (lengthStatus.includes('失敗') || lengthStatus.includes('検出できません') ||
         lengthStatus.includes('全身が写った')) break;
     await page.waitForTimeout(500);
   }
   console.log('Leg length status:', lengthStatus, 'browser diagnostics:', JSON.stringify([...errors, ...diagnostics]));
-  assert.ok(lengthStatus.includes('ビューティーの加工を表示しています。') ||
+  assert.ok(await page.locator('[data-beauty-state="ready"]').count() ||
     lengthStatus.includes('脚長は、全身が写った1人の写真で調整できます。'),
     'Leg length did not apply. Status: ' + lengthStatus + ' / errors: ' + [...errors, ...diagnostics].join('; '));
   assert.deepEqual(errors, []);
