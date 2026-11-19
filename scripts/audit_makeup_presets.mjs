@@ -55,6 +55,67 @@ try {
   assert.equal(image(natural).src, source, 'Original photo must not be modified');
   assert.equal(await menu.getByRole('button', { name: 'ナチュラル' }).getAttribute('aria-pressed'), 'true');
 
+  // Regression: the PNG exporter must accept processed HTMLCanvasElement
+  // images even when cosmetics are the *only* active effect. Previously,
+  // stageRef's readiness check ignored makeupStyle and timed out after 15s.
+  async function saveEditedPng(label) {
+    await page.getByRole('button', { name: '画像保存', exact: true }).click();
+    await page.getByRole('heading', { name: 'できあがり！' })
+      .waitFor({ timeout: 30000 });
+    const preview = page.locator('img[alt="完成画像"]');
+    await preview.waitFor();
+    const result = await preview.evaluate(async (img) => {
+      if (!(img instanceof HTMLImageElement)) throw new Error('PNG preview is not an image');
+      await img.decode();
+      const response = await fetch(img.src);
+      if (!response.ok) throw new Error('Unable to retrieve exported PNG');
+      const buffer = await response.arrayBuffer();
+      const header = Array.from(new Uint8Array(buffer.slice(0, 8)));
+      const checksum = Array.from(new Uint8Array(
+        await crypto.subtle.digest('SHA-256', buffer),
+      )).map((b) => b.toString(16).padStart(2, '0')).join('');
+      return {
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        bytes: buffer.byteLength,
+        header,
+        checksum,
+      };
+    });
+    assert.deepEqual(result.header, [137, 80, 78, 71, 13, 10, 26, 10],
+      label + ': exporter must return a real PNG');
+    assert(result.width > 0 && result.height > 0 && result.bytes > 10000,
+      label + ': empty or invalid PNG');
+    await page.getByRole('button', { name: '閉じる', exact: true }).click();
+    return result;
+  }
+
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 60000 });
+  const naturalPng = await saveEditedPng('normal makeup preset');
+  const fields = [
+    ['美肌', 'smooth'], ['明るさ', 'bright'], ['血色', 'warmth'],
+    ['小顔', 'slim'], ['あごシャープ', 'chin'], ['目の大きさ', 'eyes'],
+    ['リップ', 'lip'], ['チーク', 'blush'],
+  ];
+  for (const [label] of fields) {
+    await page.getByRole('slider', { name: label, exact: true }).focus();
+    await page.keyboard.press('Home');
+  }
+  const makeupOnly = await waitWork((s) =>
+    image(s)?.makeupStyle === 'natural' &&
+    fields.every(([, key]) => image(s)?.beauty?.[key] === 0),
+  'makeup style with all numerical sliders set to zero');
+  assert.equal(makeupOnly.elements.filter((el) => el.type === 'image').length, 1);
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 60000 });
+  const cosmeticsOnlyPng = await saveEditedPng('cosmetics-only photo');
+  assert.notEqual(cosmeticsOnlyPng.checksum, naturalPng.checksum,
+    'Cosmetics-only rendering must visibly differ from the numeric preset rendering');
+  // Restore the preset so the existing Undo, per-face and two-person tests
+  // continue with their original expectations.
+  await menu.getByRole('button', { name: 'ナチュラル' }).click();
+  await waitWork((s) => image(s)?.beauty?.smooth === 18 &&
+    image(s)?.makeupStyle === 'natural', 'restored natural makeup');
+
   await menu.getByRole('button', { name: 'ギャル風' }).click();
   const gyaru = await waitWork((s) => image(s)?.beauty?.slim === 20, 'gyaru preset');
   assert.equal(image(gyaru).beauty.eyes, 22);
