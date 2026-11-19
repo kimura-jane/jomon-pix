@@ -281,6 +281,8 @@ function PhotoAttachmentControls({
 function ImageTab() {
   const ref = useRef<HTMLInputElement>(null);
   const clear = useEditor((s) => s.clear);
+  const select = useEditor((s) => s.select);
+  const setTab = useEditor((s) => s.setTab);
 
   return (
     <>
@@ -325,6 +327,17 @@ function ImageTab() {
         }}
       >
         ✨ 新しく作る
+      </button>
+
+      <button
+        type="button"
+        className="chip"
+        onClick={() => {
+          select(null);
+          setTab('edit');
+        }}
+      >
+        キャンバス設定
       </button>
 
     </>

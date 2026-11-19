@@ -541,6 +541,23 @@ function FloatingLayers({
                 {icon}
               </button>
             ))}
+            <button
+              type="button"
+              title="レイヤーの詳細設定"
+              aria-label="レイヤーの詳細設定"
+              onClick={() => useEditor.getState().setTab('layer')}
+              style={{
+                flex: 1,
+                border: 0,
+                borderRadius: 7,
+                minHeight: 28,
+                background: '#f7eef4',
+                fontSize: 17,
+                touchAction: 'manipulation',
+              }}
+            >
+              ⋯
+            </button>
           </div>
         </>
       )}

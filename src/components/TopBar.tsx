@@ -16,9 +16,7 @@ const TABS: { id: Tab; ic: string; label: string }[] = [
   { id: 'mosaic', ic: '▦', label: 'モザイク' },
   { id: 'magic', ic: '✦', label: 'スマート消去' },
   { id: 'beauty', ic: '💄', label: 'ビューティー' },
-  { id: 'edit', ic: '🎨', label: '加工' },
   { id: 'frame', ic: '🖼', label: 'フレーム' },
-  { id: 'layer', ic: '📚', label: 'レイヤー' },
 ];
 
 type Artwork = {
