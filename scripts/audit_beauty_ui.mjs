@@ -205,7 +205,9 @@ try {
   await page.getByRole('button', { name: 'ビューティー' }).click();
   await page.getByRole('slider', { name: '小顔' }).focus();
   await page.keyboard.press('End');
-  await page.getByText('2人の顔を検出').waitFor({ timeout: 60000 });
+  await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })
+    .waitFor({ timeout: 60000 });
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 60000 });
   report.checks.push('Two visible people both detected and processed');
 
   // Group-photo regression: faces occupy a much smaller portion of a wide
@@ -236,7 +238,9 @@ try {
   await page.getByRole('button', { name: 'ビューティー' }).click();
   await page.getByRole('slider', { name: '美肌' }).focus();
   await page.keyboard.press('End');
-  await page.getByText('2人の顔を検出').waitFor({ timeout: 60000 });
+  await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })
+    .waitFor({ timeout: 60000 });
+  await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 60000 });
   report.checks.push('Detected two smaller faces within a wide group photograph');
 
   assert.equal(report.outboundPostUrls.length, 0, 'Image pixels must never be sent to a network service');
