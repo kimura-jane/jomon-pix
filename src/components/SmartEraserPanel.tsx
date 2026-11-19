@@ -304,7 +304,7 @@ function SelectionDialog({
         )}
         {working && progress && (
           <p role="status" className="hint-s" style={{ margin: 0 }}>{progress}</p>
-        )}}
+        )}
         {!preview && hasSelection && (
           <button type="button" className="chip"
             disabled={working}
