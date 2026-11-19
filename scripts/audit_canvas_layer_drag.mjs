@@ -51,10 +51,11 @@ try {
   await page.locator('.bar button.tab').filter({ hasText: 'ホーム' }).click();
   const photoData = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 48;
+    canvas.width = 800;
+    canvas.height = 600;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ffaacc';
-    ctx.fillRect(0, 0, 48, 48);
+    ctx.fillRect(0, 0, 800, 600);
     return canvas.toDataURL('image/png');
   });
   await page.locator('input[type="file"][accept="image/*"]').first()
@@ -63,6 +64,112 @@ try {
       mimeType: 'image/png',
       buffer: Buffer.from(photoData.split(',')[1], 'base64'),
     });
+  // Keep each photo and attached sticker independently movable/fixable.
+  // This test uses persistent IndexedDB state rather than UI toast messages.
+  const saved = async () => page.evaluate(async () => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('jomon-pix-projects-v1', 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction('work', 'readonly');
+        const request = tx.objectStore('work').get('jomon-pix-work');
+        request.onsuccess = () => {
+          resolve(request.result ? JSON.parse(request.result).state : null);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } finally { db.close(); }
+  });
+  const waitForSaved = async (predicate, message) => {
+    const until = Date.now() + 20000;
+    while (Date.now() < until) {
+      const state = await saved();
+      if (state && predicate(state)) return state;
+      await page.waitForTimeout(150);
+    }
+    throw new Error('Timed out waiting for ' + message);
+  };
+  const photoState = await waitForSaved((state) =>
+    state.elements.some((el) => el.type === 'image'), 'image save');
+  const photo = photoState.elements.find((el) => el.type === 'image');
+  const initialPhotoPosition = { x: photo.x, y: photo.y };
+  await page.getByRole('button', { name: '画像1の位置とサイズを固定' }).click();
+  await waitForSaved((state) =>
+    state.elements.find((el) => el.id === photo.id)?.transformLocked === true,
+  'photo transform lock');
+  assert.equal(await page.getByRole('button', {
+    name: '画像1の位置とサイズを解除',
+  }).getAttribute('aria-pressed'), 'true');
+  report.checks.push('Photo lock toggles and is saved independently of edit lock');
+
+  // The photo is locked but may still be the parent of a newly added stamp.
+  await page.locator('.bar button.tab').filter({ hasText: 'スタンプ' }).click();
+  await page.getByRole('button', { name: '絵文字', exact: true }).click();
+  await page.getByRole('button', { name: '🐰を追加', exact: true }).click();
+  const withSticker = await waitForSaved((state) =>
+    state.elements.some((el) => el.type === 'sticker' && el.parentImageId === photo.id),
+  'sticker attached to transform-locked photo');
+  const bunny = withSticker.elements.find((el) =>
+    el.type === 'sticker' && el.parentImageId === photo.id);
+  assert.equal(bunny.locked, undefined);
+  assert.equal(bunny.transformLocked, undefined);
+  assert.equal(withSticker.elements.find((el) => el.id === photo.id)?.transformLocked, true);
+  assert.equal(await page.getByRole('listitem').count(), 2,
+    'Floating layer list should show the photo and attached sticker separately');
+  assert.equal(await page.getByRole('button', { name: 'スタンプ1の位置とサイズを固定' }).count(), 1);
+  assert.equal(await page.getByRole('button', { name: '画像2の位置とサイズを解除' }).count(), 1);
+  report.checks.push('Floating layers show separately lockable photo and attached sticker');
+
+  const canvas = await page.locator('.konvajs-content').boundingBox();
+  assert(canvas && canvas.width > 100);
+  const zoomScale = canvas.width / withSticker.canvasWidth;
+  const imageOrigin = { x: canvas.x + photo.x * zoomScale, y: canvas.y + photo.y * zoomScale };
+  const dragCanvas = async (x, y, dx = 25, dy = 16) => {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + dx, y + dy, { steps: 8 });
+    await page.mouse.up();
+  };
+  // Drag on the photo but outside the centered bunny.
+  const photoSpot = {
+    x: imageOrigin.x + photo.width * .08 * zoomScale,
+    y: imageOrigin.y + photo.height * .08 * zoomScale,
+  };
+  await dragCanvas(photoSpot.x, photoSpot.y);
+  await page.waitForTimeout(450);
+  let after = await saved();
+  const fixedPhoto = after.elements.find((el) => el.id === photo.id);
+  assert.equal(fixedPhoto.x, initialPhotoPosition.x);
+  assert.equal(fixedPhoto.y, initialPhotoPosition.y);
+  // The attached bunny must still move when the photo cannot.
+  const bunnySpot = {
+    x: imageOrigin.x + (bunny.x + bunny.size * .42) * zoomScale,
+    y: imageOrigin.y + (bunny.y + bunny.size * .42) * zoomScale,
+  };
+  await dragCanvas(bunnySpot.x, bunnySpot.y);
+  const movedStickerState = await waitForSaved((state) => {
+    const sticker = state.elements.find((el) => el.id === bunny.id);
+    return sticker && (Math.abs(sticker.x - bunny.x) > 2 || Math.abs(sticker.y - bunny.y) > 2);
+  }, 'dragging sticker over locked photo');
+  assert.equal(movedStickerState.elements.find((el) => el.id === photo.id).x,
+    initialPhotoPosition.x);
+  report.checks.push('Locked photo ignores dragging, while attached sticker moves independently');
+
+  await page.getByRole('button', { name: 'スタンプ1の位置とサイズを固定' }).click();
+  const fixedStickerState = await waitForSaved((state) =>
+    state.elements.find((el) => el.id === bunny.id)?.transformLocked === true,
+  'sticker transform lock');
+  const fixedSticker = fixedStickerState.elements.find((el) => el.id === bunny.id);
+  await page.getByRole('button', { name: 'スタンプ1の位置とサイズを解除' }).click();
+  await waitForSaved((state) =>
+    state.elements.find((el) => el.id === bunny.id)?.transformLocked === false,
+  'sticker transform unlock');
+  assert.equal(fixedSticker.parentImageId, photo.id);
+  report.checks.push('Attached sticker has its own reversible position and size lock');
+
   const grip = page.getByRole('button', { name: '重なり順パネルを移動' });
   await grip.waitFor({ timeout: 15000 });
 
@@ -119,6 +226,12 @@ try {
   await page.waitForTimeout(400);
   await page.reload({ waitUntil: 'networkidle' });
   await grip.waitFor({ timeout: 15000 });
+  const persisted = await waitForSaved((state) =>
+    state.elements.find((el) => el.id === photo.id)?.transformLocked === true &&
+    state.elements.some((el) => el.id === bunny.id && el.parentImageId === photo.id),
+  'transform lock retained after refresh');
+  assert(persisted, 'Photo transform lock and attached sticker survive reload');
+  report.checks.push('Position/size lock survives page reload');
   await page.waitForFunction(({ x, y }) => {
     const handle = document.querySelector('button[aria-label="重なり順パネルを移動"]');
     if (!handle) return false;
