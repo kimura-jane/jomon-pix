@@ -8,7 +8,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw
 
 BASE = '/jomon-pix/'
 SOURCE_ICON = Path('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png')
@@ -42,14 +42,35 @@ def build(out: Path) -> None:
             img.resize((size, size), Image.Resampling.LANCZOS).save(
                 icons / f'icon-{size}.png', optimize=True
             )
-        # Separate, deliberately padded icon for Android adaptive icon masks.
-        # The approved icon is kept unchanged for the regular 'any' icon.
-        maskable = Image.new('RGB', (512, 512), '#fff6fb')
-        inset = 280
-        maskable.paste(
-            img.resize((inset, inset), Image.Resampling.LANCZOS),
-            ((512 - inset) // 2, (512 - inset) // 2)
+        # Android masks the icon to each device's launcher shape.  The old
+        # 280px tile on a white 512px canvas made JOMON PIX look much smaller
+        # than adjacent apps. Keep the approved artwork, but give the icon an
+        # edge-to-edge pink/purple background with a larger 410px artwork tile.
+        left = img.getpixel((96, 512))
+        right = img.getpixel((928, 512))
+        maskable = Image.new('RGB', (512, 512))
+        background_draw = ImageDraw.Draw(maskable)
+        for x in range(512):
+            fraction = x / 511
+            color = tuple(round(a + (b - a) * fraction)
+                          for a, b in zip(left, right))
+            background_draw.line(((x, 0), (x, 511)), fill=color)
+        tile_size = 410
+        tile = img.resize((tile_size, tile_size), Image.Resampling.LANCZOS)
+        # The iOS original has baked-in white rounded corners. Mask only
+        # those corners so the Android adaptive icon never gets a white rim.
+        supersample = 4
+        high_size = tile_size * supersample
+        tile_mask_high = Image.new('L', (high_size, high_size), 0)
+        ImageDraw.Draw(tile_mask_high).rounded_rectangle(
+            (0, 0, high_size - 1, high_size - 1),
+            radius=round(high_size * 0.24), fill=255
         )
+        tile_mask = tile_mask_high.resize(
+            (tile_size, tile_size), Image.Resampling.LANCZOS
+        )
+        maskable.paste(tile, ((512 - tile_size) // 2,
+                              (512 - tile_size) // 2), tile_mask)
         maskable.save(icons / 'icon-maskable-512.png', optimize=True)
 
     for icon in manifest['icons']:
