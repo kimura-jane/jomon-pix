@@ -26,7 +26,8 @@ try {
     'Fresh project must begin at portrait 9:16');
   report.checks.push('New project defaults to portrait 9:16');
 
-  await page.getByRole('button', { name: /加工/ }).first().click();
+  // Canvas size controls now live on Home; the former 加工 tab was removed.
+  await page.locator('.bar button.tab').filter({ hasText: 'ホーム' }).click();
 
   const landscape = page.getByRole('button', { name: /16:9/ });
   const portrait = page.getByRole('button', { name: /9:16/ });
