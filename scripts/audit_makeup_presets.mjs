@@ -117,6 +117,11 @@ try {
     (image(s)?.beauty?.smooth ?? 0) === 0, 'undo everyone restores individual makeup');
   assert.equal(image(undo).beautyFaceOverrides['1'].lip, 18);
   assert.equal(image(undo).makeupFaceStyles['1'], 'idol');
+  // Editor Undo clears the selected element. With multiple photos the Beauty
+  // panel cannot infer a target until the user selects one again.
+  await page.getByRole('button', { name: '写真2', exact: true }).first().click();
+  await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })
+    .waitFor({ timeout: 60000 });
   await menu.getByRole('button', { name: 'ギャル風' }).click();
   const alternative = await waitWork((s) =>
     image(s)?.makeupStyle === 'gyaru' &&
