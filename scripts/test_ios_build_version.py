@@ -84,6 +84,14 @@ with tempfile.TemporaryDirectory(prefix="jomon-ios-version-") as folder:
         assert project.read_bytes() == old_project
         assert info_file.read_bytes() == old_info
 
+    # The Build 10 reuse guard is specific to the historical 1.0.3 release.
+    # Test that release explicitly, then restore the current 1.1.0 package.
+    package_path = root / "package.json"
+    current_package = package_path.read_text(encoding="utf-8")
+    legacy_package = json.loads(current_package)
+    legacy_package["version"] = "1.0.3"
+    package_path.write_text(json.dumps(legacy_package), encoding="utf-8")
+
     try:
         module.set_build_number(root, "10")
     except ValueError:
@@ -92,6 +100,7 @@ with tempfile.TemporaryDirectory(prefix="jomon-ios-version-") as folder:
         raise AssertionError("Reused 1.0.3 Build 10 was accepted")
     assert project.read_bytes() == old_project
     assert info_file.read_bytes() == old_info
+    package_path.write_text(current_package, encoding="utf-8")
 
     module.set_build_number(root, "11")
     contents = project.read_text()
@@ -104,7 +113,7 @@ with tempfile.TemporaryDirectory(prefix="jomon-ios-version-") as folder:
     )["version"]
     validate_ipa(root, version="YES", expected="11", ok=False)
     validate_ipa(root, version="11", expected="11", ok=True)
-    validate_ipa(root, version="10", expected="10", ok=False)
+    validate_ipa(root, version="10", expected="10", ok=True)  # New marketing version may reuse 10
     validate_ipa(root, version="11", expected="11", ok=False, marketing="9.9.9")
     validate_ipa(root, version="11", expected="11", ok=False, sdk_name="iphoneos26.5")
     validate_ipa(root, version="11", expected="11", ok=False, sdk_name=None)

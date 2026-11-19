@@ -8,7 +8,7 @@ normally at https://kimura-jane.github.io/jomon-pix/.
 
 - Display name: **JOMON PIX**
 - iOS Bundle ID: **com.jomonpix.app** (not registered automatically)
-- App version: **1.0.3** (read from `package.json` during signing)
+- App version: **1.1.0** (read from `package.json` during signing)
 - Native framework: Capacitor **7.6.10**; iOS minimum **15**
 - Git repository: **kimura-jane/jomon-pix**, nothing else may be modified
 
@@ -63,11 +63,12 @@ On the next manual Codemagic build, select a workflow defined in
 "Verify Xcode 27 and iOS 27 SDK before compilation" log. It should
 report **Xcode 27.2 and iOS SDK 27.2**.
 
-For another 1.0.3 delivery, **Build 10 cannot be reused**: Build **11 or
-later** is required. Both the build-number setter and IPA verifier
-fail on 1.0.3 numbers at or below 10. The version remains 1.0.3
-and the minimum supported iOS remains 15. An SDK update **does not**
-upgrade the deployment target.
+For the historical 1.0.3 release, **Build 10 cannot be reused**: both the
+build-number setter and IPA verifier reject 1.0.3 build numbers at or below 10.
+The new **1.1.0** marketing version is read from `package.json`; use an
+unused numeric Codemagic build number and confirm the actual result in
+App Store Connect. The minimum supported iOS remains 15. An SDK update
+**does not** upgrade the deployment target.
 
 Recommended flow: first `ios-simulator-check` (no signing, no upload),
 then `ios-ipa` after reviewing its results. `ios-ipa` automatically
