@@ -124,6 +124,17 @@ export type TextEl = Base & {
   align: 'left' | 'center' | 'right';
 };
 
+// A small, feathered inpainting patch is owned by the removable hairstyle.
+// The original photo data URI is never overwritten by automatic hair try-on.
+export type HairRetouch = {
+  src: string;
+  sourceKey: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 // 絵文字とイラスト画像の両方に対応
 // 既存の絵文字スタンプもそのまま使える
 export type StickerEl = Base & {
@@ -138,6 +149,7 @@ export type StickerEl = Base & {
   // For hair try-on, one independently replaceable hairstyle per detected face.
   // Missing on legacy manually placed hair; those are still recognized by label.
   hairFaceIndex?: number;
+  hairRetouch?: HairRetouch;
 };
 
 export type LineEl = Base & {

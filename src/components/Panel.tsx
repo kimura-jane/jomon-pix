@@ -18,6 +18,7 @@ import {
 import { FACE_STICKERS } from '../lib/stickerPacks';
 import { findAttachmentPhoto, getPhotoLabel } from '../lib/photoAttachments';
 import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
+import { createHairRetouch, hairPhotoKey } from '../lib/hairRetouch';
 import {
   REAL_HANIWA_STICKERS,
   REAL_DOGU_STICKERS,
@@ -1109,6 +1110,22 @@ function StampTab({
     setAutoMessage(sub === '髪型' ? '髪型を変更中…' : '選択した顔にスタンプを配置中…');
     try {
       const result = await createAutoFaceSticker(photo, sticker, selectedFaceIndex);
+      // One local AI pass per face, even when changing styles/colors.
+      // The untouched source photo remains in ImageEl.src for Undo and removal.
+      let hairRetouch = undefined;
+      if (sub === '髪型') {
+        const currentHair = useEditor.getState().elements.find((item) =>
+          item.type === 'sticker' && isHairSticker(item) &&
+          item.parentImageId === photo.id &&
+          (item.hairFaceIndex === selectedFaceIndex ||
+            (item.hairFaceIndex === undefined &&
+              Math.hypot(item.x - result.sticker.x, item.y - result.sticker.y) <
+                Math.max(12, result.sticker.size * 0.65))));
+        hairRetouch = currentHair?.type === 'sticker' &&
+          currentHair.hairRetouch?.sourceKey === hairPhotoKey(photo.src)
+            ? currentHair.hairRetouch
+            : await createHairRetouch(photo, selectedFaceIndex, setAutoMessage);
+      }
       const latest = useEditor.getState();
       const unchangedPhoto = latest.elements.find((item) =>
         item.id === photo.id && item.type === 'image',
@@ -1119,7 +1136,7 @@ function StampTab({
         throw new Error('写真が変更されたため配置を取り消しました。もう一度お試しください。');
       }
       if (sub === '髪型') {
-        if (!latest.setHairSticker({ ...result.sticker, hairFaceIndex: selectedFaceIndex })) {
+        if (!latest.setHairSticker({ ...result.sticker, hairFaceIndex: selectedFaceIndex, hairRetouch })) {
           throw new Error('髪型を変更できません。写真や既存の髪型のロックを解除してください。');
         }
       } else {

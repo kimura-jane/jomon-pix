@@ -175,6 +175,19 @@ function isSpeechBubble(value: unknown): boolean {
     isFiniteNumber(value.width) && value.width >= 160 && value.width <= 500;
 }
 
+function isHairRetouch(value: unknown): boolean {
+  return isRecord(value) &&
+    typeof value.src === 'string' &&
+    value.src.length < 2_500_000 &&
+    /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value.src) &&
+    typeof value.sourceKey === 'string' &&
+    /^[0-9a-z]+-[0-9a-z]+$/.test(value.sourceKey) &&
+    ['x', 'y', 'width', 'height'].every((key) =>
+      isFiniteNumber(value[key]) &&
+      Math.abs(value[key] as number) < 10000) &&
+    (value.width as number) > 0 && (value.height as number) > 0;
+}
+
 function isParentReference(value: Record<string, unknown>): boolean {
   return value.parentImageId === undefined ||
     (typeof value.parentImageId === 'string' &&
@@ -243,6 +256,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         (value.label === undefined || typeof value.label === 'string') &&
         (value.beautyGlassesFace === undefined || (Number.isInteger(value.beautyGlassesFace) && (value.beautyGlassesFace as number) >= 0 && (value.beautyGlassesFace as number) < 10)) &&
          (value.hairFaceIndex === undefined || (Number.isInteger(value.hairFaceIndex) && (value.hairFaceIndex as number) >= 0 && (value.hairFaceIndex as number) < 10)) &&
+        (value.hairRetouch === undefined || (typeof value.label === 'string' &&
+          value.label.startsWith('髪型:') && isHairRetouch(value.hairRetouch))) &&
         isParentReference(value)
       );
 

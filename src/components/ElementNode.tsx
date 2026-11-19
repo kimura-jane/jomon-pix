@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Konva from 'konva';
 import {
   Image as KImage,
@@ -13,6 +13,8 @@ import { penProps } from '../lib/pens';
 import { PhotoFrame } from './PhotoFrame';
 import { SpeechBubbleGraphic } from './SpeechBubbleGraphic';
 import { useBeautyPreview } from './useBeautyPreview';
+import { isHairSticker } from '../lib/hairStickers';
+import { hairPhotoKey } from '../lib/hairRetouch';
 import type {
   CanvasEl,
   FilterPreset,
@@ -159,6 +161,15 @@ function useCommon(el: CanvasEl) {
   };
 }
 
+// Render the inpainted skin/background BELOW the new hairstyle but ABOVE the
+// untouched photo. Deleting/undoing the hairstyle removes this patch as well.
+function HairUnderlayNode({ src, x, y, width, height }: {
+  src: string; x: number; y: number; width: number; height: number;
+}) {
+  const [img] = useImage(src, 'anonymous');
+  return <KImage image={img} x={x} y={y} width={width} height={height} listening={false} />;
+}
+
 // 写真
 function ImageNode({
   el,
@@ -175,6 +186,11 @@ function ImageNode({
 
   const common = useCommon(el);
   const preset = PRESETS[el.filter];
+  const sourceKey = useMemo(() => hairPhotoKey(el.src), [el.src]);
+  const hairPatches = attached.filter((child): child is StickerEl =>
+    child.type === 'sticker' && !child.hidden &&
+    isHairSticker(child) && !!child.hairRetouch &&
+    child.hairRetouch.sourceKey === sourceKey);
 
   useEffect(() => {
     const node = ref.current;
@@ -216,6 +232,12 @@ function ImageNode({
           filters={preset.filters}
           {...preset.props}
         />
+        {hairPatches.map((sticker) => {
+          const patch = sticker.hairRetouch!;
+          return <HairUnderlayNode key={'hair-underlay-' + sticker.id}
+            src={patch.src} x={patch.x} y={patch.y}
+            width={patch.width} height={patch.height} />;
+        })}
         {(el.drawings ?? []).map((stroke) => (
           <Line
             key={stroke.id}

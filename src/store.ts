@@ -400,12 +400,14 @@ function trimHistory(states: Snapshot[], future = false): Snapshot[] {
     let extra = 0;
     const added: string[] = [];
     for (const element of state.elements) {
-      if ((element.type !== 'image' && element.type !== 'sticker') ||
-          !element.src?.startsWith('data:image/') || seen.has(element.src)) continue;
-      // Only count each image once, even if shared across history snapshots.
-      if (!added.includes(element.src)) {
-        added.push(element.src);
-        extra += element.src.length;
+      if (element.type !== 'image' && element.type !== 'sticker') continue;
+      // Include AI hair retouch buffers in the undo memory budget.
+      const sources = [element.src, ...(element.type === 'sticker'
+        ? [element.hairRetouch?.src] : [])];
+      for (const src of sources) {
+        if (!src?.startsWith('data:image/') || seen.has(src) || added.includes(src)) continue;
+        added.push(src);
+        extra += src.length;
       }
     }
     if (kept.length > 0 && inlineSize + extra > HISTORY_INLINE_DATA_LIMIT) break;
@@ -589,6 +591,7 @@ export const useEditor = create<S>()(
             const replacing = {
               ...previous, src: sticker.src, label: sticker.label,
               hairFaceIndex: sticker.hairFaceIndex ?? previous.hairFaceIndex,
+              hairRetouch: sticker.hairRetouch ?? previous.hairRetouch,
             };
             commit({ elements: current.map((item) =>
               item.id === previous.id ? replacing : item) });
