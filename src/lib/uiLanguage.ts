@@ -120,6 +120,8 @@ const messages: Record<string, string> = {
   'ボブ': 'Bob', 'ストレートロング': 'Long Straight', 'ショート': 'Short',
   'ウェーブ': 'Waves', '前髪ありミディアム': 'Medium with Bangs',
   '指でなぞる': 'Brush', '四角で囲む': 'Rectangle',
+  'なぞる': 'Brush', '囲む': 'Rectangle', '選択をクリア': 'Clear Selection',
+  'クリア': 'Clear',
   '消去する写真': 'Photo to erase', '不要なものを消す': 'Remove unwanted objects',
   '選択範囲をクリア': 'Clear Selection',
   '消去して補完': 'Erase and Fill', '補完中…': 'Filling…',

@@ -6,6 +6,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/test_hair_smart_erase.mjs'
+      - 'scripts/test_eraser_portrait_layout.mjs'
       - '.github/workflows/feature-typecheck.yml'
   workflow_dispatch:
 
@@ -31,7 +32,11 @@ jobs:
       - name: Install browser test tooling
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
-          npx playwright install --with-deps chromium
+          if [ -x /usr/bin/google-chrome ]; then
+            echo "CHROME_BIN=/usr/bin/google-chrome" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Test hair overlays, smart erase, and Undo in Chromium
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/jomon-feature.log 2>&1 &
@@ -40,3 +45,4 @@ jobs:
             sleep 2
           done
           node scripts/test_hair_smart_erase.mjs
+          node scripts/test_eraser_portrait_layout.mjs

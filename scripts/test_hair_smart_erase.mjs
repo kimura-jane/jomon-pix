@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 
 const browser = await chromium.launch({
   headless: true,
+  ...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}),
   args: ['--no-sandbox'],
 });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -145,13 +146,16 @@ try {
   // The real neural model must be selected by default, not a silent
   // fallback to the old pixel-copy algorithm.
   assert.equal(await dialog.getByRole('button', { name: 'AI補完' }).getAttribute('aria-pressed'), 'true');
-  await dialog.getByRole('button', { name: '四角で囲む' }).click();
+  await dialog.getByRole('button', { name: '囲む', exact: true }).click();
   const picture = dialog.locator('img[alt="消去する写真"]');
   const box = await picture.boundingBox();
   assert.ok(box && box.width > 0 && box.height > 0);
+  const fitScale = Math.min(box.width / 240, box.height / 180);
+  const contentX = box.x + (box.width - 240 * fitScale) / 2;
+  const contentY = box.y + (box.height - 180 * fitScale) / 2;
   const toClient = (x, y) => ({
-    x: box.x + box.width * x / 240,
-    y: box.y + box.height * y / 180,
+    x: contentX + x * fitScale,
+    y: contentY + y * fitScale,
   });
   await page.mouse.move(toClient(96, 60).x, toClient(96, 60).y);
   await page.mouse.down();
@@ -159,7 +163,18 @@ try {
   await page.mouse.up();
   await dialog.getByRole('button', { name: 'AIで消す' }).click();
   await dialog.getByRole('button', { name: 'この結果を適用' }).waitFor({ timeout: 120000 });
-  assert.equal(await dialog.getByRole('status').filter({ hasText: '補完が完了' }).count(), 1);
+  const compare = dialog.getByRole('button', { name: '長押しで比較' });
+  const previewSrc = await picture.getAttribute('src');
+  assert.ok(previewSrc && previewSrc !== original, 'AI preview must differ from source');
+  const noSelect = await compare.evaluate((button) =>
+    getComputedStyle(button).userSelect);
+  assert.equal(noSelect, 'none', 'iPhone comparison button must not select its text');
+  await compare.dispatchEvent('pointerdown', { pointerType: 'touch', button: 0 });
+  await page.waitForFunction((before) =>
+    document.querySelector('img[alt="消去する写真"]')?.getAttribute('src') === before, original);
+  await compare.dispatchEvent('pointerup', { pointerType: 'touch', button: 0 });
+  await page.waitForFunction((after) =>
+    document.querySelector('img[alt="消去する写真"]')?.getAttribute('src') === after, previewSrc);
   await dialog.getByRole('button', { name: 'この結果を適用' }).click();
   await dialog.waitFor({ state: 'hidden', timeout: 30000 });
 
