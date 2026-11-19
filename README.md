@@ -9,6 +9,17 @@
 
 iOSのビルド手順は [docs/IOS_CODEMAGIC_SETUP.md](docs/IOS_CODEMAGIC_SETUP.md) を参照してください。
 
+
+## PNG画像の保存
+
+「画像保存」は、写真・スタンプ・メイク加工がキャンバスに読み込まれてからPNGを書き出します。
+2026-11-19に、メイク設定を含めず読み込み完了を判定していた不具合を修正しました。
+実画像のブラウザテストでは通常メイクとメイクのみの状態でPNG出力を検証しています。
+GitHub Pagesが更新されても、配布済みiOSアプリの実行コードは変わりません。
+iPhoneのTestFlightで試すには、修正後のmainからCodemagicで新しいIPAをビルドしてください。
+実機での写真ライブラリへの保存は別途確認が必要です。
+
+
 ## Android (PWABuilder / Google Play)
 
 The hosted Web edition is `https://kimura-jane.github.io/jomon-pix/`.
