@@ -83,7 +83,24 @@ try {
   const firstSelected = page.getByRole('group', { name: '髪色を選択' })
     .getByRole('button', { name: 'ダークブラウン' });
   assert.equal(await firstSelected.getAttribute('aria-pressed'), 'true');
-  await page.getByRole('button', { name: '手動配置', exact: true }).click();
+  const modeGroup = page.getByRole('group', { name: '配置方法' });
+  const automatic = modeGroup.getByRole('button', { name: '自動配置', exact: true });
+  const manual = modeGroup.getByRole('button', { name: '手動配置', exact: true });
+  assert.equal(await automatic.getAttribute('aria-pressed'), 'true');
+  assert.equal(await manual.getAttribute('aria-pressed'), 'false');
+  const activeStyle = await automatic.evaluate((button) => {
+    const s = getComputedStyle(button);
+    return { background: s.backgroundColor, color: s.color };
+  });
+  assert.equal(activeStyle.background, 'rgb(199, 44, 128)');
+  assert.equal(activeStyle.color, 'rgb(255, 255, 255)');
+  assert.equal(await automatic.locator('.placement-selected-mark').count(), 1);
+  assert.equal(await manual.locator('.placement-selected-mark').count(), 0);
+  await manual.click();
+  assert.equal(await automatic.getAttribute('aria-pressed'), 'false');
+  assert.equal(await manual.getAttribute('aria-pressed'), 'true');
+  assert.equal(await automatic.locator('.placement-selected-mark').count(), 0);
+  assert.equal(await manual.locator('.placement-selected-mark').count(), 1);
   assert.equal(await page.getByRole('button', { name: /髪型:.*を追加/ }).count(), 9);
   assert.equal(await page.getByRole('group', { name: '髪色を選択' }).locator('button').count(), 8);
   await page.getByRole('button', { name: /髪型:ボブ.*を追加/ }).click();

@@ -135,3 +135,54 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 .bubble-style-card:focus-visible { outline:2px solid #df419d; outline-offset:2px; }
 .bubble-style-card:disabled { opacity:.5; cursor:not-allowed; }
 .bubble-style-icon { display:grid; place-items:center; width:46px; height:45px; border-radius:14px; background:#f9e7f2; color:#dc58a1; font-size:32px; line-height:1; }
+
+/* Selected placement mode must be immediately legible on a phone. */
+.placement-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 6px;
+  padding: 4px;
+  background: #f6e8f1;
+  border: 1px solid #e9cadc;
+  border-radius: 16px;
+}
+.placement-switch-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: #fff;
+  color: #785f70;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.placement-switch-option[aria-pressed="true"] {
+  background: #c72c80;
+  color: #fff;
+  border-color: #a91f67;
+  box-shadow: 0 2px 7px rgba(146, 22, 88, 0.19);
+}
+.placement-switch-option[aria-pressed="false"] {
+  background: #fff;
+  color: #785f70;
+  box-shadow: none;
+}
+.placement-switch-option:focus-visible {
+  outline: 3px solid #77317a;
+  outline-offset: 2px;
+}
+.placement-switch-option:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+.placement-selected-mark { font-size: 16px; line-height: 1; }

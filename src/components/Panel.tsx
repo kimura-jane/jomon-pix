@@ -1630,25 +1630,25 @@ function StampTab({
           marginBottom: 12,
         }}>
           {sub === '髪型' && <div className="label" style={{ marginTop: 0 }}>配置</div>}
-          <div className="row" style={{ gap: 7 }}>
+          <div className="placement-switch" role="group" aria-label="配置方法">
             <button
               type="button"
-              className="chip"
+              className="placement-switch-option"
               aria-pressed={autoFace}
               disabled={autoBusy}
               onClick={() => { setAutoFace(true); setAutoMessage(''); }}
-              style={autoFace ? { borderColor: '#ec54a5', background: '#ffeaf6' } : {}}
             >
+              {autoFace && <span aria-hidden="true" className="placement-selected-mark">✓</span>}
               自動配置
             </button>
             <button
               type="button"
-              className="chip"
+              className="placement-switch-option"
               aria-pressed={!autoFace}
               disabled={autoBusy}
               onClick={() => { setAutoFace(false); setAutoMessage(''); }}
-              style={!autoFace ? { borderColor: '#ec54a5', background: '#ffeaf6' } : {}}
             >
+              {!autoFace && <span aria-hidden="true" className="placement-selected-mark">✓</span>}
               手動配置
             </button>
           </div>
@@ -1797,9 +1797,6 @@ function StampTab({
               );
             })}
           </div>
-          <p className="hint-s">
-            実写風の透過ヘア素材です。別の髪型を選ぶと同じ人の髪型だけ差し替えます。
-          </p>
         </div>
       )}
 
