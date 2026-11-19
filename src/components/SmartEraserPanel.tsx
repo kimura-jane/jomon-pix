@@ -31,7 +31,6 @@ function SelectionDialog({
   onClose: () => void;
 }) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [view, setView] = useState({ width: 0, height: 0 });
   const [mode, setMode] = useState<EraseMode>('brush');
   const [brushPercent, setBrushPercent] = useState(5);
   const [engine, setEngine] = useState<'ai' | 'simple'>('ai');
@@ -42,7 +41,6 @@ function SelectionDialog({
   const [rectangle, setRectangle] = useState<Rectangle | null>(null);
   const [error, setError] = useState('');
   const [working, setWorking] = useState(false);
-  const frameRef = useRef<HTMLDivElement>(null);
   const pictureRef = useRef<HTMLDivElement>(null);
   const pointerId = useRef<number | null>(null);
   const start = useRef<Point | null>(null);
@@ -60,37 +58,24 @@ function SelectionDialog({
     return () => { alive = false; };
   }, [photo.src]);
 
-  useEffect(() => {
-    if (!image || !frameRef.current) return;
-    const frame = frameRef.current;
-    const resize = () => {
-      // The image must fit the ACTUAL preview area, not a different
-      // percentage of viewport height. A flex-shrunk panel used to let
-      // portrait photos overlap the mode buttons and action bar on iOS.
-      const width = Math.max(1, frame.clientWidth - 8);
-      const height = Math.max(1, frame.clientHeight - 8);
-      const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-      setView({
-        width: Math.max(1, Math.floor(image.naturalWidth * scale)),
-        height: Math.max(1, Math.floor(image.naturalHeight * scale)),
-      });
-    };
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(frame);
-    window.addEventListener('resize', resize);
-    return () => { observer.disconnect(); window.removeEventListener('resize', resize); };
-  }, [image]);
-
   const pointFromClient = (clientX: number, clientY: number): Point | null => {
     if (!image || !pictureRef.current) return null;
     const rect = pictureRef.current.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
+    // Both the <img> and SVG use 'contain' (xMidYMid meet). Map
+    // pointer coordinates through that SAME letterboxed rectangle.
+    // Otherwise the selected mask drifts on tall images.
+    const scale = Math.min(rect.width / image.naturalWidth,
+      rect.height / image.naturalHeight);
+    const contentW = image.naturalWidth * scale;
+    const contentH = image.naturalHeight * scale;
+    const left = rect.left + (rect.width - contentW) / 2;
+    const top = rect.top + (rect.height - contentH) / 2;
+    if (clientX < left || clientX > left + contentW ||
+        clientY < top || clientY > top + contentH) return null;
     return {
-      x: Math.max(0, Math.min(image.naturalWidth,
-        (clientX - rect.left) * image.naturalWidth / rect.width)),
-      y: Math.max(0, Math.min(image.naturalHeight,
-        (clientY - rect.top) * image.naturalHeight / rect.height)),
+      x: Math.max(0, Math.min(image.naturalWidth, (clientX - left) / scale)),
+      y: Math.max(0, Math.min(image.naturalHeight, (clientY - top) / scale)),
     };
   };
 
@@ -249,14 +234,14 @@ function SelectionDialog({
             style={{ paddingInline: 8 }}
             onClick={() => { setStrokes([]); setRectangle(null); setError(''); }}>クリア</button>
         </div>
-        <div ref={frameRef} data-testid="eraser-preview-frame" style={{
+        <div data-testid="eraser-preview-frame" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: '100%', height: 'min(42dvh, 360px)', minHeight: 160,
           boxSizing: 'border-box', flex: '0 0 auto',
           overflow: 'hidden', padding: 4, borderRadius: 12,
           background: '#f6eef4',
         }}>
-          {image && view.width > 0 ? (
+          {image ? (
             <div ref={pictureRef}
               onPointerDown={pointerDown}
               onPointerMove={pointerMove}
@@ -264,14 +249,14 @@ function SelectionDialog({
               onPointerCancel={pointerEnd}
               style={{
                 position: 'relative', flexShrink: 0,
-                width: view.width, height: view.height,
-                maxWidth: '100%', maxHeight: '100%',
+                width: '100%', height: '100%', minWidth: 0, minHeight: 0,
                 overflow: 'hidden', touchAction: 'none', cursor: 'crosshair',
               }}>
               <img src={preview && !showOriginal ? preview : photo.src} alt="消去する写真" draggable={false}
-                style={{ display: 'block', width: '100%', height: '100%',
+                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain',
                   pointerEvents: 'none', userSelect: 'none' }} />
               {!preview && <svg viewBox={'0 0 ' + image.naturalWidth + ' ' + image.naturalHeight}
+                preserveAspectRatio="xMidYMid meet"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
                   pointerEvents: 'none' }}>
                 {mode === 'rectangle' && rectangle && (
