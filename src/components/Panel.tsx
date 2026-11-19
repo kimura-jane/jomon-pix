@@ -2072,7 +2072,6 @@ function EditTab({
 
             <button
               className="chip"
-              disabled={off}
               disabled={off || !!el?.locked || !!el?.transformLocked}
               onClick={() =>
                 el && !el.transformLocked &&
@@ -2086,7 +2085,6 @@ function EditTab({
 
             <button
               className="chip"
-              disabled={off}
               disabled={off || !!el?.locked || !!el?.transformLocked}
               onClick={() =>
                 el && !el.transformLocked &&
