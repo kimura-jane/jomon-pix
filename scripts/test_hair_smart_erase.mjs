@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 
 const browser = await chromium.launch({
   headless: true,
+  ...(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}),
   args: ['--no-sandbox'],
 });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
