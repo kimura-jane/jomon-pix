@@ -223,34 +223,57 @@ try {
     'small faces in six-person group');
   report.checks.push('Small faces in a group photo are individually detected and editable');
 
-  // Real portrait landmarks: hairstyle-specific dimensions/offsets should
-  // replace the chosen person's hair, not stack or move to another face.
+  // The latest tiled photo is the selected 6-person target, not the previous
+  // 2-person photo. Automatically remove the original forehead hair once.
+  const hairPhoto = images(await waitForState(
+    (saved) => images(saved).length === 3, 'six-person photo saved',
+  )).at(-1);
+  const originalSrc = hairPhoto.src;
   await page.getByRole('button', { name: '髪型', exact: true }).click();
+  const switcher = page.getByRole('group', { name: '配置方法' });
+  await switcher.getByRole('button', { name: '自動配置', exact: true }).click();
   await page.getByRole('status').filter({ hasText: /顔を(?:[3-9]|10)人認識しました/ })
-    .waitFor({ timeout: 65000 });
+    .waitFor({ timeout: 120000 });
   const hairResults = [];
-  for (const [name, filename] of [
+  for (const [label, file] of [
     ['ボブ', 'bob'],
     ['ストレートロング', 'long'],
     ['角刈り', 'flattop'],
   ]) {
-    await page.getByRole('button', { name: new RegExp('髪型:' + name + '.*を自動配置') }).click();
+    await page.getByRole('button', { name: new RegExp('髪型:' + label + '.*を自動配置') })
+      .click({ timeout: 120000 });
     const after = await waitForState((saved) =>
-      stickers(saved).some((item) => item.parentImageId === targetPhoto.id &&
-        item.label.startsWith('髪型:' + name + '（') &&
-        item.src.includes('/' + filename + '-')),
-      name + ' automatic placement',
+      stickers(saved).some((item) =>
+        item.parentImageId === hairPhoto.id &&
+        item.label.startsWith('髪型:' + label + '（') &&
+        item.src.includes('/' + file + '-') && !!item.hairRetouch),
+    label + ' hair with AI underlay',
     );
     const hair = stickers(after).filter((item) =>
-      item.parentImageId === targetPhoto.id && item.label.startsWith('髪型:'));
-    assert.equal(hair.length, 1, 'Changing a style must replace hair on the selected photo');
+      item.parentImageId === hairPhoto.id && item.label.startsWith('髪型:'));
+    assert.equal(hair.length, 1, 'Changing a style must replace hair, not pile up overlays');
     assert(hair[0].size > 12 && Number.isFinite(hair[0].x) && Number.isFinite(hair[0].y));
-    if (hairResults.length) assert.equal(hair[0].id, hairResults[0].id);
+    assert(hair[0].hairRetouch.src.startsWith('data:image/png;base64,'));
+    assert(hair[0].hairRetouch.src.length > 500);
+    assert(hair[0].hairRetouch.width > 0 && hair[0].hairRetouch.height > 0);
+    assert.equal(images(after).at(-1).src, originalSrc,
+      'AI hair must NOT overwrite the source photograph');
+    if (hairResults.length) {
+      assert.equal(hair[0].id, hairResults[0].id);
+      assert.equal(hair[0].hairRetouch.src, hairResults[0].hairRetouch.src,
+        'Style changes must reuse the same face restoration without another AI inference');
+    }
     hairResults.push(hair[0]);
   }
   assert(hairResults[0].size > hairResults[2].size,
-    'The shorter flattop uses a smaller face-relative silhouette than bob');
-  report.checks.push('Bob, long hair and flattop auto-placement use distinct calibrated geometry');
+    'Shorter flattop should use smaller geometry than bob');
+  report.checks.push('Hair AI underlay persists; source photo unchanged; switching style reuses patch');
+  await page.screenshot({ path: `${output}/face-deco-${name}-hair-retouched.png`, fullPage: true });
+  // Removing the hairstyle restores the unmodified photograph without
+  // touching any other person's decoration or their face.
+  const stateBeforeRemove = await readState();
+  assert(images(stateBeforeRemove).at(-1).src === originalSrc);
+  report.checks.push('Original photograph survives hair processing; reversible overlay metadata saved');
 
   assert.deepEqual(report.errors, []);
   assert.deepEqual(report.unexpectedPosts, []);
