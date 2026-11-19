@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'src/components/TopBar.tsx'
+      - 'src/components/SaveModal.tsx'
+      - 'src/lib/nativeFileShare.ts'
+      - 'src/lib/stageRef.ts'
       - 'src/lib/nftDogs.ts'
       - 'src/lib/museumStickers.ts'
       - 'scripts/audit_backup_roundtrip.mjs'
@@ -14,6 +17,9 @@ on:
   pull_request:
     paths:
       - 'src/components/TopBar.tsx'
+      - 'src/components/SaveModal.tsx'
+      - 'src/lib/nativeFileShare.ts'
+      - 'src/lib/stageRef.ts'
       - 'src/lib/nftDogs.ts'
       - 'src/lib/museumStickers.ts'
       - 'scripts/audit_backup_roundtrip.mjs'
