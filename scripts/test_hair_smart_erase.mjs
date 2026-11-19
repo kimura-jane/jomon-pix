@@ -150,9 +150,12 @@ try {
   const picture = dialog.locator('img[alt="消去する写真"]');
   const box = await picture.boundingBox();
   assert.ok(box && box.width > 0 && box.height > 0);
+  const fitScale = Math.min(box.width / 240, box.height / 180);
+  const contentX = box.x + (box.width - 240 * fitScale) / 2;
+  const contentY = box.y + (box.height - 180 * fitScale) / 2;
   const toClient = (x, y) => ({
-    x: box.x + box.width * x / 240,
-    y: box.y + box.height * y / 180,
+    x: contentX + x * fitScale,
+    y: contentY + y * fitScale,
   });
   await page.mouse.move(toClient(96, 60).x, toClient(96, 60).y);
   await page.mouse.down();
