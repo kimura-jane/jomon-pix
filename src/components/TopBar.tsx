@@ -189,8 +189,8 @@ function isHairAutoPlacement(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return ['x', 'y', 'size', 'rotation'].every((key) =>
     isFiniteNumber(value[key]) &&
-    Math.abs(value[key]) < 100000) &&
-    value.size > 0;
+    Math.abs(value[key] as number) < 100000) &&
+    isFiniteNumber(value.size) && value.size > 0;
 }
 
 function isHairRetouch(value: unknown): boolean {
