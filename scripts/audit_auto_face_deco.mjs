@@ -223,8 +223,8 @@ try {
     'small faces in six-person group');
   report.checks.push('Small faces in a group photo are individually detected and editable');
 
-  // The latest tiled photo is the selected 6-person target, not the previous
-  // 2-person photo. Automatically remove the original forehead hair once.
+  // Hairstyles use MediaPipe ONLY for an initial face-relative placement.
+  // They remain ordinary draggable stickers. No hair-removal AI or underlay.
   const hairPhoto = images(await waitForState(
     (saved) => images(saved).length === 3, 'six-person photo saved',
   )).at(-1);
@@ -234,7 +234,9 @@ try {
   await switcher.getByRole('button', { name: '自動配置', exact: true }).click();
   await page.getByRole('status').filter({ hasText: /顔を(?:[3-9]|10)人認識しました/ })
     .waitFor({ timeout: 120000 });
+
   const hairResults = [];
+  let editedRatio = 1;
   for (const [label, file] of [
     ['ボブ', 'bob'],
     ['ストレートロング', 'long'],
@@ -246,35 +248,45 @@ try {
       stickers(saved).some((item) =>
         item.parentImageId === hairPhoto.id &&
         item.label.startsWith('髪型:' + label + '（') &&
-        item.src.includes('/' + file + '-') && !!item.hairRetouch),
-    label + ' hair with AI underlay',
+        item.src.includes('/' + file + '-') &&
+        item.hairAutoPlacement && item.hairFaceIndex === 0),
+    label + ' face-aligned sticker',
     );
-    const hair = stickers(after).filter((item) =>
+    let hair = stickers(after).filter((item) =>
       item.parentImageId === hairPhoto.id && item.label.startsWith('髪型:'));
-    assert.equal(hair.length, 1, 'Changing a style must replace hair, not pile up overlays');
-    assert(hair[0].size > 12 && Number.isFinite(hair[0].x) && Number.isFinite(hair[0].y));
-    assert(hair[0].hairRetouch.src.startsWith('data:image/png;base64,'));
-    assert(hair[0].hairRetouch.src.length > 500);
-    assert(hair[0].hairRetouch.width > 0 && hair[0].hairRetouch.height > 0);
+    assert.equal(hair.length, 1, 'Changing a style must replace hair, not stack overlays');
+    const entry = hair[0];
+    assert(Number.isFinite(entry.x) && Number.isFinite(entry.y) && entry.size > 12);
+    assert.deepEqual(Object.keys(entry.hairAutoPlacement).sort(), ['rotation', 'size', 'x', 'y']);
+    assert.equal(entry.hairRetouch, undefined, 'No AI inpaint is generated for a wig');
     assert.equal(images(after).at(-1).src, originalSrc,
-      'AI hair must NOT overwrite the source photograph');
+      'Hair styling must never overwrite the photograph');
     if (hairResults.length) {
-      assert.equal(hair[0].id, hairResults[0].id);
-      assert.equal(hair[0].hairRetouch.src, hairResults[0].hairRetouch.src,
-        'Style changes must reuse the same face restoration without another AI inference');
+      assert.equal(entry.id, hairResults[0].id, 'Changing hair keeps the editable sticker');
+      assert(Math.abs(entry.size / entry.hairAutoPlacement.size - editedRatio) < 0.08,
+        'Manual size adjustment must survive a new face-aligned haircut');
+    }
+    if (label === 'ボブ') {
+      const before = entry.size;
+      await page.getByRole('button', { name: '＋ 大きく' }).click();
+      const edited = await waitForState((saved) =>
+        stickers(saved).some((item) => item.id === entry.id && item.size > before * 1.01),
+      'manual hair resizing');
+      const resized = stickers(edited).find((item) => item.id === entry.id);
+      assert.deepEqual(resized.hairAutoPlacement, entry.hairAutoPlacement,
+        'Manual editing must not corrupt the face-placement baseline');
+      editedRatio = resized.size / entry.hairAutoPlacement.size;
+      hair = [resized];
     }
     hairResults.push(hair[0]);
   }
-  assert(hairResults[0].size > hairResults[2].size,
-    'Shorter flattop should use smaller geometry than bob');
-  report.checks.push('Hair AI underlay persists; source photo unchanged; switching style reuses patch');
-  await page.screenshot({ path: `${output}/face-deco-${name}-hair-retouched.png`, fullPage: true });
-  // Removing the hairstyle restores the unmodified photograph without
-  // touching any other person's decoration or their face.
-  const stateBeforeRemove = await readState();
-  assert(images(stateBeforeRemove).at(-1).src === originalSrc);
-  report.checks.push('Original photograph survives hair processing; reversible overlay metadata saved');
-  // The most recent hairstyle remains selected after replacing it.
+  assert(hairResults[0].hairAutoPlacement.size > hairResults[2].hairAutoPlacement.size,
+    'Different silhouettes must use their own face-relative sizes');
+  assert(Math.abs(hairResults[0].y - hairResults[2].y) > 0.5,
+    'Changing a hairstyle recalculates its forehead anchor');
+  report.checks.push('AI detects the initial head position; each hairstyle is movable and manually resized');
+  report.checks.push('Original hair stays untouched; no hair-removal AI or backdrop repair');
+  await page.screenshot({ path: `${output}/face-deco-${name}-hair-sticker.png`, fullPage: true });
   await page.getByRole('button', { name: '🗑 削除', exact: true }).click();
   const cleared = await waitForState((saved) =>
     !stickers(saved).some((item) =>
@@ -286,11 +298,12 @@ try {
   const restored = await waitForState((saved) =>
     stickers(saved).some((item) =>
       item.parentImageId === hairPhoto.id &&
-      item.label.startsWith('髪型:角刈り（') && item.hairRetouch?.src),
-    'undo remove hairstyle',
+      item.label.startsWith('髪型:角刈り（') &&
+      item.hairAutoPlacement && !item.hairRetouch),
+    'undo hair removal',
   );
   assert.equal(images(restored).at(-1).src, originalSrc);
-  report.checks.push('Removing and undoing hair restores patch without editing original photo');
+  report.checks.push('Undo restores face-aligned hair without changing the photo');
 
   assert.deepEqual(report.errors, []);
   assert.deepEqual(report.unexpectedPosts, []);
