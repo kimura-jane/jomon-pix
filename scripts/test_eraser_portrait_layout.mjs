@@ -19,20 +19,37 @@ async function checkBounds(viewport) {
   const photo = dialog.getByRole('img', { name: '消去する写真' });
   const geom = await frame.evaluate((element) => {
     const frame = element.getBoundingClientRect();
-    const img = element.querySelector('img')?.getBoundingClientRect();
-    const picture = element.querySelector('img')?.parentElement?.getBoundingClientRect();
+    const imageEl = element.querySelector('img');
+    const img = imageEl?.getBoundingClientRect();
+    const picture = imageEl?.parentElement?.getBoundingClientRect();
+    const scale = imageEl && img
+      ? Math.min(img.width / imageEl.naturalWidth, img.height / imageEl.naturalHeight)
+      : 0;
+    const content = imageEl && img && scale
+      ? {
+          x: img.x + (img.width - imageEl.naturalWidth * scale) / 2,
+          y: img.y + (img.height - imageEl.naturalHeight * scale) / 2,
+          width: imageEl.naturalWidth * scale,
+          height: imageEl.naturalHeight * scale,
+        }
+      : null;
     const seg = element.previousElementSibling?.getBoundingClientRect();
     const modal = element.closest('.modal')?.getBoundingClientRect();
     return {
       frame: { x: frame.x, y: frame.y, width: frame.width, height: frame.height },
       img: img && { x: img.x, y: img.y, width: img.width, height: img.height },
       picture: picture && { x: picture.x, y: picture.y, width: picture.width, height: picture.height },
+      content,
+      fit: imageEl && getComputedStyle(imageEl).objectFit,
+      svgAspect: element.querySelector('svg')?.getAttribute('preserveAspectRatio'),
       segBottom: seg?.bottom,
       modalTop: modal?.top,
       frameFlex: getComputedStyle(element).flexShrink,
     };
   });
-  assert.ok(geom.img && geom.picture, 'The image must be visible in the preview');
+  assert.ok(geom.img && geom.picture && geom.content, 'The image must be visible in the preview');
+  assert.equal(geom.fit, 'contain');
+  assert.equal(geom.svgAspect, 'xMidYMid meet');
   assert.equal(geom.frameFlex, '0', 'Preview frame must not shrink independently of picture');
   const epsilon = 1.5;
   assert.ok(geom.img.x + epsilon >= geom.frame.x,
@@ -47,8 +64,13 @@ async function checkBounds(viewport) {
   assert.ok(geom.img.height <= geom.frame.height + epsilon);
   const nativeW = await photo.evaluate((im) => im.naturalWidth);
   const nativeH = await photo.evaluate((im) => im.naturalHeight);
-  assert.ok(Math.abs((geom.img.width / geom.img.height) - nativeW / nativeH) < .01,
-    'Preview must preserve image aspect ratio');
+  assert.ok(Math.abs((geom.content.width / geom.content.height) - nativeW / nativeH) < .01,
+    'Visible preview must preserve the original photo aspect ratio');
+  assert.ok(geom.content.x >= geom.frame.x - epsilon &&
+    geom.content.y >= geom.frame.y - epsilon &&
+    geom.content.x + geom.content.width <= geom.frame.x + geom.frame.width + epsilon &&
+    geom.content.y + geom.content.height <= geom.frame.y + geom.frame.height + epsilon,
+  'Visible picture must remain inside its preview frame');
   const descriptions = await dialog.locator('.hint-s').allTextContents();
   assert.ok(descriptions.every((value) => !value.includes('約28MB') &&
     !value.includes('端末内AI') && !value.includes('比較してから適用')),
@@ -96,11 +118,9 @@ try {
   }
 
   // A drawn rectangle must use picture-local rather than modal-local coords.
-  await checkBounds({ width: 390, height: 844 });
-  await page.waitForTimeout(200); // Wait for ResizeObserver after landscape → portrait
+  const portrait = await checkBounds({ width: 390, height: 844 });
   await dialog.getByRole('button', { name: '囲む', exact: true }).click();
-  const photo = dialog.getByRole('img', { name: '消去する写真' });
-  const rect = await photo.boundingBox();
+  const rect = portrait.content;
   const stableFrame = await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
   assert.ok(rect && stableFrame);
   const start = { x: rect.x + rect.width * .2, y: rect.y + rect.height * .3 };
