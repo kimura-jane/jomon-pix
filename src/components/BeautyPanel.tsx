@@ -6,7 +6,7 @@ import { BEAUTY_FIELDS, DEFAULT_BEAUTY } from '../lib/beautyProcessor';
 import { useBeautyStatus } from '../lib/beautyStatus';
 import { HistorySlider } from './HistorySlider';
 import { getPhotoLabel } from '../lib/photoAttachments';
-import { MAKEUP_PRESETS, matchingMakeupPreset, clearFaceMakeupOverrides, type MakeupPreset } from '../lib/makeupPresets';
+import { MAKEUP_PRESETS, clearFaceMakeupOverrides, MAKEUP_FIELDS, type MakeupPreset } from '../lib/makeupPresets';
 
 type Control = {
   key: keyof BeautySettings;
@@ -75,7 +75,12 @@ export function BeautyPanel() {
   const override = selectedIndex === null
     ? undefined : photo?.beautyFaceOverrides?.[String(selectedIndex)];
   const visibleSettings = { ...DEFAULT_BEAUTY, ...beauty, ...override };
-  const selectedPreset = matchingMakeupPreset(visibleSettings);
+  const chosenStyle = selectedIndex === null
+    ? photo?.makeupStyle
+    : (photo?.makeupFaceStyles?.[String(selectedIndex)] ?? photo?.makeupStyle);
+  const selectedPreset = chosenStyle === 'none' ? undefined : chosenStyle;
+  const faceHasMakeup = selectedIndex !== null &&
+    photo?.makeupFaceStyles?.[String(selectedIndex)] !== undefined;
 
   const status = useBeautyStatus((store) => photo ? store.byImage[photo.id] : undefined);
   const comparing = useBeautyStatus((store) => store.comparingId === photo?.id);
@@ -83,8 +88,10 @@ export function BeautyPanel() {
   const hasLeg = beauty.legSlim > 0 || beauty.legLength > 0;
   const hasFaceOverride = !!override && Object.keys(override).length > 0;
   const hasValue = target === 'all'
-    ? BEAUTY_FIELDS.some((key) => beauty[key] > 0)
-    : hasFaceOverride || hasLeg;
+    ? BEAUTY_FIELDS.some((key) => beauty[key] > 0) || hasMakeup
+    : hasFaceOverride || faceHasMakeup || hasLeg;
+  const hasMakeup = !!photo?.makeupStyle ||
+    Object.values(photo?.makeupFaceStyles ?? {}).some((style) => style !== 'none');
 
   const change = (field: keyof BeautySettings, value: number) => {
     if (!photo || photo.locked) return;
@@ -113,6 +120,8 @@ export function BeautyPanel() {
       editor.update(photo.id, {
         beauty: { ...beauty, ...preset.values },
         beautyFaceOverrides: clearFaceMakeupOverrides(photo.beautyFaceOverrides),
+        makeupStyle: preset.id,
+        makeupFaceStyles: undefined,
       });
     } else if (selectedIndex !== null) {
       editor.update(photo.id, {
@@ -123,6 +132,38 @@ export function BeautyPanel() {
             ...preset.values,
           },
         },
+        makeupFaceStyles: {
+          ...photo.makeupFaceStyles,
+          [String(selectedIndex)]: preset.id,
+        },
+      });
+    }
+  };
+
+  const removeMakeup = () => {
+    if (!photo || photo.locked) return;
+    const empty = Object.fromEntries(MAKEUP_FIELDS.map((field) => [field, 0])) as
+      Record<typeof MAKEUP_FIELDS[number], number>;
+    if (target === 'all') {
+      editor.update(photo.id, {
+        beauty: { ...beauty, ...empty },
+        beautyFaceOverrides: clearFaceMakeupOverrides(photo.beautyFaceOverrides),
+        makeupStyle: undefined,
+        makeupFaceStyles: undefined,
+      });
+    } else if (selectedIndex !== null) {
+      editor.update(photo.id, {
+        beautyFaceOverrides: {
+          ...photo.beautyFaceOverrides,
+          [String(selectedIndex)]: {
+            ...photo.beautyFaceOverrides?.[String(selectedIndex)],
+            ...empty,
+          },
+        },
+        makeupFaceStyles: {
+          ...photo.makeupFaceStyles,
+          [String(selectedIndex)]: 'none',
+        },
       });
     }
   };
@@ -130,12 +171,21 @@ export function BeautyPanel() {
   const reset = () => {
     if (!photo || photo.locked) return;
     if (target === 'all') {
-      editor.update(photo.id, { beauty: undefined });
+      editor.update(photo.id, {
+        beauty: undefined,
+        makeupStyle: undefined,
+        makeupFaceStyles: undefined,
+      });
     } else if (selectedIndex !== null) {
-      if (hasFaceOverride) {
+      if (hasFaceOverride || faceHasMakeup) {
         const next = { ...photo.beautyFaceOverrides };
         delete next[String(selectedIndex)];
-        editor.update(photo.id, { beautyFaceOverrides: next });
+        const nextStyles = { ...photo.makeupFaceStyles };
+        delete nextStyles[String(selectedIndex)];
+        editor.update(photo.id, {
+          beautyFaceOverrides: next,
+          makeupFaceStyles: nextStyles,
+        });
       } else if (hasLeg) {
         // Global leg sliders remain usable with a face selected. Reset only
         // the legs; do not unexpectedly clear other faces' adjustments.
@@ -308,6 +358,10 @@ export function BeautyPanel() {
                 );
               })}
             </div>
+            <button type="button" className="chip"
+              style={{ marginTop: 9 }}
+              disabled={photo.locked || faceBusy || count === 0}
+              onClick={removeMakeup}>メイクを外す</button>
           </section>
 
           <div style={{ display: 'grid', gap: 13, margin: '12px 0' }}>
@@ -341,7 +395,7 @@ export function BeautyPanel() {
           <button type="button" className="big-btn light"
             disabled={!hasValue || photo.locked}
             onClick={reset}>
-            {target === 'all' ? '全員の補正をリセット' : hasFaceOverride ? 'この顔の個別設定を解除' : '脚の補正をリセット'}
+            {target === 'all' ? '全員の補正をリセット' : hasFaceOverride || faceHasMakeup ? 'この顔の個別設定を解除' : '脚の補正をリセット'}
           </button>
         </>
       )}

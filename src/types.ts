@@ -84,6 +84,7 @@ export type BeautySettings = {
   legLength: number; // 脚を長くする（写真全体）
 };
 
+export type MakeupStyleId = 'natural' | 'idol' | 'gyaru' | 'pien' | 'korean' | 'y2k';
 export type ImageEl = Base & {
   type: 'image';
   // 写真内の座標で保存。画像の移動・変形に追従する。
@@ -96,6 +97,10 @@ export type ImageEl = Base & {
   beauty?: BeautySettings;
   // Per-face field overrides; indices follow the shared left-to-right detector.
   beautyFaceOverrides?: Record<string, Partial<BeautySettings>>;
+  // Face-aware, device-rendered cosmetics; kept separate from manual sliders.
+  makeupStyle?: MakeupStyleId;
+  // 'none' explicitly removes makeup on this face when a global style exists.
+  makeupFaceStyles?: Record<string, MakeupStyleId | 'none'>;
 };
 
 export type SpeechBubbleStyle = 'round' | 'jagged' | 'cloud' | 'chat';

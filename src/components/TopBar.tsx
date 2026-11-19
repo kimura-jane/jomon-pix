@@ -151,6 +151,16 @@ function isBeautyFaceOverrides(value: unknown): boolean {
       patch[field] >= 0 && patch[field] <= 100));
 }
 
+const MAKEUP_STYLE_IDS = ['natural', 'idol', 'gyaru', 'pien', 'korean', 'y2k'];
+function isMakeupStyle(value: unknown): boolean {
+  return typeof value === 'string' && MAKEUP_STYLE_IDS.includes(value);
+}
+function isMakeupFaceStyles(value: unknown): boolean {
+  return isRecord(value) && Object.keys(value).length <= 10 &&
+    Object.entries(value).every(([key, style]) =>
+      /^(?:[0-9])$/.test(key) && (style === 'none' || isMakeupStyle(style)));
+}
+
 function isImageStroke(value: unknown): boolean {
   return isRecord(value) &&
     typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 200 &&
@@ -227,6 +237,8 @@ function isCanvasElement(value: unknown): value is CanvasEl {
         (value.frame === undefined || isImageFrame(value.frame)) &&
         (value.beauty === undefined || isBeautySettings(value.beauty)) &&
         (value.beautyFaceOverrides === undefined || isBeautyFaceOverrides(value.beautyFaceOverrides)) &&
+        (value.makeupStyle === undefined || isMakeupStyle(value.makeupStyle)) &&
+        (value.makeupFaceStyles === undefined || isMakeupFaceStyles(value.makeupFaceStyles)) &&
         (value.drawings === undefined ||
           (Array.isArray(value.drawings) && value.drawings.length <= 1000 &&
             value.drawings.every(isImageStroke)))

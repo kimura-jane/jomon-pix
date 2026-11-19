@@ -1,5 +1,7 @@
 import type { BeautySettings } from '../types';
 import { renderLegBeauty } from './legProcessor';
+import { renderFaceMakeup } from './faceMakeup';
+import type { MakeupStyleId } from '../types';
 
 export type Landmark = { x: number; y: number };
 // Shared detection limit for automatic face stickers and multi-face beauty.
@@ -25,6 +27,8 @@ const FACE_BEAUTY_FIELDS: (keyof BeautySettings)[] = BEAUTY_FIELDS.filter(
 export function beautySignature(
   settings?: BeautySettings,
   faceOverrides?: Record<string, Partial<BeautySettings>>,
+  makeupStyle?: MakeupStyleId,
+  makeupFaceStyles?: Record<string, MakeupStyleId | 'none'>,
 ): string {
   const base = settings ?? DEFAULT_BEAUTY;
   const entries = Object.entries(faceOverrides ?? {})
@@ -33,14 +37,19 @@ export function beautySignature(
       patch && typeof patch === 'object' &&
       BEAUTY_FIELDS.some((field) => typeof patch[field] === 'number'))
     .sort(([a], [b]) => Number(a) - Number(b));
-  if (!BEAUTY_FIELDS.some((key) => base[key] > 0) &&
+  const hasCosmetics = !!makeupStyle ||
+    Object.values(makeupFaceStyles ?? {}).some((style) => style !== 'none');
+  if (!hasCosmetics && !BEAUTY_FIELDS.some((key) => base[key] > 0) &&
       !entries.some(([, patch]) => BEAUTY_FIELDS.some((field) =>
         (patch[field] ?? base[field]) > 0))) return 'none';
   const normalized = (values: Partial<BeautySettings>) =>
     BEAUTY_FIELDS.map((key) => Math.max(0, Math.min(100, Math.round(values[key] ?? 0)))).join('/');
   return normalized(base) + entries.map(([key, patch]) =>
     '|' + key + ':' + BEAUTY_FIELDS.map((field) =>
-      patch[field] === undefined ? '-' : Math.round(patch[field] ?? 0)).join('/')).join('');
+      patch[field] === undefined ? '-' : Math.round(patch[field] ?? 0)).join('/')).join('') +
+    '|cosmetics=' + (makeupStyle ?? 'none') +
+    Object.entries(makeupFaceStyles ?? {}).sort(([a], [b]) => Number(a) - Number(b))
+      .map(([face, style]) => ',' + face + ':' + style).join('');
 }
 
 let landmarkerPromise: Promise<import('@mediapipe/tasks-vision').FaceLandmarker> | undefined;
@@ -597,13 +606,17 @@ export async function renderBeauty(
   source: HTMLImageElement,
   settings: BeautySettings,
   faceOverrides?: Record<string, Partial<BeautySettings>>,
+  makeupStyle?: MakeupStyleId,
+  makeupFaceStyles?: Record<string, MakeupStyleId | 'none'>,
 ): Promise<BeautyRender | null> {
   const naturalW = source.naturalWidth;
   const naturalH = source.naturalHeight;
   if (naturalW <= 0 || naturalH <= 0) {
     throw new Error('写真が読み込めませんでした。');
   }
-  const needFace = (settings.legLength ?? 0) > 0 ||
+  const hasCosmetics = !!makeupStyle ||
+    Object.values(makeupFaceStyles ?? {}).some((style) => style !== 'none');
+  const needFace = hasCosmetics || (settings.legLength ?? 0) > 0 ||
     FACE_BEAUTY_FIELDS.some((key) => (settings[key] ?? 0) > 0) ||
     Object.values(faceOverrides ?? {}).some((patch) => FACE_BEAUTY_FIELDS.some(
       (key) => (patch[key] ?? settings[key] ?? 0) > 0,
@@ -639,7 +652,9 @@ export async function renderBeauty(
   // The localized leg warp leaves the head area and face indices unchanged.
   for (const { face, index } of usableFaces) {
     const localSettings = { ...DEFAULT_BEAUTY, ...settings, ...faceOverrides?.[String(index)] };
-    if (!FACE_BEAUTY_FIELDS.some((key) => localSettings[key] > 0)) continue;
+    const localMakeup = makeupFaceStyles?.[String(index)] ?? makeupStyle;
+    if (!FACE_BEAUTY_FIELDS.some((key) => localSettings[key] > 0) &&
+        (!localMakeup || localMakeup === 'none')) continue;
     const width = Math.hypot(
       (face[454].x - face[234].x) * w,
       (face[454].y - face[234].y) * h,
@@ -651,6 +666,9 @@ export async function renderBeauty(
     reshape(canvas, face, localSettings, width, height);
     skinCorrection(canvas, face, localSettings, width);
     makeup(canvas, face, localSettings, width);
+    if (localMakeup && localMakeup !== 'none') {
+      renderFaceMakeup(ctx2d(canvas), face, w, h, localMakeup, width, height);
+    }
     applied = true;
   }
 

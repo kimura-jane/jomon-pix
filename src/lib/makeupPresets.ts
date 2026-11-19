@@ -1,4 +1,4 @@
-import type { BeautySettings } from '../types';
+import type { BeautySettings, MakeupStyleId } from '../types';
 
 // These are on-device Beauty adjustments, not generated make-up images.
 // No cloud call, new model, or change to the original photo is required.
@@ -10,7 +10,7 @@ export const MAKEUP_FIELDS = [
 export type MakeupPresetValues = Pick<BeautySettings, typeof MAKEUP_FIELDS[number]>;
 
 export type MakeupPreset = {
-  id: 'natural' | 'idol' | 'gyaru' | 'pien' | 'korean' | 'y2k';
+  id: MakeupStyleId;
   label: string;
   tint: string;
   values: MakeupPresetValues;

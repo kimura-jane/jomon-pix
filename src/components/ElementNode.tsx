@@ -181,7 +181,7 @@ function ImageNode({
   attached: CanvasEl[];
 }) {
   const [img] = useImage(el.src, 'anonymous');
-  const beautyPreview = useBeautyPreview(el.id, el.src, img, el.beauty, el.beautyFaceOverrides);
+  const beautyPreview = useBeautyPreview(el.id, el.src, img, el.beauty, el.beautyFaceOverrides, el.makeupStyle, el.makeupFaceStyles);
   const ref = useRef<Konva.Image>(null);
 
   const common = useCommon(el);

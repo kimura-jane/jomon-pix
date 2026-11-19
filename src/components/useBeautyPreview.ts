@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BeautySettings } from '../types';
+import type { BeautySettings, MakeupStyleId } from '../types';
 import { DEFAULT_BEAUTY } from '../lib/beautyProcessor';
 import { beautySignature, renderBeauty } from '../lib/beautyProcessor';
 import { useBeautyStatus } from '../lib/beautyStatus';
@@ -16,11 +16,13 @@ export function useBeautyPreview(
   original: HTMLImageElement | undefined,
   settings?: BeautySettings,
   faceOverrides?: Record<string, Partial<BeautySettings>>,
+  makeupStyle?: MakeupStyleId,
+  makeupFaceStyles?: Record<string, MakeupStyleId | 'none'>,
 ): {
   image: HTMLImageElement | HTMLCanvasElement | undefined;
   signature: string;
 } {
-  const signature = beautySignature(settings, faceOverrides);
+  const signature = beautySignature(settings, faceOverrides, makeupStyle, makeupFaceStyles);
   const [ready, setReady] = useState<Preview | null>(null);
   const setResult = useBeautyStatus((state) => state.setResult);
   const comparing = useBeautyStatus((state) => state.comparingId === id);
@@ -43,7 +45,7 @@ export function useBeautyPreview(
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          const output = await renderBeauty(original, settings ?? DEFAULT_BEAUTY, faceOverrides);
+          const output = await renderBeauty(original, settings ?? DEFAULT_BEAUTY, faceOverrides, makeupStyle, makeupFaceStyles);
           if (cancelled) return;
           if (!output) {
             setReady({ source, signature, image: original });
