@@ -7,12 +7,18 @@ on:
       - scripts/audit_beauty_ui.mjs
       - .github/workflows/audit-beauty-ui.yml
       - src/lib/beautyProcessor.ts
+      - src/components/BeautyPanel.tsx
+      - src/lib/makeupPresets.ts
+      - scripts/audit_makeup_presets.mjs
       - src/components/useBeautyPreview.ts
   pull_request:
     paths:
       - scripts/audit_beauty_ui.mjs
       - .github/workflows/audit-beauty-ui.yml
       - src/lib/beautyProcessor.ts
+      - src/components/BeautyPanel.tsx
+      - src/lib/makeupPresets.ts
+      - scripts/audit_makeup_presets.mjs
       - src/lib/autoFaceDeco.ts
       - src/components/useBeautyPreview.ts
   workflow_dispatch:
@@ -52,6 +58,7 @@ jobs:
             sleep 2
           done
           node scripts/audit_beauty_ui.mjs
+          node scripts/audit_makeup_presets.mjs
       - name: Upload QA results without committing to main
         if: always()
         uses: actions/upload-artifact@v4

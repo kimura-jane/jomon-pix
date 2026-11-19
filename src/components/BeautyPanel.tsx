@@ -6,6 +6,7 @@ import { BEAUTY_FIELDS, DEFAULT_BEAUTY } from '../lib/beautyProcessor';
 import { useBeautyStatus } from '../lib/beautyStatus';
 import { HistorySlider } from './HistorySlider';
 import { getPhotoLabel } from '../lib/photoAttachments';
+import { MAKEUP_PRESETS, matchingMakeupPreset, clearFaceMakeupOverrides, type MakeupPreset } from '../lib/makeupPresets';
 
 type Control = {
   key: keyof BeautySettings;
@@ -74,6 +75,7 @@ export function BeautyPanel() {
   const override = selectedIndex === null
     ? undefined : photo?.beautyFaceOverrides?.[String(selectedIndex)];
   const visibleSettings = { ...DEFAULT_BEAUTY, ...beauty, ...override };
+  const selectedPreset = matchingMakeupPreset(visibleSettings);
 
   const status = useBeautyStatus((store) => photo ? store.byImage[photo.id] : undefined);
   const comparing = useBeautyStatus((store) => store.comparingId === photo?.id);
@@ -96,6 +98,29 @@ export function BeautyPanel() {
           [String(selectedIndex)]: {
             ...photo.beautyFaceOverrides?.[String(selectedIndex)],
             [field]: value,
+          },
+        },
+      });
+    }
+  };
+
+
+  const applyMakeupPreset = (preset: MakeupPreset) => {
+    if (!photo || photo.locked || faceBusy || count === 0) return;
+    if (target === 'all') {
+      // A global preset replaces old per-face beauty adjustments so *every*
+      // detected face receives the chosen look; legs are never modified.
+      editor.update(photo.id, {
+        beauty: { ...beauty, ...preset.values },
+        beautyFaceOverrides: clearFaceMakeupOverrides(photo.beautyFaceOverrides),
+      });
+    } else if (selectedIndex !== null) {
+      editor.update(photo.id, {
+        beautyFaceOverrides: {
+          ...photo.beautyFaceOverrides,
+          [String(selectedIndex)]: {
+            ...photo.beautyFaceOverrides?.[String(selectedIndex)],
+            ...preset.values,
           },
         },
       });
@@ -255,6 +280,35 @@ export function BeautyPanel() {
               </button>
             </div>
           )}
+
+
+          <section className="makeup-presets" aria-label="ワンタップメイク">
+            <div className="makeup-presets-heading">
+              <strong>ワンタップメイク</strong>
+              <span>{target === 'all' ? '全員' : `左から${selectedIndex === null ? 1 : selectedIndex + 1}人目`}</span>
+            </div>
+            <div className="makeup-preset-grid" role="group" aria-label="メイクの種類">
+              {MAKEUP_PRESETS.map((preset) => {
+                const active = selectedPreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className="makeup-preset-button"
+                    aria-label={preset.label}
+                    aria-pressed={active}
+                    disabled={photo.locked || faceBusy || count === 0}
+                    onClick={() => applyMakeupPreset(preset)}
+                  >
+                    <span className="makeup-preset-swatch"
+                      style={{ backgroundColor: preset.tint }} aria-hidden="true" />
+                    <span className="makeup-preset-title">{preset.label}</span>
+                    {active && <span className="makeup-preset-check" aria-hidden="true">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           <div style={{ display: 'grid', gap: 13, margin: '12px 0' }}>
             {CONTROLS.map((control) => (
