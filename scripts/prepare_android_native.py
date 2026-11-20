@@ -18,6 +18,8 @@ SOURCE_ICON = Path("ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.
 GRADLE_PLUGIN = "8.10.1"
 GRADLE_VERSION = "8.11.1"
 ANDROID_API = 36
+# Required by Google Play automatic protection; do not regress to Capacitor's 23.
+ANDROID_MIN_API = 24
 
 
 def substitute_once(source: str, pattern: str, replacement: str, title: str) -> str:
@@ -136,9 +138,15 @@ def configure(android_dir: Path, version: str, version_code: int) -> None:
 
     variables = android_dir / "variables.gradle"
     text = variables.read_text(encoding="utf-8")
-    for key in ("compileSdkVersion", "targetSdkVersion"):
+    for key, value in (
+        ("compileSdkVersion", ANDROID_API),
+        ("targetSdkVersion", ANDROID_API),
+        ("minSdkVersion", ANDROID_MIN_API),
+    ):
         text = substitute_once(text, rf"\b{key}\s*=\s*\d+",
-                               f"{key} = {ANDROID_API}", key)
+                               f"{key} = {value}", key)
+    if not re.search(r"\bminSdkVersion\s*=\s*24\b", text):
+        raise RuntimeError("Google Play automatic protection requires minSdkVersion >=24")
     variables.write_text(text, encoding="utf-8")
 
     root_path = android_dir / "build.gradle"
@@ -170,7 +178,7 @@ def configure(android_dir: Path, version: str, version_code: int) -> None:
         raise RuntimeError("Offline Japanese fonts not bundled")
 
     print(f"Android native app ready: {APP_ID} v{version} ({version_code}), "
-          f"target API {ANDROID_API}; bundled editing assets verified.")
+          f"min API {ANDROID_MIN_API}, target API {ANDROID_API}; bundled editing assets verified.")
 
 
 def main() -> None:
