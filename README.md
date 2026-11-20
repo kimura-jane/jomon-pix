@@ -90,8 +90,9 @@ The website's manifest is `/jomon-pix/manifest.webmanifest`.
   `https://kimura-jane.github.io/.well-known/assetlinks.json`. This must be
   solved by the owner of that root origin or by moving the PWA to a dedicated
   root hostname. Do not modify another repository without permission.
-- Google Play publishing and Android signing/assetlinks have **not** been
-  performed. Do not upload the app before an Android device test.
+- The **legacy TWA** has already been uploaded to Google Play. The root-domain
+  assetlinks.json association is configured separately. The new Capacitor
+  Android package must pass signed-build and device tests before its update.
 - The iOS native app still uses Codemagic/Capacitor and is unaffected by
   the website Service Worker.
 
