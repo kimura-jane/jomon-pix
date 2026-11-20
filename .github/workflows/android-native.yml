@@ -71,6 +71,9 @@ jobs:
       - name: Install offline asset verification tools
         run: python3 -m pip install --quiet Pillow==11.3.0
 
+      - name: Test generated Android versions, icons and fail-closed rules
+        run: python3 scripts/test_prepare_android_native.py
+
       - name: Validate Google Play upload key without exposing it
         run: |
           set -euo pipefail
