@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
-      ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/jomon-pix-upload.keystore
+      ANDROID_KEYSTORE_PATH: /tmp/jomon-pix-upload.keystore
       VERSION_CODE: ${{ inputs.version_code }}
     steps:
       - name: Checkout JOMON PIX source only
