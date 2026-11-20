@@ -36,7 +36,7 @@ class AndroidNativeTests(unittest.TestCase):
         )
         (self.project / "variables.gradle").write_text(
             "ext {\n    compileSdkVersion = 35\n"
-            "    targetSdkVersion = 35\n}\n", encoding="utf-8"
+            "    targetSdkVersion = 35\n    minSdkVersion = 23\n}\n", encoding="utf-8"
         )
         (self.project / "build.gradle").write_text(
             "classpath 'com.android.tools.build:gradle:8.7.2'\n",
@@ -91,7 +91,7 @@ class AndroidNativeTests(unittest.TestCase):
     def test_missing_min_sdk_fails_closed(self):
         variables = self.project / "variables.gradle"
         variables.write_text(variables.read_text().replace(
-            "    minSdkVersion = 23\\n", ""
+            "    minSdkVersion = 23\n", ""
         ))
         with self.assertRaisesRegex(RuntimeError, "minSdkVersion"):
             android.configure(self.project, "1.1.0", 17)
