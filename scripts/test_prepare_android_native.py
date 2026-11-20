@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Offline regression tests of the generated Android native Gradle configuration."""
+from __future__ import annotations
+
+import tempfile
+from pathlib import Path
+import unittest
+
+from PIL import Image, ImageDraw
+import prepare_android_native as android
+
+
+class AndroidNativeTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.project = self.root / "android"
+        app = self.project / "app"
+        app.mkdir(parents=True)
+        (app / "build.gradle").write_text(
+            "plugins { id 'com.android.application' }\n"
+            "android {\n"
+            '    namespace "com.jomonpix.app"\n'
+            "    defaultConfig {\n"
+            '        applicationId "com.jomonpix.app"\n'
+            "        versionCode 1\n"
+            '        versionName "1.0"\n'
+            "    }\n"
+            "    buildTypes {\n"
+            "        release {\n"
+            "            minifyEnabled false\n"
+            "        }\n"
+            "    }\n"
+            "}\n", encoding="utf-8",
+        )
+        (self.project / "variables.gradle").write_text(
+            "ext {\n    compileSdkVersion = 35\n"
+            "    targetSdkVersion = 35\n}\n", encoding="utf-8"
+        )
+        (self.project / "build.gradle").write_text(
+            "classpath 'com.android.tools.build:gradle:8.7.2'\n",
+            encoding="utf-8",
+        )
+        wrapper = self.project / "gradle/wrapper/gradle-wrapper.properties"
+        wrapper.parent.mkdir(parents=True)
+        wrapper.write_text(
+            "distributionUrl=https\\://services.gradle.org/distributions/"
+            "gradle-8.9-all.zip\n", encoding="utf-8",
+        )
+        native_web = app / "src/main/assets/public"
+        for name in (
+            "index.html",
+            "offline-background/resources.json",
+            "ai/inpaint/migan_pipeline_v2.onnx",
+            "offline-fonts/native.css",
+        ):
+            p = native_web / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(b"fixture")
+        self.icon = self.root / "approved.png"
+        source = Image.new("RGB", (1024, 1024), "#ef2390")
+        ImageDraw.Draw(source).rectangle((120, 470, 200, 550), fill=(17, 34, 51))
+        source.save(self.icon)
+        self.orig_icon = android.SOURCE_ICON
+        android.SOURCE_ICON = self.icon
+        self.addCleanup(lambda: setattr(android, "SOURCE_ICON", self.orig_icon))
+
+    def test_configures_native_play_package_and_offline_app(self):
+        before = self.icon.read_bytes()
+        android.configure(self.project, "1.1.0", 17)
+        self.assertEqual(before, self.icon.read_bytes())
+        text = (self.project / "app/build.gradle").read_text()
+        self.assertIn('applicationId "com.jomonpix.app"', text)
+        self.assertIn('versionName "1.1.0"', text)
+        self.assertIn('versionCode 17', text)
+        self.assertIn('signingConfig signingConfigs.release', text)
+        self.assertIn("System.getenv('ANDROID_KEYSTORE_PATH')", text)
+        self.assertIn("System.getenv('ANDROID_KEY_ALIAS')", text)
+        self.assertIn("System.getenv('ANDROID_KEY_PASSWORD')", text)
+        variables = (self.project / "variables.gradle").read_text()
+        self.assertIn("compileSdkVersion = 36", variables)
+        self.assertIn("targetSdkVersion = 36", variables)
+        self.assertIn("gradle:8.10.1", (self.project / "build.gradle").read_text())
+        self.assertIn("gradle-8.11.1-all.zip",
+                      (self.project / "gradle/wrapper/gradle-wrapper.properties").read_text())
+
+    def test_app_icon_is_not_the_default_or_old_small_tile(self):
+        android.configure(self.project, "1.1.0", 17)
+        res = self.project / "app/src/main/res"
+        with Image.open(res / "drawable-nodpi/jomon_launcher.png") as pic:
+            self.assertEqual(pic.size, (512, 512))
+            self.assertEqual(pic.getpixel((110, 256)), (17, 34, 51))
+            self.assertEqual(pic.getpixel((0, 0)), (239, 35, 144))
+        with Image.open(res / "mipmap-xxxhdpi/ic_launcher.png") as pic:
+            self.assertEqual(pic.size, (192, 192))
+        xml = (res / "mipmap-anydpi-v26/ic_launcher.xml").read_text()
+        self.assertIn("@drawable/jomon_launcher", xml)
+        self.assertNotIn("@drawable/ic_launcher_foreground", xml)
+
+    def test_invalid_play_version_is_rejected(self):
+        with self.assertRaises(ValueError):
+            android.configure(self.project, "1.1.0", 0)
+
+    def test_missing_offline_ai_is_rejected(self):
+        (self.project / "app/src/main/assets/public/offline-background/resources.json").unlink()
+        with self.assertRaisesRegex(RuntimeError, "Offline background"):
+            android.configure(self.project, "1.1.0", 17)
+
+    def test_changed_gradle_template_fails_closed(self):
+        path = self.project / "app/build.gradle"
+        path.write_text(path.read_text().replace("release {", "shipping {"))
+        with self.assertRaisesRegex(RuntimeError, "release build type"):
+            android.configure(self.project, "1.1.0", 17)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
