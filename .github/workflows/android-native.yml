@@ -1,0 +1,134 @@
+name: JOMON PIX Android 1.1.0 native offline (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Android versionCode; must exceed every code already on Google Play"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jomon-pix-android-native
+  cancel-in-progress: false
+
+jobs:
+  build-android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/jomon-pix-upload.keystore
+      VERSION_CODE: ${{ inputs.version_code }}
+    steps:
+      - name: Checkout JOMON PIX source only
+        uses: actions/checkout@v4
+
+      - name: Verify requested Play versionCode
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          raw = os.environ["VERSION_CODE"]
+          if not raw.isascii() or not raw.isdigit() or not 1 <= int(raw) <= 2100000000:
+              raise SystemExit("versionCode must be an integer from 1 to 2100000000")
+          PY
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Set up Java 21 for Capacitor 7
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 16 SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install locked JOMON PIX dependencies
+        run: npm ci --no-audit --no-fund
+
+      # Capacitor Android is only needed for manually generated native builds.
+      # Install the exact Capacitor 7.6.10 counterpart after npm ci, without
+      # changing package.json or affecting iOS/Web dependency installations.
+      - name: Install pinned Capacitor Android platform
+        run: npm install --no-save --no-audit --no-fund @capacitor/android@7.6.10
+
+      - name: Install offline asset verification tools
+        run: python3 -m pip install --quiet Pillow==11.3.0
+
+      - name: Validate Google Play upload key without exposing it
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_android_upload_key.py --output "$ANDROID_KEYSTORE_PATH"
+
+      - name: Verify TypeScript
+        run: npm run typecheck
+
+      - name: Build locally hosted Android editing UI
+        run: |
+          set -euo pipefail
+          python3 scripts/fetch_pose_model.py
+          npm run build:native
+
+      - name: Include every required offline AI model and Japanese font
+        run: |
+          set -euo pipefail
+          python3 scripts/bundle_native_offline.py
+
+      - name: Generate Capacitor Android native project
+        run: |
+          set -euo pipefail
+          npx cap add android
+          npx cap sync android
+
+      - name: Verify no offline asset is missing from native Android package
+        run: |
+          set -euo pipefail
+          python3 scripts/bundle_native_offline.py \
+            --out android/app/src/main/assets/public --verify-only
+          python3 scripts/prepare_android_native.py --version-code "$VERSION_CODE"
+
+      - name: Build signed AAB for Google Play and signed APK for device testing
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew --no-daemon bundleRelease assembleRelease
+          test -s app/build/outputs/bundle/release/app-release.aab
+          test -s app/build/outputs/apk/release/app-release.apk
+
+      - name: Show package sizes (no signing files)
+        run: |
+          du -h android/app/build/outputs/bundle/release/app-release.aab
+          du -h android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload signed AAB and APK for manual inspection (never submit to Play)
+        uses: actions/upload-artifact@v4
+        with:
+          name: jomon-pix-android-native-1.1.0-code-${{ inputs.version_code }}
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Erase temporary upload key
+        if: always()
+        shell: bash
+        run: rm -f "$ANDROID_KEYSTORE_PATH"
