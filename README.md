@@ -45,8 +45,14 @@ PWABuilder upload key, not the Google Play app-signing certificate:
 The CI verifies the old PWABuilder upload-key certificate fingerprint before
 building, and stops on mismatch. It generates a native Android Gradle project,
 packages the app UI plus models/WASM/fonts inside the application, sets Android
-target API 36, and signs AAB and APK with the stored **upload key**. Download
-the `jomon-pix-android-native-1.1.0-code-...` Actions artifact for inspection.
+minimum API **24** (required for Google Play automatic protection) and target
+API 36, and signs AAB and APK with the stored **upload key**. After Gradle
+builds, the pipeline validates the signed APK minimum SDK and app identity,
+then tests the integrity of the AAB ZIP. It publishes separate Actions
+artifacts `jomon-pix-android-AAB-1.1.0-code-...` and
+`jomon-pix-android-APK-1.1.0-code-...` for download. **Only download the AAB**
+ZIP for Google Play; the APK ZIP is optional for device testing. Never upload
+the Actions artifact ZIP itself; extract `app-release.aab` first.
 
 - The app does **not** load the editing UI from GitHub Pages or need a TWA
   association; browser toolbars do not appear.
