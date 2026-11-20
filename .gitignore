@@ -15,3 +15,10 @@ ios/DerivedData/
 
 # Downloaded for production bundles; never commit large model binaries.
 public/mediapipe/pose_landmarker_lite.task
+
+# Android native project and release credentials are generated in Actions.
+android/
+*.keystore
+*.jks
+*.aab
+*.apk
