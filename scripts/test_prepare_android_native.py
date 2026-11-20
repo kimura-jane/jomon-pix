@@ -81,9 +81,20 @@ class AndroidNativeTests(unittest.TestCase):
         variables = (self.project / "variables.gradle").read_text()
         self.assertIn("compileSdkVersion = 36", variables)
         self.assertIn("targetSdkVersion = 36", variables)
+        # Play Console's automatic protection rejects an AAB with minSdk 23.
+        self.assertIn("minSdkVersion = 24", variables)
+        self.assertNotIn("minSdkVersion = 23", variables)
         self.assertIn("gradle:8.10.1", (self.project / "build.gradle").read_text())
         self.assertIn("gradle-8.11.1-all.zip",
                       (self.project / "gradle/wrapper/gradle-wrapper.properties").read_text())
+
+    def test_missing_min_sdk_fails_closed(self):
+        variables = self.project / "variables.gradle"
+        variables.write_text(variables.read_text().replace(
+            "    minSdkVersion = 23\\n", ""
+        ))
+        with self.assertRaisesRegex(RuntimeError, "minSdkVersion"):
+            android.configure(self.project, "1.1.0", 17)
 
     def test_app_icon_is_not_the_default_or_old_small_tile(self):
         android.configure(self.project, "1.1.0", 17)
