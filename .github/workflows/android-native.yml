@@ -124,18 +124,38 @@ jobs:
           test -s app/build/outputs/bundle/release/app-release.aab
           test -s app/build/outputs/apk/release/app-release.apk
 
-      - name: Show package sizes (no signing files)
+      - name: Verify signed APK minSdk, targetSdk, identity and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          test -x "$AAPT"
+          "$AAPT" dump badging android/app/build/outputs/apk/release/app-release.apk > /tmp/jomon-android-badging.txt
+          grep -F "sdkVersion:'24'" /tmp/jomon-android-badging.txt
+          grep -F "targetSdkVersion:'36'" /tmp/jomon-android-badging.txt
+          grep -F "package: name='com.jomonpix.app' versionCode='$VERSION_CODE' versionName='1.1.0'" /tmp/jomon-android-badging.txt
+          unzip -t android/app/build/outputs/bundle/release/app-release.aab >/dev/null
+          echo "Android Play SDK, package name and native release bundle validated."
+
+      - name: Show separate AAB and APK sizes
         run: |
           du -h android/app/build/outputs/bundle/release/app-release.aab
           du -h android/app/build/outputs/apk/release/app-release.apk
 
-      - name: Upload signed AAB and APK for manual inspection (never submit to Play)
+      # Separate artifacts to avoid downloading the APK when only Google Play AAB is needed.
+      - name: Upload signed AAB for Google Play (no automatic publication)
         uses: actions/upload-artifact@v4
         with:
-          name: jomon-pix-android-native-1.1.0-code-${{ inputs.version_code }}
-          path: |
-            android/app/build/outputs/bundle/release/app-release.aab
-            android/app/build/outputs/apk/release/app-release.apk
+          name: jomon-pix-android-AAB-1.1.0-code-${{ inputs.version_code }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload signed APK for optional device testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: jomon-pix-android-APK-1.1.0-code-${{ inputs.version_code }}
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 7
 
