@@ -51,19 +51,16 @@ export function AppIconPicker({ onClose, language }: Props) {
           <button type="button" className="icon-picker-close" aria-label={en ? 'Close' : '閉じる'}
             onClick={onClose} disabled={busy}>×</button>
         </div>
-        {!supported && <p className="icon-picker-notice" role="status">
-          {en ? 'Changing the Home Screen icon is available in the installed iOS / Android app only.' :
-            'ホーム画面のアイコン変更は、インストールしたiPhone・Androidアプリで利用できます。'}
-        </p>}
         {loading && <p role="status">{en ? 'Checking your icon…' : '現在のアイコンを確認中…'}</p>}
         <div className="icon-picker-grid">
           {iconChoices.map((choice) => (
             <button type="button" key={choice.id} className={`icon-picker-choice ${!loading && current === choice.id ? 'selected' : ''}`}
               disabled={!supported || loading || busy}
               aria-pressed={!loading && current === choice.id}
+              aria-label={en ? choice.labelEn : choice.labelJa}
+              title={!supported ? (en ? 'Available in the installed app' : 'インストールしたアプリで変更できます') : (en ? choice.labelEn : choice.labelJa)}
               onClick={() => void apply(choice.id)}>
               <img src={iconPreviewUrl(choice.id)} alt="" width="72" height="72" loading="lazy" />
-              <span>{en ? choice.labelEn : choice.labelJa}</span>
               {!loading && current === choice.id && <span className="icon-picker-selected" aria-label={en ? 'Selected' : '選択中'}>✓</span>}
             </button>
           ))}
