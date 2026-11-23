@@ -153,10 +153,20 @@ class AndroidNativeTests(unittest.TestCase):
             path = self.project / ("app/src/main/res/mipmap-anydpi-v26/"
                                    f"ic_launcher_variant_{number}.xml")
             self.assertTrue(path.exists())
-            drawable = self.project / ("app/src/main/res/drawable-nodpi/"
-                                       f"jomon_launcher_variant_{number}.png")
-            with Image.open(drawable) as png:
-                self.assertEqual(png.size, (512, 512))
+            res = self.project / "app/src/main/res"
+            for layer in ("background", "foreground", "monochrome"):
+                drawable = res / ("drawable-nodpi/"
+                                  f"jomon_launcher_variant_{number}_{layer}.png")
+                with Image.open(drawable) as png:
+                    self.assertEqual(png.size, (432, 432))
+                    self.assertEqual(png.mode, "RGB" if layer == "background" else "RGBA")
+            xml = path.read_text()
+            self.assertIn(f"jomon_launcher_variant_{number}_background", xml)
+            self.assertIn(f"jomon_launcher_variant_{number}_foreground", xml)
+            self.assertIn(f"jomon_launcher_variant_{number}_monochrome", xml)
+            self.assertNotIn("@android:color/transparent", xml)
+            with Image.open(res / f"mipmap-xxxhdpi/ic_launcher_variant_{number}.png") as png:
+                self.assertEqual(png.size, (192, 192))
         java = (self.project / "app/src/main/java/com/jomonpix/app/MainActivity.java").read_text()
         self.assertIn("registerPlugin(IconSwitcherPlugin.class)", java)
         self.assertTrue((self.project / "app/src/main/java/com/jomonpix/app/IconSwitcherPlugin.java").exists())
