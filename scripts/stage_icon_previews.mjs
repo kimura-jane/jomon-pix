@@ -19,4 +19,6 @@ for (let index = 1; index <= 6; index += 1) {
   copyFileSync(join('gazo', 'icon', String(index), 'icon_192.png'),
     join(dest, `${index}.png`));
 }
-console.log('Staged six existing JOMON PIX icon previews (192px) without renaming originals.');
+copyFileSync(join('ios', 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-1024.png'),
+  join(dest, 'default.png'));
+console.log('Staged six icon choices and the unchanged default preview.');
