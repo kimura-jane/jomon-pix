@@ -130,8 +130,14 @@ class AndroidNativeTests(unittest.TestCase):
         with Image.open(res / "mipmap-xxxhdpi/ic_launcher.png") as pic:
             self.assertEqual(pic.size, (192, 192))
         xml = (res / "mipmap-anydpi-v26/ic_launcher.xml").read_text()
-        self.assertIn("@drawable/jomon_launcher", xml)
-        self.assertNotIn("@drawable/ic_launcher_foreground", xml)
+        self.assertIn("@drawable/jomon_launcher_default_background", xml)
+        self.assertIn("@drawable/jomon_launcher_default_foreground", xml)
+        self.assertIn("@drawable/jomon_launcher_default_monochrome", xml)
+        self.assertNotIn("@android:color/transparent", xml)
+        for layer in ("background", "foreground", "monochrome"):
+            target = res / f"drawable-nodpi/jomon_launcher_default_{layer}.png"
+            with Image.open(target) as img:
+                self.assertEqual(img.size, (432, 432))
 
     def test_seven_launcher_choices_preserve_main_activity(self):
         android.configure(self.project, "1.1.0", 17)
