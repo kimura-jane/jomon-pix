@@ -545,7 +545,7 @@ export function TopBar() {
           aria-label={uiLanguage === 'en' ? 'Change app icon' : 'アイコン設定'}
           title={uiLanguage === 'en' ? 'Change app icon' : 'アイコン設定'}
           onClick={() => setIconPickerOpen(true)}>
-          <span aria-hidden="true">⚙</span>
+          <span aria-hidden="true">🎨</span><span className="app-icon-setting-label">{uiLanguage === 'en' ? 'Icon' : 'アイコン'}</span>
         </button>
         <button type="button" className="privacy-link"
           aria-label="プライバシーポリシー"
