@@ -70,6 +70,9 @@ jobs:
       - name: Install offline asset verification tools
         run: python3 -m pip install --quiet Pillow==11.3.0
 
+      - name: Verify six icon source sets and native bridge wiring
+        run: python3 scripts/test_app_icon_switching.py
+
       - name: Test generated Android versions, icons and fail-closed rules
         run: python3 scripts/test_prepare_android_native.py
 
