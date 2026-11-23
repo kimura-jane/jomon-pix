@@ -23,6 +23,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Verify requested emoji stickers and no duplicate entries
+        run: python3 scripts/test_emoji_stickers.py
       - name: TypeScript typecheck
         run: npm run typecheck
       - name: Build
