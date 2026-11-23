@@ -26,7 +26,7 @@ export function canChangeAppIcon(): boolean {
 }
 
 export function iconPreviewUrl(icon: IconChoice): string {
-  if (icon === 'default') return `${import.meta.env.BASE_URL}pwa-icons/icon-192.png`;
+  if (icon === 'default') return `${import.meta.env.BASE_URL}icon-choices/default.png`;
   return `${import.meta.env.BASE_URL}icon-choices/${icon}.png`;
 }
 
