@@ -83,8 +83,14 @@ const CANVAS_PRESETS: {
   { id: '16:9', label: '▭ 16:9' },
 ];
 
+// Extra emojis requested for JOMON PIX. Keep existing library entries and avoid
+// duplicates (🎉 ✨ 🌈 💯 already exist in STICKER_CATEGORIES).
 const EXTRA_EMOJI = [
   '🐰', '🫶', '🥳', '😂', '😍', '🙈',
+  '❤️', '🩷', '🍙', '💢', '🎁', '🎊', '🍻', '👏', '🙌', '㊗️', '👼',
+  '💩', '🫨', '🤩', '😛', '🥶', '🤬', '🤭', '🤝', '👀', '🎅🏻',
+  '🙇‍♀️', '🤦‍♂️', '🤷🏿', '🍖', '🎂', '🍰', '🥂', '💰', '💔', '💕',
+  '㊙️', '🈲',
 ];
 
 // 顔デコ・TAF DOG・サングラスなどのスタンプカテゴリ
