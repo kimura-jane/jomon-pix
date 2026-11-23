@@ -70,6 +70,9 @@ jobs:
       - name: Install offline asset verification tools
         run: python3 -m pip install --quiet Pillow==11.3.0
 
+      - name: Verify requested emoji stickers and no duplicate entries
+        run: python3 scripts/test_emoji_stickers.py
+
       - name: Verify six icon source sets and native bridge wiring
         run: python3 scripts/test_app_icon_switching.py
 
