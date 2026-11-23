@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/stage_icon_previews.mjs && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "build:native": "vite build --base=/",
+    "build:native": "node scripts/stage_icon_previews.mjs && vite build --base=/",
     "ios:prepare": "bash scripts/prepare-ios.sh",
     "ios:sync": "npm run build:native && npx cap sync ios"
   },
