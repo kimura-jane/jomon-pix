@@ -139,6 +139,8 @@ project.write_text(text)
 PY
 
 python3 scripts/generate-ios-icon.py
+# Validate that the six icon sources, native bridge, and Xcode setup agree.
+python3 scripts/test_app_icon_switching.py
 # Validate and package all six user-created alternate Home Screen icons.
 python3 scripts/prepare_ios_icon_variants.py
 
