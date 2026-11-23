@@ -1,7 +1,7 @@
 ## ホーム画面のアイコン切り替え（iOS・Android）
 
 - 編集画面上部の **⚙ アイコン設定** から変更する。
-- **元のピンクアイコン** に戻す選択肢と、`gazo/icon/1`〜`6` の6デザインを表示。
+- 選択画面には **元のピンクアイコン（`6` と同一扱い）** と `gazo/icon/1`〜`5` を表示し、重複を除いた合計6種類から選べる。`6` の元素材とネイティブ互換処理は維持する。
 - ユーザーの画像ファイル名は変更しない。`scripts/stage_icon_previews.mjs` がビルド時に選択画面用のPNGを同梱。
 - **iOS**: `scripts/prepare_ios_icon_variants.py` が6つのXcode代替アイコンセットを生成し、`IconSwitcherPlugin.swift` がOSへ変更要求する。iOSの確認ダイアログが表示される場合がある。
 - **Android**: `scripts/prepare_android_native.py` が6つのランチャー画像・7つのactivity-aliasを生成し、`IconSwitcherPlugin.java` を登録。ランチャーの反映には端末差がある。
