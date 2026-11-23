@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw
+from xml.etree import ElementTree as ET
 
 APP_ID = "com.jomonpix.app"
 SOURCE_ICON = Path("ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png")
@@ -100,6 +101,133 @@ def write_android_icons(android_dir: Path) -> None:
         (adaptive_dir / name).write_text(xml, encoding="utf-8")
 
 
+
+ANDROID_XML_NS = "http://schemas.android.com/apk/res/android"
+ET.register_namespace("android", ANDROID_XML_NS)
+
+
+def write_variant_launcher_icons(android_dir: Path) -> None:
+    """Build adaptive + legacy launcher resources for the six existing designs."""
+    resources = android_dir / "app/src/main/res"
+    for number in range(1, 7):
+        source = Path("gazo/icon") / str(number) / "icon_512.png"
+        with Image.open(source) as input_image:
+            if input_image.size != (512, 512):
+                raise RuntimeError(f"Variant {number} must use an existing 512x512 PNG")
+            icon = input_image.convert("RGB")
+        # Keep the whole supplied composition inside an adaptive icon's
+        # safe region; black/colored edge fill prevents a white square frame.
+        padded = Image.new("RGB", (512, 512), icon.getpixel((6, 6)))
+        width = 410
+        reduced = icon.resize((width, width), Image.Resampling.LANCZOS)
+        padded.paste(reduced, ((512 - width) // 2, (512 - width) // 2))
+        drawable = resources / "drawable-nodpi"
+        drawable.mkdir(parents=True, exist_ok=True)
+        padded.save(drawable / f"jomon_launcher_variant_{number}.png", optimize=True)
+
+        for suffix, pixels in (
+            ("mdpi", 48), ("hdpi", 72), ("xhdpi", 96),
+            ("xxhdpi", 144), ("xxxhdpi", 192),
+        ):
+            target = resources / f"mipmap-{suffix}"
+            target.mkdir(parents=True, exist_ok=True)
+            small = padded.resize((pixels, pixels), Image.Resampling.LANCZOS)
+            small.save(target / f"ic_launcher_variant_{number}.png", optimize=True)
+            mask = Image.new("L", (pixels, pixels), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, pixels - 1, pixels - 1), fill=255)
+            round_icon = small.convert("RGBA")
+            round_icon.putalpha(mask)
+            round_icon.save(target / f"ic_launcher_variant_{number}_round.png", optimize=True)
+
+        adaptive = resources / "mipmap-anydpi-v26"
+        adaptive.mkdir(parents=True, exist_ok=True)
+        xml = (
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
+            f'    <background android:drawable="@drawable/jomon_launcher_variant_{number}" />\n'
+            '    <foreground android:drawable="@android:color/transparent" />\n'
+            '</adaptive-icon>\n'
+        )
+        for name in (
+            f"ic_launcher_variant_{number}.xml",
+            f"ic_launcher_variant_{number}_round.xml",
+        ):
+            (adaptive / name).write_text(xml, encoding="utf-8")
+
+
+def prepare_android_icon_aliases(android_dir: Path) -> None:
+    """Replace the single launcher entry with one enabled default + six aliases.
+
+    The real MainActivity stays enabled, keeps its original exported flag and
+    existing non-launcher intent filters, and retains all Capacitor state.
+    """
+    manifest_path = android_dir / "app/src/main/AndroidManifest.xml"
+    tree = ET.parse(manifest_path)
+    root = tree.getroot()
+    app = root.find("application")
+    if app is None:
+        raise RuntimeError("Capacitor Android manifest lacks application")
+    a = "{" + ANDROID_XML_NS + "}"
+    main = next((activity for activity in app.findall("activity")
+                 if activity.get(a + "name", "").endswith(".MainActivity")), None)
+    if main is None:
+        raise RuntimeError("Capacitor Android manifest lacks MainActivity")
+    target = main.get(a + "name")
+    removed = 0
+    for filt in list(main.findall("intent-filter")):
+        actions = [el.get(a + "name") for el in filt.findall("action")]
+        categories = [el.get(a + "name") for el in filt.findall("category")]
+        if ("android.intent.action.MAIN" in actions and
+                "android.intent.category.LAUNCHER" in categories):
+            main.remove(filt)
+            removed += 1
+    if removed != 1:
+        raise RuntimeError("Expected exactly one MainActivity launcher intent-filter")
+
+    for number in range(7):
+        suffix = "IconDefault" if number == 0 else f"IconVariant{number}"
+        icon = "ic_launcher" if number == 0 else f"ic_launcher_variant_{number}"
+        round_icon = icon + "_round"
+        entry = ET.SubElement(app, "activity-alias", {
+            a + "name": "." + suffix,
+            a + "enabled": "true" if number == 0 else "false",
+            a + "exported": "true",
+            a + "targetActivity": target,
+            a + "label": "@string/app_name",
+            a + "icon": "@mipmap/" + icon,
+            a + "roundIcon": "@mipmap/" + round_icon,
+        })
+        filt = ET.SubElement(entry, "intent-filter")
+        ET.SubElement(filt, "action", {a + "name": "android.intent.action.MAIN"})
+        ET.SubElement(filt, "category", {a + "name": "android.intent.category.LAUNCHER"})
+    ET.indent(tree, space="    ")
+    tree.write(manifest_path, encoding="unicode", xml_declaration=True)
+
+
+def register_android_icon_plugin(android_dir: Path) -> None:
+    """Register the local Capacitor plugin before BridgeActivity.onCreate."""
+    package_dir = android_dir / "app/src/main/java/com/jomonpix/app"
+    activity = package_dir / "MainActivity.java"
+    original = activity.read_text(encoding="utf-8")
+    if "extends BridgeActivity" not in original:
+        raise RuntimeError("Unexpected Android Capacitor MainActivity template")
+    activity.write_text(
+        "package com.jomonpix.app;\n\n"
+        "import android.os.Bundle;\n"
+        "import com.getcapacitor.BridgeActivity;\n\n"
+        "public class MainActivity extends BridgeActivity {\n"
+        "    @Override\n"
+        "    protected void onCreate(Bundle state) {\n"
+        "        registerPlugin(IconSwitcherPlugin.class);\n"
+        "        super.onCreate(state);\n"
+        "    }\n"
+        "}\n", encoding="utf-8"
+    )
+    plugin = Path("native/android/IconSwitcherPlugin.java")
+    if not plugin.is_file():
+        raise RuntimeError("Android icon switcher Java source is missing")
+    (package_dir / "IconSwitcherPlugin.java").write_bytes(plugin.read_bytes())
+
 def configure(android_dir: Path, version: str, version_code: int) -> None:
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
         raise ValueError("Invalid Android marketing version: " + version)
@@ -165,6 +293,9 @@ def configure(android_dir: Path, version: str, version_code: int) -> None:
     wrapper_path.write_text(wrapper, encoding="utf-8")
 
     write_android_icons(android_dir)
+    write_variant_launcher_icons(android_dir)
+    prepare_android_icon_aliases(android_dir)
+    register_android_icon_plugin(android_dir)
 
     # A native build must use the bundled files, not GitHub Pages URL.
     native_web = android_dir / "app/src/main/assets/public"
