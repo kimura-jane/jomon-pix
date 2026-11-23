@@ -31,7 +31,7 @@ public class IconSwitcherPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func setIcon(_ call: CAPPluginCall) {
         guard let choice = call.getString("icon"),
-              choice == "default" || (1...6).map(String.init).contains(choice) else {
+              choice == "default" || (1...6).contains(where: { String($0) == choice }) else {
             call.reject("Invalid icon selection.")
             return
         }
