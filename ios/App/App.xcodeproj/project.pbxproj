@@ -17,6 +17,8 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		F1A512EDFE00000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1A512EDFE00000000000002 /* PrivacyInfo.xcprivacy */; };
+		8EFADCA01234000000000001 /* IconSwitcherPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EFADCA01234000000000002 /* IconSwitcherPlugin.swift */; };
+		8EFADCA01234000000000003 /* JomonBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EFADCA01234000000000004 /* JomonBridgeViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +36,8 @@
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 		F1A512EDFE00000000000002 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		8EFADCA01234000000000002 /* IconSwitcherPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconSwitcherPlugin.swift; sourceTree = "<group>"; };
+		8EFADCA01234000000000004 /* JomonBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JomonBridgeViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +83,8 @@
 			children = (
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				8EFADCA01234000000000002 /* IconSwitcherPlugin.swift */,
+				8EFADCA01234000000000004 /* JomonBridgeViewController.swift */,
 				F82A251D307E44A9B1282902 /* SceneDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -217,6 +223,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				8EFADCA01234000000000001 /* IconSwitcherPlugin.swift in Sources */,
+				8EFADCA01234000000000003 /* JomonBridgeViewController.swift in Sources */,
 				F82A251D307E44A9B1282901 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -355,6 +363,7 @@
 			baseConfigurationReference = FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon1 Icon2 Icon3 Icon4 Icon5 Icon6";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
@@ -375,6 +384,7 @@
 			baseConfigurationReference = AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon1 Icon2 Icon3 Icon4 Icon5 Icon6";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
