@@ -268,10 +268,10 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 .icon-picker-close { background: #fff; border: 1px solid #f1d6e5; border-radius: 50%;
   width: 34px; height: 34px; font-size: 24px; cursor: pointer; }
 .icon-picker-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.icon-picker-choice { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
-  border: 2px solid #f5e3ef; border-radius: 17px; background: #fff; padding: 10px 4px;
-  font-size: 12px; font-weight: 700; cursor: pointer; }
-.icon-picker-choice img { width: min(19vw, 72px); height: min(19vw, 72px); border-radius: 15px;
+.icon-picker-choice { position: relative; display: grid; place-items: center;
+  border: 2px solid #f5e3ef; border-radius: 17px; background: #fff; padding: 9px;
+  cursor: pointer; }
+.icon-picker-choice img { width: min(23vw, 86px); height: min(23vw, 86px); border-radius: 16px;
   object-fit: cover; background: #f9f3f7; }
 .icon-picker-choice.selected { border-color: #ff4fa3; background: #fff3f9; color: #ad3084; }
 .icon-picker-choice:disabled { cursor: default; }
