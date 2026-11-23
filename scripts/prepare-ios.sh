@@ -139,6 +139,8 @@ project.write_text(text)
 PY
 
 python3 scripts/generate-ios-icon.py
+# Validate and package all six user-created alternate Home Screen icons.
+python3 scripts/prepare_ios_icon_variants.py
 
 # Apple requires a privacy manifest for native file timestamp access.
 # Capacitor's Filesystem plugin uses this category for user-created files.
