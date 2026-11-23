@@ -58,6 +58,30 @@ class AndroidNativeTests(unittest.TestCase):
             p = native_web / name
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_bytes(b"fixture")
+        # The generated Capacitor Android app is always present in production.
+        # Provide its main class and manifest so the icon aliases are tested.
+        native = app / "src/main"
+        package_dir = native / "java/com/jomonpix/app"
+        package_dir.mkdir(parents=True, exist_ok=True)
+        (package_dir / "MainActivity.java").write_text(
+            "package com.jomonpix.app;\n"
+            "import com.getcapacitor.BridgeActivity;\n"
+            "public class MainActivity extends BridgeActivity {}\n",
+            encoding="utf-8",
+        )
+        (native / "AndroidManifest.xml").write_text(
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n'
+            '  <application>\n'
+            '    <activity android:name=".MainActivity" android:exported="true">\n'
+            '      <intent-filter>\n'
+            '        <action android:name="android.intent.action.MAIN"/>\n'
+            '        <category android:name="android.intent.category.LAUNCHER"/>\n'
+            '      </intent-filter>\n'
+            '    </activity>\n'
+            '  </application>\n'
+            '</manifest>\n',
+            encoding="utf-8",
+        )
         self.icon = self.root / "approved.png"
         source = Image.new("RGB", (1024, 1024), "#ef2390")
         ImageDraw.Draw(source).rectangle((120, 470, 200, 550), fill=(17, 34, 51))
@@ -108,6 +132,34 @@ class AndroidNativeTests(unittest.TestCase):
         xml = (res / "mipmap-anydpi-v26/ic_launcher.xml").read_text()
         self.assertIn("@drawable/jomon_launcher", xml)
         self.assertNotIn("@drawable/ic_launcher_foreground", xml)
+
+    def test_seven_launcher_choices_preserve_main_activity(self):
+        android.configure(self.project, "1.1.0", 17)
+        manifest = self.project / "app/src/main/AndroidManifest.xml"
+        tree = android.ET.parse(manifest)
+        app = tree.getroot().find("application")
+        self.assertIsNotNone(app)
+        aliases = app.findall("activity-alias")
+        self.assertEqual(len(aliases), 7)
+        ns = "{" + android.ANDROID_XML_NS + "}"
+        self.assertEqual(aliases[0].get(ns + "name"), ".IconDefault")
+        self.assertEqual(aliases[0].get(ns + "enabled"), "true")
+        self.assertTrue(all(a.get(ns + "enabled") == "false" for a in aliases[1:]))
+        activity = app.find("activity")
+        self.assertEqual(activity.get(ns + "name"), ".MainActivity")
+        self.assertEqual(activity.get(ns + "exported"), "true")
+        self.assertEqual(activity.findall("intent-filter"), [])
+        for number in range(1, 7):
+            path = self.project / ("app/src/main/res/mipmap-anydpi-v26/"
+                                   f"ic_launcher_variant_{number}.xml")
+            self.assertTrue(path.exists())
+            drawable = self.project / ("app/src/main/res/drawable-nodpi/"
+                                       f"jomon_launcher_variant_{number}.png")
+            with Image.open(drawable) as png:
+                self.assertEqual(png.size, (512, 512))
+        java = (self.project / "app/src/main/java/com/jomonpix/app/MainActivity.java").read_text()
+        self.assertIn("registerPlugin(IconSwitcherPlugin.class)", java)
+        self.assertTrue((self.project / "app/src/main/java/com/jomonpix/app/IconSwitcherPlugin.java").exists())
 
     def test_invalid_play_version_is_rejected(self):
         with self.assertRaises(ValueError):
