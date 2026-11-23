@@ -26,9 +26,10 @@ button { font-family: inherit; color: inherit; }
 .brand { display: flex; align-items: center; gap: 7px; min-width: 0; flex-wrap: nowrap; }
 .logo { font-family: 'Dela Gothic One', sans-serif; font-size: clamp(16px, 4.8vw, 20px); letter-spacing: 0.5px; flex: none; white-space: nowrap;
   background: linear-gradient(90deg, var(--pink), var(--purple)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.app-icon-setting { margin-left: auto; flex: none; display: grid; place-items: center;
-  width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 1px solid #edd1e2;
-  background: #fff8fc; font-size: 19px; color: #b44e97; cursor: pointer; }
+.app-icon-setting { margin-left: auto; flex: none; display: flex; align-items: center; justify-content: center; gap: 3px;
+  min-height: 30px; padding: 4px 7px; border-radius: 999px; border: 1px solid #edd1e2;
+  background: #fff8fc; font-size: 13px; color: #b44e97; font-weight: 700; cursor: pointer; }
+.app-icon-setting-label { font-size: 10px; white-space: nowrap; }
 .app-icon-setting:focus-visible { outline: 2px solid #c257a1; outline-offset: 2px; }
 .privacy-link { flex: none; white-space: nowrap; font-size: 11px; color: #77566f; padding: 6px 3px;
   border: 0; background: transparent; text-decoration: underline;
@@ -282,7 +283,8 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 @media (max-width: 390px) {
   .brand { gap: 4px; }
   .logo { font-size: 16px; letter-spacing: 0; }
-  .app-icon-setting { width: 28px; height: 28px; font-size: 17px; }
+  .app-icon-setting { width: 28px; height: 28px; padding: 0; font-size: 17px; }
+  .app-icon-setting-label { display: none; }
   .privacy-link { font-size: 10px; padding: 4px 2px; }
   .lang-switch { padding: 5px 6px; font-size: 10px; }
 }
