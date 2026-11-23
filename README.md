@@ -1,3 +1,15 @@
+## ホーム画面のアイコン切り替え（iOS・Android）
+
+- 編集画面上部の **⚙ アイコン設定** から変更する。
+- **元のピンクアイコン** に戻す選択肢と、`gazo/icon/1`〜`6` の6デザインを表示。
+- ユーザーの画像ファイル名は変更しない。`scripts/stage_icon_previews.mjs` がビルド時に選択画面用のPNGを同梱。
+- **iOS**: `scripts/prepare_ios_icon_variants.py` が6つのXcode代替アイコンセットを生成し、`IconSwitcherPlugin.swift` がOSへ変更要求する。iOSの確認ダイアログが表示される場合がある。
+- **Android**: `scripts/prepare_android_native.py` が6つのランチャー画像・7つのactivity-aliasを生成し、`IconSwitcherPlugin.java` を登録。ランチャーの反映には端末差がある。
+- **Web/PWA**: ホーム画面のランチャーアイコンをアプリ内から変更できないため、候補を表示しても選択操作は無効。誤って変更成功を表示しない。
+- **既存の画像編集データ・保存データは変更しない**。アプリのパッケージID、Bundle IDは従来どおり。
+- 事前チェック: `python3 scripts/test_app_icon_switching.py`。実機テストとiOSビルド確認は別途必須。
+- 既存バージョンの更新では、iOSビルド番号とAndroid versionCodeを必ず増やす。自動でストアへ公開しない。
+
 # JOMON PIX
 
 写真編集アプリ JOMON PIX。
