@@ -86,15 +86,27 @@ def write_android_icons(android_dir: Path) -> None:
         round_image.putalpha(circle_mask)
         round_image.save(folder / "ic_launcher_round.png", optimize=True)
 
-    # The full-bleed, maskable image becomes the adaptive icon background.
-    # Transparent foreground ensures the default Capacitor mark never appears.
+    # The original pink icon and design 6 are the same choice in the app.
+    # Use the supplied adaptive icon layers for the original launcher as well.
+    # This avoids displaying the old 410px tile as a shrunk inner square.
+    for layer in ("background", "foreground", "monochrome"):
+        source = Path("gazo/icon/6") / f"{layer}_432.png"
+        with Image.open(source) as img:
+            if img.size != (432, 432):
+                raise RuntimeError(f"Default Android {layer} must be 432x432")
+            if layer != "background" and "A" not in img.getbands():
+                raise RuntimeError(f"Default Android {layer} must have alpha")
+            output = img.convert("RGB" if layer == "background" else "RGBA")
+            output.save(drawable / f"jomon_launcher_default_{layer}.png", optimize=True)
+
     adaptive_dir = resources / "mipmap-anydpi-v26"
     adaptive_dir.mkdir(parents=True, exist_ok=True)
     xml = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-        '    <background android:drawable="@drawable/jomon_launcher" />\n'
-        '    <foreground android:drawable="@android:color/transparent" />\n'
+        '    <background android:drawable="@drawable/jomon_launcher_default_background" />\n'
+        '    <foreground android:drawable="@drawable/jomon_launcher_default_foreground" />\n'
+        '    <monochrome android:drawable="@drawable/jomon_launcher_default_monochrome" />\n'
         '</adaptive-icon>\n'
     )
     for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
