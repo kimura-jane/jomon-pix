@@ -17,7 +17,6 @@ export const iconChoices: { id: IconChoice; labelJa: string; labelEn: string }[]
   { id: '3', labelJa: 'ネオン', labelEn: 'Neon' },
   { id: '4', labelJa: 'デザイン 4', labelEn: 'Design 4' },
   { id: '5', labelJa: 'デザイン 5', labelEn: 'Design 5' },
-  { id: '6', labelJa: 'デザイン 6', labelEn: 'Design 6' },
 ];
 
 export function canChangeAppIcon(): boolean {
