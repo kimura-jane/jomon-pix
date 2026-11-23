@@ -107,45 +107,70 @@ ET.register_namespace("android", ANDROID_XML_NS)
 
 
 def write_variant_launcher_icons(android_dir: Path) -> None:
-    """Build adaptive + legacy launcher resources for the six existing designs."""
+    """Generate adaptive + legacy launchers from existing user-supplied icons.
+
+    Adaptive icons MUST use the separate 432px background and transparent
+    foreground (with Android 13+ monochrome layer); resizing a complete
+    square icon onto an adaptive background introduces double padding.
+    """
     resources = android_dir / "app/src/main/res"
+    drawable = resources / "drawable-nodpi"
+    adaptive = resources / "mipmap-anydpi-v26"
+    drawable.mkdir(parents=True, exist_ok=True)
+    adaptive.mkdir(parents=True, exist_ok=True)
+
     for number in range(1, 7):
-        source = Path("gazo/icon") / str(number) / "icon_512.png"
+        source_folder = Path("gazo/icon") / str(number)
+        source = source_folder / "icon_512.png"
         with Image.open(source) as input_image:
             if input_image.size != (512, 512):
                 raise RuntimeError(f"Variant {number} must use an existing 512x512 PNG")
-            icon = input_image.convert("RGB")
-        # Keep the whole supplied composition inside an adaptive icon's
-        # safe region; black/colored edge fill prevents a white square frame.
-        padded = Image.new("RGB", (512, 512), icon.getpixel((6, 6)))
-        width = 410
-        reduced = icon.resize((width, width), Image.Resampling.LANCZOS)
-        padded.paste(reduced, ((512 - width) // 2, (512 - width) // 2))
-        drawable = resources / "drawable-nodpi"
-        drawable.mkdir(parents=True, exist_ok=True)
-        padded.save(drawable / f"jomon_launcher_variant_{number}.png", optimize=True)
+            legacy_icon = input_image.convert("RGB")
 
-        for suffix, pixels in (
+        for layer in ("background", "foreground", "monochrome"):
+            src = source_folder / f"{layer}_432.png"
+            with Image.open(src) as img:
+                if img.size != (432, 432):
+                    raise RuntimeError(f"Variant {number} {layer} must be 432x432")
+                if layer == "background":
+                    resource = img.convert("RGB")
+                else:
+                    if "A" not in img.getbands():
+                        raise RuntimeError(
+                            f"Variant {number} {layer} must have alpha transparency"
+                        )
+                    resource = img.convert("RGBA")
+                resource.save(
+                    drawable / f"jomon_launcher_variant_{number}_{layer}.png",
+                    optimize=True,
+                )
+
+        # Legacy Android launcher icons use the complete original user asset.
+        # Do not artificially shrink it with a second margin.
+        for density, pixels in (
             ("mdpi", 48), ("hdpi", 72), ("xhdpi", 96),
             ("xxhdpi", 144), ("xxxhdpi", 192),
         ):
-            target = resources / f"mipmap-{suffix}"
+            target = resources / f"mipmap-{density}"
             target.mkdir(parents=True, exist_ok=True)
-            small = padded.resize((pixels, pixels), Image.Resampling.LANCZOS)
+            small = legacy_icon.resize((pixels, pixels), Image.Resampling.LANCZOS)
             small.save(target / f"ic_launcher_variant_{number}.png", optimize=True)
-            mask = Image.new("L", (pixels, pixels), 0)
-            ImageDraw.Draw(mask).ellipse((0, 0, pixels - 1, pixels - 1), fill=255)
+            circle_mask = Image.new("L", (pixels, pixels), 0)
+            ImageDraw.Draw(circle_mask).ellipse(
+                (0, 0, pixels - 1, pixels - 1), fill=255
+            )
             round_icon = small.convert("RGBA")
-            round_icon.putalpha(mask)
-            round_icon.save(target / f"ic_launcher_variant_{number}_round.png", optimize=True)
+            round_icon.putalpha(circle_mask)
+            round_icon.save(
+                target / f"ic_launcher_variant_{number}_round.png", optimize=True
+            )
 
-        adaptive = resources / "mipmap-anydpi-v26"
-        adaptive.mkdir(parents=True, exist_ok=True)
         xml = (
             '<?xml version="1.0" encoding="utf-8"?>\n'
             '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-            f'    <background android:drawable="@drawable/jomon_launcher_variant_{number}" />\n'
-            '    <foreground android:drawable="@android:color/transparent" />\n'
+            f'    <background android:drawable="@drawable/jomon_launcher_variant_{number}_background" />\n'
+            f'    <foreground android:drawable="@drawable/jomon_launcher_variant_{number}_foreground" />\n'
+            f'    <monochrome android:drawable="@drawable/jomon_launcher_variant_{number}_monochrome" />\n'
             '</adaptive-icon>\n'
         )
         for name in (
