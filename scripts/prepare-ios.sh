@@ -4,6 +4,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Keep the sticker palette free of duplicate and invalid emoji before iOS build.
+python3 scripts/test_emoji_stickers.py
+
 # Include body-pose AI locally before Vite copies public/ assets.
 python3 scripts/fetch_pose_model.py
 
