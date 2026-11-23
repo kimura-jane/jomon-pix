@@ -55,7 +55,12 @@ class IconSwitchingTests(unittest.TestCase):
 
     def test_ui_is_native_only(self):
         picker = (ROOT / "src/components/AppIconPicker.tsx").read_text()
-        self.assertIn("if (!supported)", picker)
+        self.assertIn("const supported = canChangeAppIcon()", picker)
+        self.assertIn("current === '6'", picker)
+        icon_source = (ROOT / "src/lib/appIcon.ts").read_text()
+        visible = icon_source.split("export const iconChoices:")[1].split("];")[0]
+        self.assertEqual(visible.count("{ id:"), 6)
+        self.assertNotIn("{ id: '6'", visible)
         self.assertIn('disabled={!supported || loading || busy}', picker)
         native = (ROOT / "src/lib/appIcon.ts").read_text()
         self.assertIn("Capacitor.isNativePlatform()", native)
