@@ -5,6 +5,7 @@ import { getUiLanguage, onUiLanguageChange, setUiLanguage, translateUiText } fro
 import { flushAutosave, useAutosaveStatus, useEditor, type CanvasPreset } from '../store';
 import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
+import { AppIconPicker } from './AppIconPicker';
 import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
 import type { CanvasEl, Tab } from '../types';
 import { SCENE_IDS, SOCIAL_IDS, type SceneId, type SocialId } from '../lib/scenePresets';
@@ -399,6 +400,7 @@ export function TopBar() {
   const [busy, setBusy] = useState(false);
   const [workOpen, setWorkOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [workBusy, setWorkBusy] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const [uiLanguage, showUiLanguage] = useState(getUiLanguage);
@@ -539,6 +541,12 @@ export function TopBar() {
         <span className="logo">JOMON PIX</span>
 
 
+        <button type="button" className="app-icon-setting"
+          aria-label={uiLanguage === 'en' ? 'Change app icon' : 'アイコン設定'}
+          title={uiLanguage === 'en' ? 'Change app icon' : 'アイコン設定'}
+          onClick={() => setIconPickerOpen(true)}>
+          <span aria-hidden="true">⚙</span>
+        </button>
         <button type="button" className="privacy-link"
           aria-label="プライバシーポリシー"
           onClick={() => setPrivacyOpen(true)}>
@@ -611,6 +619,10 @@ export function TopBar() {
 
       {blob && <SaveModal blob={blob} onClose={() => setBlob(null)} />}
 
+      {iconPickerOpen && createPortal(
+        <AppIconPicker onClose={() => setIconPickerOpen(false)} language={uiLanguage} />,
+        document.body,
+      )}
       {privacyOpen && createPortal(
         <div className="modal-bg" role="presentation"
           onClick={() => setPrivacyOpen(false)}>
