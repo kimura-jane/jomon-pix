@@ -54,14 +54,14 @@ export function AppIconPicker({ onClose, language }: Props) {
         {loading && <p role="status">{en ? 'Checking your icon…' : '現在のアイコンを確認中…'}</p>}
         <div className="icon-picker-grid">
           {iconChoices.map((choice) => (
-            <button type="button" key={choice.id} className={`icon-picker-choice ${!loading && current === choice.id ? 'selected' : ''}`}
+            <button type="button" key={choice.id} className={`icon-picker-choice ${!loading && (current === choice.id || (choice.id === 'default' && current === '6')) ? 'selected' : ''}`}
               disabled={!supported || loading || busy}
-              aria-pressed={!loading && current === choice.id}
+              aria-pressed={!loading && (current === choice.id || (choice.id === 'default' && current === '6'))}
               aria-label={en ? choice.labelEn : choice.labelJa}
               title={!supported ? (en ? 'Available in the installed app' : 'インストールしたアプリで変更できます') : (en ? choice.labelEn : choice.labelJa)}
               onClick={() => void apply(choice.id)}>
               <img src={iconPreviewUrl(choice.id)} alt="" width="72" height="72" loading="lazy" />
-              {!loading && current === choice.id && <span className="icon-picker-selected" aria-label={en ? 'Selected' : '選択中'}>✓</span>}
+              {!loading && (current === choice.id || (choice.id === 'default' && current === '6')) && <span className="icon-picker-selected" aria-label={en ? 'Selected' : '選択中'}>✓</span>}
             </button>
           ))}
         </div>
