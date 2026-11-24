@@ -85,7 +85,7 @@ with tempfile.TemporaryDirectory(prefix="jomon-ios-version-") as folder:
         assert info_file.read_bytes() == old_info
 
     # The Build 10 reuse guard is specific to the historical 1.0.3 release.
-    # Test that release explicitly, then restore the current 1.1.0 package.
+    # Test that release explicitly, then restore the current package.
     package_path = root / "package.json"
     current_package = package_path.read_text(encoding="utf-8")
     legacy_package = json.loads(current_package)

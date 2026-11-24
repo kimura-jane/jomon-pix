@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Static preflight of JOMON PIX native icon-switching integration."""
 from pathlib import Path
+import re
 import struct
 import unittest
 
@@ -59,8 +60,8 @@ class IconSwitchingTests(unittest.TestCase):
         self.assertIn("current === '6'", picker)
         icon_source = (ROOT / "src/lib/appIcon.ts").read_text()
         visible = icon_source.split("export const iconChoices:")[1].split("];")[0]
-        self.assertEqual(visible.count("{ id:"), 6)
-        self.assertNotIn("{ id: '6'", visible)
+        self.assertEqual(re.findall(r"\{\s*id:\s*'([^']+)'", visible),
+                         ["default", "1", "2", "3", "4", "5"])
         self.assertIn('disabled={!supported || loading || busy}', picker)
         native = (ROOT / "src/lib/appIcon.ts").read_text()
         self.assertIn("Capacitor.isNativePlatform()", native)
