@@ -11,10 +11,7 @@ import {
   addText,
   addSpeechBubble,
 } from '../lib/factory';
-import {
-  STICKER_CATEGORIES,
-  type LibrarySticker,
-} from '../lib/stickers';
+import type { LibrarySticker } from '../lib/stickers';
 import { FACE_STICKERS } from '../lib/stickerPacks';
 import { findAttachmentPhoto, getPhotoLabel } from '../lib/photoAttachments';
 import { countAutoFaceTargets, createAutoFaceSticker } from '../lib/autoFaceDeco';
@@ -83,14 +80,15 @@ const CANVAS_PRESETS: {
   { id: '16:9', label: '▭ 16:9' },
 ];
 
-// Extra emojis requested for JOMON PIX. Keep existing library entries and avoid
-// duplicates (🎉 ✨ 🌈 💯 already exist in STICKER_CATEGORIES).
-const EXTRA_EMOJI = [
-  '🐰', '🫶', '🥳', '😂', '😍', '🙈',
-  '❤️', '🩷', '🍙', '💢', '🎁', '🎊', '🍻', '👏', '🙌', '㊗️', '👼',
-  '💩', '🫨', '🤩', '😛', '🥶', '🤬', '🤭', '🤝', '👀', '🎅🏻',
-  '🙇‍♀️', '🤦‍♂️', '🤷🏿', '🍖', '🎂', '🍰', '🥂', '💰', '💔', '💕',
-  '㊙️', '🈲',
+// All emoji stickers, grouped visually without visible category headings.
+const EMOJI_GROUPS = [
+  { label: '表情', items: ['😂', '😍', '🤩', '🥳', '😛', '🤭', '🫨', '🥶', '🤬', '👀'] },
+  { label: 'ハート', items: ['❤️', '🩷', '💖', '💕', '💔'] },
+  { label: '人物・ジェスチャー', items: ['🫶', '👏', '🙌', '🤝', '🙇‍♀️', '🤦‍♂️', '🤷🏿', '👼', '🎅🏻'] },
+  { label: '動物', items: ['🐼', '🐰', '🙈', '🐾'] },
+  { label: '食べ物・飲み物', items: ['🍙', '🍖', '🍓', '🎂', '🍰', '🍻', '🥂'] },
+  { label: 'お祝い・装飾', items: ['🎉', '🎊', '🎁', '🎀', '👑', '✨', '⭐', '🌸', '🌈'] },
+  { label: '記号', items: ['💢', '💯', '㊗️', '㊙️', '🈲', '💬', '🔥', '💰', '💩'] },
 ];
 
 // 顔デコ・TAF DOG・サングラスなどのスタンプカテゴリ
@@ -116,9 +114,6 @@ const STAMP_GROUPS: {
     label: '縄文',
     items: [...REAL_HANIWA_STICKERS, ...REAL_DOGU_STICKERS],
   },
-  ...STICKER_CATEGORIES
-    .filter((category) => !['犬', '埴輪', '土偶'].includes(category.label))
-    .map((category) => ({ label: category.label, items: category.items })),
 ];
 
 function Seg({
@@ -1310,8 +1305,6 @@ function StampTab({
     s.update(selectedSticker.id, { src: updated.src, label: updated.label });
   };
 
-  const extraEmoji = sub === '絵文字' ? EXTRA_EMOJI : [];
-
   const sliderKeys = [
     'ArrowLeft',
     'ArrowRight',
@@ -1673,7 +1666,6 @@ function StampTab({
           marginTop: 10,
           marginBottom: 12,
         }}>
-          {sub === '髪型' && <div className="label" style={{ marginTop: 0 }}>配置</div>}
           <div className="placement-switch" role="group" aria-label="配置方法">
             <button
               type="button"
@@ -1841,9 +1833,26 @@ function StampTab({
         </div>
       )}
 
+      {sub === '絵文字' && (
+        <div style={{ display: 'grid', gap: 12, marginTop: 8 }}>
+          {EMOJI_GROUPS.map(({ label, items }) => (
+            <div key={label} role="group" aria-label={label} className="grid"
+              style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+              {items.map((emoji) => (
+                <button key={emoji} type="button" className="cell"
+                  aria-label={`${emoji}を追加`}
+                  onClick={() => addSticker(emoji)}
+                  style={{ minWidth: 0, padding: 4, display: 'grid', placeItems: 'center', overflow: 'hidden', touchAction: 'manipulation' }}>
+                  <span style={{ fontSize: 30, lineHeight: 1 }}>{emoji}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
       {group && (
         <>
-          {sub === '髪型' && <div className="label">髪型</div>}
 
           <div
             className="grid"
@@ -1937,39 +1946,7 @@ function StampTab({
             ))}
           </div>
 
-          {extraEmoji.length > 0 && (
-            <>
-              <div className="label">
-                その他
-              </div>
 
-              <div
-                className="grid"
-                style={{
-                  gridTemplateColumns:
-                    'repeat(4, minmax(0, 1fr))',
-                }}
-              >
-                {extraEmoji.map(
-                  (emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      className="cell"
-                      aria-label={
-                        `${emoji}を追加`
-                      }
-                      onClick={() =>
-                        addSticker(emoji)
-                      }
-                    >
-                      {emoji}
-                    </button>
-                  ),
-                )}
-              </div>
-            </>
-          )}
         </>
       )}
     </>
