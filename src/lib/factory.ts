@@ -102,8 +102,12 @@ export async function addImageFromFile(file: File) {
   });
 }
 
+// 通常スタンプの初期サイズと「標準」ボタンの共通基準。
+export const DEFAULT_STICKER_PERCENT = 20;
+export const DEFAULT_HAIR_STICKER_PERCENT = 42;
+
 // キャンバスに合わせてスタンプの初期サイズを決定
-function getStickerPlacement() {
+function getStickerPlacement(percent = DEFAULT_STICKER_PERCENT) {
   const editor = useEditor.getState();
   const photo = findAttachmentPhoto(editor.elements, editor.selectedId);
 
@@ -115,7 +119,7 @@ function getStickerPlacement() {
 
   const size = Math.min(
     520,
-    Math.max(24, Math.round(shorterSide * 0.42)),
+    Math.max(1, Math.round(shorterSide * percent / 100)),
   );
 
   const width = photo ? photo.width : editor.canvasWidth;
@@ -174,7 +178,7 @@ export function addLibrarySticker(
 // Hairstyles are trial choices, not layers to pile up.
 export function addOrReplaceHairSticker(sticker: LibrarySticker): boolean {
   if (!sticker.src) return false;
-  const placement = getStickerPlacement();
+  const placement = getStickerPlacement(DEFAULT_HAIR_STICKER_PERCENT);
   return useEditor.getState().setHairSticker({
     ...base(),
     ...placement,

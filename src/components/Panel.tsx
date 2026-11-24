@@ -8,6 +8,8 @@ import {
   addSticker,
   addLibrarySticker,
   addOrReplaceHairSticker,
+  DEFAULT_STICKER_PERCENT,
+  DEFAULT_HAIR_STICKER_PERCENT,
   addText,
   addSpeechBubble,
 } from '../lib/factory';
@@ -1247,7 +1249,7 @@ function StampTab({
         selectedSticker,
         shorterSide,
       )
-    : 42;
+    : DEFAULT_STICKER_PERCENT;
 
   const changeSize = (percent: number) => {
     if (
@@ -1608,7 +1610,7 @@ function StampTab({
                 !!selectedSticker.hidden
               }
               onClick={() =>
-                changeSize(42)
+                changeSize(isHairSticker(selectedSticker) ? DEFAULT_HAIR_STICKER_PERCENT : DEFAULT_STICKER_PERCENT)
               }
             >
               標準
