@@ -1834,16 +1834,16 @@ function StampTab({
       )}
 
       {sub === '絵文字' && (
-        <div style={{ display: 'grid', gap: 12, marginTop: 8 }}>
+        <div style={{ display: 'grid', gap: 10, marginTop: 8 }}>
           {EMOJI_GROUPS.map(({ label, items }) => (
             <div key={label} role="group" aria-label={label} className="grid"
-              style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 6 }}>
               {items.map((emoji) => (
                 <button key={emoji} type="button" className="cell"
                   aria-label={`${emoji}を追加`}
                   onClick={() => addSticker(emoji)}
-                  style={{ minWidth: 0, padding: 4, display: 'grid', placeItems: 'center', overflow: 'hidden', touchAction: 'manipulation' }}>
-                  <span style={{ fontSize: 30, lineHeight: 1 }}>{emoji}</span>
+                  style={{ minWidth: 0, minHeight: 44, padding: 2, borderRadius: 10, display: 'grid', placeItems: 'center', overflow: 'hidden', touchAction: 'manipulation' }}>
+                  <span style={{ fontSize: 28, lineHeight: 1 }}>{emoji}</span>
                 </button>
               ))}
             </div>
@@ -1858,8 +1858,8 @@ function StampTab({
             className="grid"
             style={{
               gridTemplateColumns:
-                'repeat(4, minmax(0, 1fr))',
-              gap: 8,
+                'repeat(auto-fill, minmax(60px, 1fr))',
+              gap: 6,
             }}
           >
             {sub === 'サングラス' && autoFace && (
@@ -1868,7 +1868,7 @@ function StampTab({
                 disabled={autoBusy || faceBusy || !faceInfo || faceInfo.count < 1 ||
                   faceInfo.photoId !== activePhotoId || faceInfo.src !== activePhotoSrc}
                 onClick={() => void autoEquipSunglasses(null)}
-                style={{ minHeight: 76, fontWeight: 700 }}>
+                style={{ minHeight: 44, borderRadius: 12, fontSize: 13, fontWeight: 700 }}>
                 なし
               </button>
             )}
@@ -1903,8 +1903,11 @@ function StampTab({
                 }}
                 style={{
                   minWidth: 0,
-                  padding: 4,
+                  minHeight: 44,
+                  padding: 3,
+                  borderRadius: 12,
                   display: 'grid',
+                  gridTemplateRows: sub === '髪型' ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)',
                   placeItems: 'center',
                   overflow: 'hidden',
                   touchAction: 'manipulation',
@@ -1921,6 +1924,7 @@ function StampTab({
                       display: 'block',
                       width: '94%',
                       height: '94%',
+                      minHeight: 0,
                       objectFit: 'contain',
                       pointerEvents:
                         'none',
