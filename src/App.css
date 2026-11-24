@@ -281,10 +281,17 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 .icon-picker-error { color: #a02131; }
 .icon-picker-success { color: #27663e; }
 @media (max-width: 390px) {
-  .brand { gap: 4px; }
-  .logo { font-size: 16px; letter-spacing: 0; }
-  .app-icon-setting { width: 28px; height: 28px; padding: 0; font-size: 17px; }
-  .app-icon-setting-label { display: none; }
+  .brand { gap: 4px; flex-wrap: wrap; }
+  .logo { font-size: 15px; letter-spacing: 0; }
+  .app-icon-setting { width: auto; min-height: 32px; padding: 4px 6px; }
+  .app-icon-setting > [aria-hidden="true"] { display: none; }
+  .app-icon-setting-label { display: inline; font-size: 11px; }
   .privacy-link { font-size: 10px; padding: 4px 2px; }
   .lang-switch { padding: 5px 6px; font-size: 10px; }
+}
+/* Very narrow screens keep all controls visible on a deliberate second row. */
+@media (max-width: 340px) {
+  .brand { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .brand > .logo { grid-column: 1 / -1; }
+  .brand > .app-icon-setting { margin-left: 0; }
 }
