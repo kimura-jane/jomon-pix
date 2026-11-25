@@ -42,6 +42,7 @@ export function BeautyPanel() {
   const beauty = { ...DEFAULT_BEAUTY, ...photo?.beauty };
 
   const [target, setTarget] = useState<'all' | number>('all');
+  const [section, setSection] = useState<'face' | 'makeup' | 'body'>('face');
   const [faceInfo, setFaceInfo] = useState<{ photoId: string; src: string; count: number } | null>(null);
   const [faceBusy, setFaceBusy] = useState(false);
   const [faceError, setFaceError] = useState('');
@@ -309,15 +310,12 @@ export function BeautyPanel() {
             </p>
           )}
 
-          {hasValue && status?.state === 'ready' && (
-            <div style={{
-              margin: '10px 0', padding: 10, borderRadius: 12,
-              background: '#fff4fb', border: '1px solid #f1c9e3',
-            }}>
+          <div className="beauty-compare-bar">
               <button
                 type="button"
                 className="chip"
                 aria-pressed={comparing}
+                disabled={!hasValue || status?.state !== 'ready'}
                 style={{
                   display: 'block', width: '100%', minHeight: 44,
                   touchAction: 'none', userSelect: 'none',
@@ -341,11 +339,14 @@ export function BeautyPanel() {
               >
                 {comparing ? '加工前を表示中' : '長押しで比較'}
               </button>
+            <div className="seg" style={{ margin: '5px 0 0' }}>
+              {(['face','makeup','body'] as const).map((id) => <button type="button" key={id}
+                className={section === id ? 'on' : ''} aria-pressed={section === id}
+                onClick={() => setSection(id)}>{id === 'face' ? '顔補正' : id === 'makeup' ? 'メイク' : '体型'}</button>)}
             </div>
-          )}
+          </div>
 
-
-          <section className="makeup-presets" aria-label="ワンタップメイク">
+          {section === 'makeup' && <section className="makeup-presets" aria-label="ワンタップメイク">
             <div className="makeup-presets-heading">
               <strong>ワンタップメイク</strong>
               <span>{target === 'all' ? '全員' : `左から${selectedIndex === null ? 1 : selectedIndex + 1}人目`}</span>
@@ -375,10 +376,10 @@ export function BeautyPanel() {
               style={{ marginTop: 9 }}
               disabled={photo.locked || faceBusy || count === 0}
               onClick={removeMakeup}>メイクを外す</button>
-          </section>
+          </section>}
 
-          <div style={{ display: 'grid', gap: 13, margin: '12px 0' }}>
-            {CONTROLS.map((control) => (
+          <div style={{ display: 'grid', gap: 8, margin: '8px 0' }}>
+            {CONTROLS.filter(({ key }) => section === 'body' ? key === 'legSlim' || key === 'legLength' : section === 'makeup' ? key === 'lip' || key === 'blush' || key === 'warmth' : !['legSlim','legLength','lip','blush'].includes(key)).map((control) => (
               <div key={control.key} style={{
                 padding: 10, background: '#ffffff',
                 border: '1px solid #ecdde8', borderRadius: 12,
