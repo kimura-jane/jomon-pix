@@ -262,6 +262,7 @@ function isCanvasElement(value: unknown): value is CanvasEl {
       return (
         typeof value.emoji === 'string' &&
         isFiniteNumber(value.size) && value.size > 0 &&
+        (value.outlineWidth === undefined || (isFiniteNumber(value.outlineWidth) && Number(value.outlineWidth) >= 0 && Number(value.outlineWidth) <= 30)) &&
         (value.src === undefined || isStickerSource(value.src)) &&
         (value.label === undefined || typeof value.label === 'string') &&
         (value.beautyGlassesFace === undefined || (Number.isInteger(value.beautyGlassesFace) && (value.beautyGlassesFace as number) >= 0 && (value.beautyGlassesFace as number) < 10)) &&
