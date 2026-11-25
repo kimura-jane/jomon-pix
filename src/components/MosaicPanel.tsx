@@ -13,6 +13,7 @@ type Point = { x: number; y: number };
 type Region = { start: Point; end: Point };
 type Stroke = { points: Point[]; size: number };
 type View = { width: number; height: number };
+type DraftSelection = { mode: Mode; region: Region | null; strokes: Stroke[] };
 
 const OPTIONS: { id: Mode; label: string }[] = [
   { id: 'rectangle', label: '範囲指定' },
@@ -161,6 +162,7 @@ function MosaicDialog({
   const [brushPercent, setBrushPercent] = useState(12);
   const [region, setRegion] = useState<Region | null>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [history, setHistory] = useState<DraftSelection[]>([]);
   const [view, setView] = useState<View>({ width: 0, height: 0 });
   const spaceRef = useRef<HTMLDivElement>(null);
   const pictureRef = useRef<HTMLDivElement>(null);
@@ -212,21 +214,30 @@ function MosaicDialog({
     };
   }, [source]);
 
-  // Draw actual effect samples from the selected photo, once per photo.
+  // Use one high-contrast sample for every style so even a white screenshot
+  // shows recognizable patterns. The live preview still uses the user's photo.
   useEffect(() => {
-    if (!source) return;
     try {
+      const sample = createCanvas(192, 128);
+      const ctx = context(sample);
+      const colors = ['#e64c86', '#ffd35b', '#207ca5', '#65c6a3', '#7048b6', '#f89b62'];
+      for (let y = 0; y < 128; y += 24) {
+        for (let x = 0; x < 192; x += 24) {
+          ctx.fillStyle = colors[(Math.floor(x / 24) + Math.floor(y / 24) * 2) % colors.length];
+          ctx.fillRect(x, y, 24, 24);
+        }
+      }
       const thumbs: Partial<Record<MosaicEffect, string>> = {};
       for (const option of MOSAIC_EFFECT_OPTIONS) {
-        const thumb = createCanvas(92, 64);
-        drawMosaicEffect(context(thumb), source, 92, 64, 11, option.id);
+        const thumb = createCanvas(192, 128);
+        drawMosaicEffect(context(thumb), sample, 192, 128, 30, option.id);
         thumbs[option.id] = thumb.toDataURL('image/png');
       }
       setEffectThumbnails(thumbs);
     } catch {
       setEffectThumbnails({});
     }
-  }, [source]);
+  }, []);
 
   // Show the actual selected-area effect before committing. Background-only
   // needs subject AI and therefore remains unchanged until Apply is pressed.
@@ -258,8 +269,45 @@ function MosaicDialog({
     setError('');
   };
 
+  const rememberSelection = () => {
+    setHistory((previous) => [...previous.slice(-49), { mode, region, strokes }]);
+  };
+
+  const undoSelection = () => {
+    if (working || drawingRef.current !== null || !history.length) return;
+    const previous = history[history.length - 1];
+    setMode(previous.mode);
+    setRegion(previous.region);
+    setStrokes(previous.strokes);
+    setHistory((old) => old.slice(0, -1));
+    setError('');
+  };
+
+  // The global project Undo must not run behind this uncommitted dialog.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (!event.shiftKey) undoSelection();
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.stopImmediatePropagation();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [history, working]);
+
   const changeMode = (next: Mode) => {
+    if (next === mode || drawingRef.current !== null) return;
+    rememberSelection();
     setMode(next);
+    reset();
+  };
+
+  const clearSelection = () => {
+    if (drawingRef.current !== null || (!region && !strokes.length)) return;
+    rememberSelection();
     reset();
   };
 
@@ -274,11 +322,12 @@ function MosaicDialog({
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (working || (mode !== 'rectangle' && mode !== 'brush') || !source) return;
+    if (working || drawingRef.current !== null || (mode !== 'rectangle' && mode !== 'brush') || !source) return;
     const p = getPoint(event.clientX, event.clientY);
     if (!p) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
+    rememberSelection();
     drawingRef.current = event.pointerId;
     if (mode === 'rectangle') {
       regionStartRef.current = p;
@@ -351,7 +400,10 @@ function MosaicDialog({
       }
 
       const result = pixelate(source, mode, effect, tileSize, region, strokes, foreground);
+      // Only the bitmap changes; position, size, rotation, locks and child layers remain intact.
+      state.endHistoryGroup();
       state.update(photo.id, { src: result });
+      window.dispatchEvent(new Event('jomon-pix:fit-canvas'));
       const saved = useAutosaveStatus.getState();
       if (saved.status === 'failed') {
         alert(uiMessage('加工は反映されましたが、自動保存できません。画像サイズや保存容量を確認してください。'));
@@ -370,19 +422,25 @@ function MosaicDialog({
       role="dialog"
       aria-modal="true"
       aria-label="モザイク加工"
-      style={{ zIndex: 100, padding: 10 }}
+      style={{ zIndex: 100, padding: 10, gridTemplateColumns: 'minmax(0, 1fr)' }}
     >
       <div
         className="modal"
         style={{
           maxWidth: 660,
+          minWidth: 0,
           maxHeight: 'calc(100dvh - 20px)',
           overflowY: 'auto',
           gap: 10,
         }}
       >
-        <h3>▦ モザイク加工</h3>
-        <div className="label" style={{ margin: '0 0 3px' }}>モザイクの種類</div>
+        <div className="mosaic-dialog-heading">
+          <h3>▦ モザイク加工</h3>
+          <button type="button" className="btn mosaic-undo" aria-label="戻す"
+            disabled={working || !history.length} onClick={undoSelection}>
+            ↶ <span>戻す</span>
+          </button>
+        </div>
         <div className="mosaic-styles" role="group" aria-label="モザイクの種類">
           {MOSAIC_EFFECT_OPTIONS.map((option) => (
             <button
@@ -485,7 +543,7 @@ function MosaicDialog({
                   <rect
                     width={source.naturalWidth}
                     height={source.naturalHeight}
-                    fill="rgba(255,79,163,0.13)"
+                    fill={previewSrc ? 'transparent' : 'rgba(255,79,163,0.13)'}
                   />
                 )}
                 {mode === 'rectangle' && region && (
@@ -494,7 +552,7 @@ function MosaicDialog({
                     y={Math.min(region.start.y, region.end.y)}
                     width={Math.abs(region.end.x - region.start.x)}
                     height={Math.abs(region.end.y - region.start.y)}
-                    fill="rgba(255,79,163,0.22)"
+                    fill={previewSrc ? 'transparent' : 'rgba(255,79,163,0.22)'}
                     stroke="#ff4fa3"
                     strokeWidth={Math.max(2, source.naturalWidth / 320)}
                     strokeDasharray="8 5"
@@ -507,14 +565,14 @@ function MosaicDialog({
                       cx={stroke.points[0].x}
                       cy={stroke.points[0].y}
                       r={stroke.size / 2}
-                      fill="rgba(255,79,163,0.45)"
+                      fill={previewSrc ? 'transparent' : 'rgba(255,79,163,0.45)'}
                     />
                   ) : (
                     <polyline
                       key={i}
                       points={stroke.points.map((p) => p.x + ',' + p.y).join(' ')}
                       fill="none"
-                      stroke="rgba(255,79,163,0.45)"
+                      stroke={previewSrc ? 'transparent' : 'rgba(255,79,163,0.45)'}
                       strokeWidth={stroke.size}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -560,8 +618,8 @@ function MosaicDialog({
           <button
             type="button"
             className="chip"
-            disabled={working}
-            onClick={reset}
+            disabled={working || (!region && !strokes.length)}
+            onClick={clearSelection}
           >
             指定した範囲をクリア
           </button>
