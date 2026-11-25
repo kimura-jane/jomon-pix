@@ -42,7 +42,8 @@ try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/', { waitUntil: 'networkidle' });
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/beauty-portrait.jpg');
-  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   const skin = page.getByRole('slider', { name: '美肌' });
   await skin.focus();
   await page.keyboard.press('End');

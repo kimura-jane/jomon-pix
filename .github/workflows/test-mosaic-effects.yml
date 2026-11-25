@@ -1,6 +1,14 @@
 name: Test JOMON PIX mosaic styles and Home navigation
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'package-lock.json'
   pull_request:
     paths:
       - 'src/lib/mosaicEffects.ts'
@@ -29,6 +37,7 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
       - name: Typecheck and production build
         run: npm run typecheck && npm run build
       - name: Verify mosaic output, undo, modes and localized UI
@@ -38,4 +47,7 @@ jobs:
             if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
             sleep 2
           done
-          JOMON_BROWSER=system-chrome node scripts/test_mosaic_effects.mjs
+          node scripts/test_mosaic_effects.mjs
+          JOMON_BROWSER=webkit node scripts/test_mosaic_effects.mjs
+          node scripts/test_eraser_portrait_layout.mjs
+          node scripts/test_hair_smart_erase.mjs

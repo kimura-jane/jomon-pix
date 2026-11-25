@@ -47,7 +47,8 @@ try {
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
     name: 'pose-model.png', mimeType: 'image/png', buffer: photo,
   });
-  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   // Autosave is asynchronous and IndexedDB may not have committed yet.
   let before = null;
   for (let attempt = 0; attempt < 160; attempt++) {
@@ -57,6 +58,7 @@ try {
   }
   assert.ok(before?.src?.startsWith('data:image/'), 'Original photo must be persisted');
 
+  await page.locator('.beauty-compare-bar').getByRole('button', {name:'体型',exact:true}).click();
   const slim = page.getByRole('slider', { name: '脚を細く' });
   const length = page.getByRole('slider', { name: '脚を長く' });
   assert.equal(await slim.count(), 1);

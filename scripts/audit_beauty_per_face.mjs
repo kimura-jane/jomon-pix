@@ -59,7 +59,8 @@ try {
     name: 'two-people.png', mimeType: 'image/png',
     buffer: Buffer.from(photo.split(',')[1], 'base64'),
   });
-  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   await page.getByRole('group', { name: 'ビューティーの加工対象' }).waitFor();
   await page.getByRole('status').filter({ hasText: '顔を2人認識しました' }).waitFor({ timeout: 45000 });
   assert.equal(await page.getByRole('button', { name: '全員', exact: true }).count(), 1);
@@ -84,7 +85,7 @@ try {
 
   // Sunglasses belong only to the dedicated category, not the Beauty panel.
   assert.equal(await page.getByText('サングラス装備', { exact: true }).count(), 0);
-  await page.locator('.bar button.tab').filter({ hasText: 'スタンプ' }).click();
+  await page.locator('.bottom-tools button.tab').filter({ hasText: 'スタンプ' }).click();
   await page.getByRole('button', { name: 'サングラス', exact: true }).click();
   await page.getByRole('group', { name: 'サングラスをつける顔を選ぶ' })
     .waitFor({ timeout: 45000 });
@@ -114,7 +115,8 @@ try {
   const removed = await waitState((state) => stickersFor(state, imageId).length === 1,
     'Remove glasses for face 2');
   assert.equal(stickersFor(removed, imageId)[0].beautyGlassesFace, 0);
-  await page.locator('.bar button.tab').filter({ hasText: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   await page.getByRole('button', { name: '左から2人目', exact: true }).click();
   await page.getByRole('button', { name: 'この顔の個別設定を解除' }).click();
   const reset = await waitState((state) => state.elements.some((el) =>
@@ -122,7 +124,8 @@ try {
   assert.equal(reset.elements.find((el) => el.id === imageId).beauty.smooth, 100);
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   await page.getByRole('button', { name: '左から2人目' }).waitFor({ timeout: 60000 });
   await page.getByRole('button', { name: '画像保存', exact: true }).click();
   await page.getByRole('heading', { name: 'できあがり！' }).waitFor({ timeout: 45000 });

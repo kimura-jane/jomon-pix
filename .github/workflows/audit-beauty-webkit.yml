@@ -7,12 +7,16 @@ on:
       - scripts/audit_beauty_webkit.mjs
       - .github/workflows/audit-beauty-webkit.yml
       - src/lib/beautyProcessor.ts
+      - src/components/BeautyPanel.tsx
+      - src/components/Panel.tsx
       - src/components/useBeautyPreview.ts
   pull_request:
     paths:
       - scripts/audit_beauty_webkit.mjs
       - .github/workflows/audit-beauty-webkit.yml
       - src/lib/beautyProcessor.ts
+      - src/components/BeautyPanel.tsx
+      - src/components/Panel.tsx
       - src/components/useBeautyPreview.ts
   workflow_dispatch:
 

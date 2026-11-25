@@ -70,7 +70,7 @@ try {
     .find((item) => item.type === 'image').src;
 
   // 9 styles + 8 colors; choosing a new style REPLACES the same sticker.
-  await page.locator('.bar button.tab').filter({ hasText: 'スタンプ' }).click();
+  await page.locator('.bottom-tools button.tab').filter({ hasText: 'スタンプ' }).click();
   await page.getByRole('button', { name: '髪型', exact: true }).click();
   const controlLabels = (await page.locator('.panel .label').allTextContents())
     .map((label) => label.trim());
@@ -110,6 +110,7 @@ try {
   assert.equal(firstHair.parentImageId, withHair.elements.find((item) => item.type === 'image').id);
   assert.ok(firstHair.src.endsWith('/stickers/hair/v2/bob-dark-brown.webp'), 'Realistic transparent WebP is bundled');
 
+  await page.getByRole('button',{name:'完了',exact:true}).click();
   await page.getByRole('button', { name: 'ピンク', exact: true }).click();
   const pinkButton = page.getByRole('group', { name: '髪色を選択' })
     .getByRole('button', { name: 'ピンク' });
@@ -146,6 +147,7 @@ try {
     assert.equal(allHair[0].id, firstHair.id, 'Replacement keeps the editable sticker ID');
     assert.equal(allHair[0].parentImageId, firstHair.parentImageId,
       'Replacement keeps the original photo attachment');
+    await page.getByRole('button',{name:'完了',exact:true}).click();
   }
   await page.locator('.bar [aria-label="戻す"]').click();
   await waitSaved((state) => state.elements.some((item) =>
@@ -156,7 +158,8 @@ try {
     item.type === 'sticker' && item.label.startsWith('髪型:リーゼント（')));
 
   // Actual photo-fill, with brush and rectangle selection in touch UI.
-  await page.locator('.bar button.tab').filter({ hasText: 'スマート消去' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'スマート消去'}).click();
   await page.getByRole('button', { name: '不要なものを消す' }).click();
   const dialog = page.getByRole('dialog', { name: 'スマート消去' });
   await dialog.waitFor();

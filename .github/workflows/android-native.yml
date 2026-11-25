@@ -1,4 +1,4 @@
-name: JOMON PIX Android 1.1.1 native offline (manual)
+name: JOMON PIX Android native offline (manual)
 
 on:
   workflow_dispatch:
@@ -42,6 +42,16 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+
+      - name: Read and validate release version from package.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_NAME="$(node -p "require('./package.json').version")"
+          [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$VERSION_NAME" = "$(node -p "require('./package-lock.json').version")"
+          test "$VERSION_NAME" = "$(node -p "require('./package-lock.json').packages[''].version")"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
 
       - name: Set up Java 21 for Capacitor 7
         uses: actions/setup-java@v4
@@ -139,7 +149,7 @@ jobs:
           "$AAPT" dump badging android/app/build/outputs/apk/release/app-release.apk > /tmp/jomon-android-badging.txt
           grep -F "sdkVersion:'24'" /tmp/jomon-android-badging.txt
           grep -F "targetSdkVersion:'36'" /tmp/jomon-android-badging.txt
-          grep -F "package: name='com.jomonpix.app' versionCode='$VERSION_CODE' versionName='1.1.1'" /tmp/jomon-android-badging.txt
+          grep -F "package: name='com.jomonpix.app' versionCode='$VERSION_CODE' versionName='$VERSION_NAME'" /tmp/jomon-android-badging.txt
           unzip -t android/app/build/outputs/bundle/release/app-release.aab >/dev/null
           echo "Android Play SDK, package name and native release bundle validated."
 
@@ -152,7 +162,7 @@ jobs:
       - name: Upload signed AAB for Google Play (no automatic publication)
         uses: actions/upload-artifact@v4
         with:
-          name: jomon-pix-android-AAB-1.1.1-code-${{ inputs.version_code }}
+          name: jomon-pix-android-AAB-${{ env.VERSION_NAME }}-code-${{ inputs.version_code }}
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 7
@@ -160,7 +170,7 @@ jobs:
       - name: Upload signed APK for optional device testing
         uses: actions/upload-artifact@v4
         with:
-          name: jomon-pix-android-APK-1.1.1-code-${{ inputs.version_code }}
+          name: jomon-pix-android-APK-${{ env.VERSION_NAME }}-code-${{ inputs.version_code }}
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 7

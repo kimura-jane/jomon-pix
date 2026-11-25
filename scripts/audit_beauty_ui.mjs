@@ -54,7 +54,8 @@ try {
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/beauty-portrait.jpg');
   await page.waitForTimeout(450);
-  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   await page.getByRole('slider', { name: '美肌' }).waitFor();
   report.checks.push('Beauty panel available with photo');
   await page.waitForTimeout(400);
@@ -154,6 +155,7 @@ try {
   await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 45000 });
   report.checks.push('Eye enlargement preview');
 
+  await page.locator('.beauty-compare-bar').getByRole('button', {name:'メイク',exact:true}).click();
   await page.getByRole('slider', { name: 'リップ' }).focus();
   await page.keyboard.press('End');
   await page.locator('[data-beauty-state="ready"]').waitFor({ timeout: 45000 });
@@ -195,14 +197,15 @@ try {
     ctx.drawImage(portrait, portrait.naturalWidth, 0);
     return canvas.toDataURL('image/png');
   }, portrait64);
-  await page.locator('button.tab').first().click();
+  await page.locator('.bar button.tab').filter({hasText:'ホーム'}).click();
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
     name: 'two-person-portrait.png',
     mimeType: 'image/png',
     buffer: Buffer.from(twoFaceDataUrl.split(',')[1], 'base64'),
   });
   await page.waitForTimeout(350);
-  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   await page.getByRole('slider', { name: '小顔' }).focus();
   await page.keyboard.press('End');
   await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })
@@ -229,13 +232,14 @@ try {
     ctx.drawImage(portrait, 790, 130, width, height);
     return canvas.toDataURL('image/png');
   }, portrait64);
-  await page.locator('button.tab').first().click();
+  await page.locator('.bar button.tab').filter({hasText:'ホーム'}).click();
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
     name: 'small-faces-in-wide-photo.png',
     mimeType: 'image/png',
     buffer: Buffer.from(groupImage.split(',')[1], 'base64'),
   });
-  await page.getByRole('button', { name: 'ビューティー' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
   await page.getByRole('slider', { name: '美肌' }).focus();
   await page.keyboard.press('End');
   await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })

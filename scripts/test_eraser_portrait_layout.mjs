@@ -98,7 +98,8 @@ try {
     mimeType: 'image/png',
     buffer: Buffer.from(vertical.split(',')[1], 'base64'),
   });
-  await page.locator('.bar button.tab').filter({ hasText: 'スマート消去' }).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'スマート消去'}).click();
   await page.getByRole('button', { name: '不要なものを消す' }).click();
   const dialog = page.getByRole('dialog', { name: 'スマート消去' });
   await dialog.getByRole('img', { name: '消去する写真' }).waitFor();
@@ -149,6 +150,18 @@ try {
   await dialog.getByRole('button', { name: '選択をクリア' }).click();
   assert.equal(await dialog.locator('svg rect').count(), 0);
   assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).isDisabled(), true);
+  await dialog.getByRole('button', {name:'拡大',exact:true}).click();
+  const enlarged = await photo.boundingBox();
+  assert(enlarged && enlarged.width > portrait.img.width*1.4, 'Eraser zoom must increase displayed size');
+  const frameBox=await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
+  assert(frameBox);
+  await page.mouse.move(frameBox.x+frameBox.width/2-12,frameBox.y+frameBox.height/2-12);
+  await page.mouse.down();
+  await page.mouse.move(frameBox.x+frameBox.width/2+12,frameBox.y+frameBox.height/2+12,{steps:5});
+  await page.mouse.up();
+  await dialog.locator('svg rect').waitFor();
+  await dialog.getByRole('button',{name:'戻す',exact:true}).click();
+  assert.equal(await dialog.locator('svg rect').count(),0,'Undo removes zoomed eraser mask');
   assert.deepEqual(errors, [], 'No uncaught errors during portrait resizing and tool use');
   console.log('Portrait Magic Eraser image fit, compact labels and mask coordinates: PASS');
 } finally {

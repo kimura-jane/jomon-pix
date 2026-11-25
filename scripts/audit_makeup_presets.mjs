@@ -40,7 +40,9 @@ try {
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/beauty-portrait.jpg');
   const source = image(await waitWork((s) => !!image(s), 'portrait uploaded')).src;
-  await page.getByRole('button', { name: 'ビューティー' }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
+  await page.locator('.beauty-compare-bar').getByRole('button', {name:'メイク',exact:true}).click();
   await page.getByRole('status').filter({ hasText: '顔を1人認識しました' })
     .waitFor({ timeout: 60000 });
   assert.equal(await menu.locator('button').count(), 6);
@@ -98,6 +100,9 @@ try {
     ['リップ', 'lip'], ['チーク', 'blush'],
   ];
   for (const [label] of fields) {
+    await page.locator('.beauty-compare-bar').getByRole('button', {
+      name: ['リップ','チーク','血色'].includes(label) ? 'メイク' : '顔補正', exact:true
+    }).click();
     await page.getByRole('slider', { name: label, exact: true }).focus();
     await page.keyboard.press('Home');
   }
@@ -125,9 +130,11 @@ try {
   await waitWork((s) => image(s)?.beauty?.smooth === 18 && image(s)?.beauty?.slim === 6, 'one-step undo');
   assert.equal(await menu.getByRole('button', { name: 'ナチュラル' }).getAttribute('aria-pressed'), 'true');
 
+  await page.locator('.beauty-compare-bar').getByRole('button', {name:'顔補正',exact:true}).click();
   await page.getByRole('slider', { name: '美肌' }).focus();
   await page.keyboard.press('End');
   await waitWork((s) => image(s)?.beauty?.smooth === 100, 'manual fine tuning');
+  await page.locator('.beauty-compare-bar').getByRole('button', {name:'メイク',exact:true}).click();
   assert.equal(await menu.getByRole('button', { name: 'ナチュラル' }).getAttribute('aria-pressed'), 'true',
     'Fine tuning must retain the chosen actual makeup rendering');
   assert.equal(image(await readWork()).makeupStyle, 'natural');
@@ -153,7 +160,9 @@ try {
     buffer: Buffer.from(two.split(',')[1], 'base64'),
   });
   await waitWork((s) => s.elements.filter((e) => e.type === 'image').length === 2, 'second photo saved');
-  await page.getByRole('button', { name: 'ビューティー' }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'ビューティー'}).click();
+  await page.locator('.beauty-compare-bar').getByRole('button', {name:'メイク',exact:true}).click();
   await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })
     .waitFor({ timeout: 60000 });
   await page.getByRole('button', { name: '左から2人目' }).click();

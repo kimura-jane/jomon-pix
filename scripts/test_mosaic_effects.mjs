@@ -44,7 +44,7 @@ try {
     buffer: Buffer.from(photo.split(',')[1], 'base64'),
   });
 
-  await page.locator('.tabs .tab').filter({ hasText: 'モザイク' }).click();
+  await page.locator('.bottom-tools .tab').filter({ hasText: 'モザイク' }).click();
   const modes = page.locator('.panel .seg button');
   for (const label of ['範囲指定', 'ブラシ', '写真全体', '背景だけ']) {
     assert.equal(await modes.filter({ hasText: label }).count(), 1, label + ' range mode remains');
@@ -62,7 +62,27 @@ try {
   const distinct = new Set();
   const image = dialog.locator('img[alt="モザイク対象の写真"]');
   await dialog.getByRole('button', { name: '範囲指定' }).click();
+  await image.waitFor();
+  await image.evaluate(el => el.decode());
   const storedOriginal = await image.getAttribute('src');
+  const originalBox = await image.boundingBox();
+  await dialog.getByRole('button',{name:'拡大',exact:true}).click();
+  const zoomedBox = await image.boundingBox();
+  assert(zoomedBox && originalBox && zoomedBox.width > originalBox.width * 1.4, 'Mosaic zoom enlarges the image');
+  // Draw a small mask in the visible part of the zoomed image, then undo it.
+  const visible = await dialog.locator('img[alt="モザイク対象の写真"]').evaluate(el=>{
+    const r=el.getBoundingClientRect(), frame=el.parentElement.parentElement.getBoundingClientRect();
+    return {x:Math.max(r.x,frame.x),y:Math.max(r.y,frame.y),
+      right:Math.min(r.right,frame.right),bottom:Math.min(r.bottom,frame.bottom)};
+  });
+  await page.mouse.move(visible.x+15,visible.y+15);
+  await page.mouse.down();
+  await page.mouse.move(visible.x+45,visible.y+45,{steps:5});
+  await page.mouse.up();
+  await dialog.locator('svg rect[stroke-dasharray]').waitFor();
+  await dialog.getByRole('button',{name:'戻す',exact:true}).click();
+  assert.equal(await dialog.locator('svg rect[stroke-dasharray]').count(),0,'Undo removes the zoomed mask');
+  await dialog.getByRole('button',{name:'全体表示',exact:true}).click();
   await dialog.getByRole('button', { name: '写真全体' }).click();
   let oldPreview = null;
 

@@ -34,8 +34,13 @@ try {
         overflow: d.right > document.documentElement.clientWidth,
       };
     });
-    assert.ok(layout.height < 44, 'Header must fit on one row at ' + width + 'px');
-    assert.ok(layout.centered < 3, 'Header controls must stay aligned at ' + width + 'px');
+    // At <=340px the app intentionally uses a second row to avoid overflow.
+    assert.ok(layout.height < (width <= 340 ? 80 : 44), 'Header must remain compact at ' + width + 'px');
+    if (width > 340) assert.ok(layout.centered < 3, 'Header controls must stay aligned at ' + width + 'px');
+    for (const selector of ['.logo','.privacy-link','.lang-switch']) {
+      const r=await page.locator(selector).boundingBox();
+      assert(r && r.x >= 0 && r.x+r.width <= width+1, selector+' must stay visible');
+    }
     assert.equal(layout.overflow, false, 'Language control must remain on screen at ' + width + 'px');
     assert.equal(await page.locator('.saved').count(), 0, 'Routine save badge must be hidden');
   }
@@ -46,6 +51,13 @@ try {
   await page.getByText('Privacy', { exact: true }).first().waitFor();
   assert.equal(await page.locator('html').getAttribute('lang'), 'en');
   assert.equal(await page.locator('.save').innerText(), 'Save Image');
+  for (const label of ['Text','Draw','Stickers','Mosaic','Edit']) {
+    assert.equal(await page.locator('.bottom-tools button').filter({hasText:label}).count(),1,'Translated tool '+label);
+  }
+  await page.locator('.bottom-tools button').filter({hasText:'Edit'}).click();
+  for(const label of ['Smart Erase','Beauty','Frames','Layers']) {
+    assert.equal(await page.locator('.extra-tool-grid button').filter({hasText:label}).count(),1,'Translated extra tool '+label);
+  }
   assert.equal(await page.evaluate(() => localStorage.getItem('jomon-pix-ui-language')), 'en');
 
   // The in-app privacy policy follows the language choice.
