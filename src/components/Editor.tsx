@@ -184,7 +184,9 @@ function FloatingLayers({
   elements: CanvasEl[];
   selectedId: string | null;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const reorder = useRef<{ pointerId: number; id: string } | null>(null);
+  const [dropId, setDropId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     id: number; clientX: number; clientY: number; x: number; y: number;
@@ -333,6 +335,7 @@ function FloatingLayers({
     state.select(el.id);
   };
 
+  const dropTarget = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-layer-row]')?.dataset.layerRow ?? null;
   if (!ordered.length) return null;
 
   return (
@@ -344,7 +347,7 @@ function FloatingLayers({
         left: position?.x,
         right: position ? undefined : 8,
         zIndex: 8,
-        width: 88,
+        width: open ? 104 : 46,
         maxHeight: 'calc(100% - 72px)',
         display: 'flex',
         flexDirection: 'column',
@@ -358,7 +361,9 @@ function FloatingLayers({
         pointerEvents: 'auto',
       }}
     >
-      <div style={{ display: 'flex', gap: 3, minHeight: 44 }}>
+      <div style={{ display: 'flex', gap: 3, minHeight: 36 }}>
+        {!open ? <button type="button" aria-label="レイヤー一覧を開く" aria-expanded={false}
+          onClick={() => setOpen(true)} style={{ width: 36, height: 36, border: 0, borderRadius: 9, background: '#fff0f7', color: '#c13781', fontSize: 22 }}>▱</button> : <>
         <button
           type="button"
           aria-label="重なり順パネルを移動"
@@ -396,7 +401,7 @@ function FloatingLayers({
           aria-label={open ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く'}
           aria-expanded={open}
           style={{
-            width: 23,
+            width: 32,
             flexShrink: 0,
             border: 0,
             borderRadius: 9,
@@ -410,6 +415,7 @@ function FloatingLayers({
         >
           {open ? '▴' : '▾'}
         </button>
+        </>}
       </div>
 
       {open && (
@@ -436,10 +442,10 @@ function FloatingLayers({
                 ? `${name}${index + 1}は編集ロック中`
                 : `${name}${index + 1}の位置とサイズを${fixed ? '解除' : '固定'}`;
               return (
-                <div key={el.id} role="listitem" style={{
+                <div key={el.id} role="listitem" data-layer-row={el.id} style={{
                   position: 'relative',
                   width: '100%',
-                  border: active ? '2px solid #ff4fa3' : '2px solid transparent',
+                  border: active || dropId === el.id ? '2px solid #ff4fa3' : '2px solid transparent',
                   borderRadius: 12,
                   background: active ? '#fff0f7' : 'transparent',
                   opacity: el.hidden ? 0.5 : 1,
@@ -473,6 +479,33 @@ function FloatingLayers({
                       {index + 1}. {name}
                     </span>
                   </button>
+                  <button type="button" aria-label={name + 'の重なり順をドラッグ'}
+                    disabled={!!el.locked}
+                    onPointerDown={(event) => {
+                      if (event.pointerType === 'mouse' && event.button !== 0) return;
+                      event.stopPropagation(); event.preventDefault();
+                      reorder.current = { pointerId: event.pointerId, id: el.id };
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      setDropId(el.id);
+                    }}
+                    onPointerMove={(event) => {
+                      if (reorder.current?.pointerId !== event.pointerId) return;
+                      event.preventDefault();
+                      setDropId(dropTarget(event.clientX, event.clientY));
+                    }}
+                    onPointerUp={(event) => {
+                      const active = reorder.current;
+                      if (!active || active.pointerId !== event.pointerId) return;
+                      const target = dropTarget(event.clientX, event.clientY);
+                      reorder.current = null; setDropId(null);
+                      if (target) useEditor.getState().reorderLayer(active.id, target);
+                      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                    }}
+                    onPointerCancel={() => { reorder.current = null; setDropId(null); }}
+                    onLostPointerCapture={() => { reorder.current = null; setDropId(null); }}
+                    style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 44,
+                      border: 0, borderRadius: 6, background: '#fff5fa', color: '#ab4382', fontSize: 20,
+                      touchAction: 'none', cursor: 'grab' }}>⠿</button>
                   <button
                     type="button"
                     aria-label={lockLabel}
@@ -486,7 +519,7 @@ function FloatingLayers({
                     }}
                     style={{
                       position: 'absolute', right: 2, top: 2,
-                      width: 29, height: 29, padding: 0,
+                      width: 32, height: 36, padding: 0,
                       display: 'grid', placeItems: 'center',
                       border: fixed || el.locked ? '1px solid #ce3b8e' : '1px solid #e8d4e0',
                       borderRadius: 9,
@@ -531,7 +564,7 @@ function FloatingLayers({
                   flex: 1,
                   border: 0,
                   borderRadius: 7,
-                  minHeight: 28,
+                  minHeight: 40,
                   background: '#f7eef4',
                   fontSize: 17,
                   opacity: !selected || selected.locked ? 0.35 : 1,
