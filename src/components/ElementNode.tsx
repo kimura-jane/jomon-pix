@@ -1,11 +1,12 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Konva from 'konva';
 import {
   Image as KImage,
   Group,
   Text,
   Line,
+  Shape,
 } from 'react-konva';
 import useImage from 'use-image';
 import { useEditor } from '../store';
@@ -296,15 +297,35 @@ function StickerImageNode({
 }) {
   const [img] = useImage(src, 'anonymous');
   const common = useCommon(el);
+  const width = Math.max(0, Math.min(30, Number(el.outlineWidth) || 0));
+  const pad = width + 1;
+  const extent = el.size + pad * 2;
+  const silhouette = useMemo(() => {
+    if (!img || !width || !Number.isFinite(extent) || extent <= 0) return null;
+    const ratio = Math.min(2, 512 / extent);
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = Math.max(1, Math.ceil(extent * ratio));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.scale(ratio, ratio);
+    ctx.drawImage(img, pad, pad, el.size, el.size);
+    // Use the source alpha to create a white silhouette, including transparent PNG/WebP.
+    for (const fraction of [0.5, 1]) for (let i = 0; i < 24; i++) {
+      const a = i * Math.PI * 2 / 24;
+      ctx.drawImage(img, pad + width * fraction * Math.cos(a), pad + width * fraction * Math.sin(a), el.size, el.size);
+    }
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, extent + 1, extent + 1);
+    return canvas;
+  }, [img, width, el.size]);
 
-  return (
-    <KImage
-      image={img}
-      width={el.size}
-      height={el.size}
-      {...common}
-    />
-  );
+  if (width > 0) return <Group {...common}>
+    {silhouette && <Shape x={-pad} y={-pad} width={extent} height={extent} listening={false}
+      sceneFunc={(context) => { context.drawImage(silhouette, 0, 0, extent, extent); }} />}
+    <KImage image={img} width={el.size} height={el.size} />
+  </Group>;
+  return <KImage image={img} width={el.size} height={el.size} {...common} />;
 }
 
 export function ElementNode({
@@ -363,6 +384,10 @@ export function ElementNode({
       <Text
         text={el.emoji}
         fontSize={el.size}
+        stroke={el.outlineWidth ? '#ffffff' : undefined}
+        strokeWidth={Math.max(0, Math.min(30, Number(el.outlineWidth) || 0)) * 2}
+        fillAfterStrokeEnabled
+        lineJoin="round"
         {...common}
       />
     );
