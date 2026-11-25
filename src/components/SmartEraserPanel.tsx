@@ -322,7 +322,7 @@ function SelectionDialog({
   return createPortal(
     <div className="modal-bg" role="dialog" aria-modal="true"
       aria-label="スマート消去" style={{ zIndex: 100, padding: 10 }}>
-      <div className="modal" style={{
+      <div className="modal smart-eraser-dialog" style={{
         maxWidth: 650, maxHeight: 'calc(100dvh - 20px)',
         overflowY: 'auto', overscrollBehavior: 'contain', gap: 8,
       }}>

@@ -1,19 +1,22 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { transform } from 'esbuild';
+import { build } from 'esbuild';
 
 // Exercise the actual pure production face ordering function. No AI inference
 // is mocked into the editor; browser integration tests cover real MediaPipe.
 const source = fs.readFileSync('src/lib/beautyProcessor.ts', 'utf8');
-// The face ordering unit runs in a data: URL; it does not execute pose AI.
-// Remove only this import because relative imports cannot resolve in data: URLs.
-const pureFaceSource = source.replace(
-  "import { renderLegBeauty } from './legProcessor';", '',
-);
-assert.notEqual(pureFaceSource, source, 'Expected the leg module import');
-const compiled = await transform(pureFaceSource, { loader: 'ts', format: 'esm' });
+// Bundle real production imports, keeping the actual canonical indexer.
+const compiled = await build({
+  stdin: {
+    contents: "export { indexDetectedFaces, MAX_FACE_TARGETS } from './src/lib/beautyProcessor.ts';",
+    resolveDir: process.cwd(), loader: 'ts',
+  },
+  bundle: true, write: false, format: 'esm', platform: 'node',
+  external: ['@mediapipe/tasks-vision'],
+  treeShaking: true, logLevel: 'silent',
+});
 const moduleUrl = 'data:text/javascript;base64,' +
-  Buffer.from(compiled.code, 'utf8').toString('base64');
+  Buffer.from(compiled.outputFiles[0].text, 'utf8').toString('base64');
 const { indexDetectedFaces, MAX_FACE_TARGETS } = await import(moduleUrl);
 assert.equal(MAX_FACE_TARGETS, 10);
 

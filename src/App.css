@@ -285,9 +285,9 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 .icon-picker-notice, .icon-picker-error, .icon-picker-success { font-size: 12px; line-height: 1.55; margin: 0; }
 .icon-picker-error { color: #a02131; }
 .icon-picker-success { color: #27663e; }
-@media (max-width: 390px) {
-  .brand { gap: 4px; flex-wrap: wrap; }
-  .logo { font-size: 15px; letter-spacing: 0; }
+@media (max-width: 440px) {
+  .brand { gap: 4px; flex-wrap: nowrap; }
+  .logo { font-size: clamp(12px, 3.7vw, 15px); letter-spacing: 0; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .app-icon-setting { width: auto; min-height: 32px; padding: 4px 6px; }
   .app-icon-setting > [aria-hidden="true"] { display: none; }
   .app-icon-setting-label { display: inline; font-size: 11px; }
@@ -299,6 +299,8 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
   .brand { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
   .brand > .logo { grid-column: 1 / -1; }
   .brand > .app-icon-setting { margin-left: 0; }
+  .brand > .logo { font-size: 15px; overflow: visible; }
+  .brand > .privacy-link, .brand > .lang-switch { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 }
 
 /* Editing workspace: stable toolbar, resizable controls and bottom navigation. */
@@ -352,3 +354,7 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
   .project-file-btn { padding: 6px; }
   .bottom-tools .tab { font-size: 10px; }
 }
+
+/* Keep the image origin fixed when mask/Undo status or action labels change. */
+.smart-eraser-dialog { height: min(660px, calc(100dvh - 20px)); scrollbar-gutter: stable; }
+.smart-eraser-dialog > * { flex-shrink: 0; }

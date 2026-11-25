@@ -37,9 +37,9 @@ try {
     // At <=340px the app intentionally uses a second row to avoid overflow.
     assert.ok(layout.height < (width <= 340 ? 80 : 44), 'Header must remain compact at ' + width + 'px');
     if (width > 340) assert.ok(layout.centered < 3, 'Header controls must stay aligned at ' + width + 'px');
-    for (const selector of ['.logo','.privacy-link','.lang-switch']) {
+    for (const selector of ['.logo','.app-icon-setting','.privacy-link','.lang-switch']) {
       const r=await page.locator(selector).boundingBox();
-      assert(r && r.x >= 0 && r.x+r.width <= width+1, selector+' must stay visible');
+      assert(r && r.x >= 0 && r.x+r.width <= width+1, selector+' must stay visible at '+width+'px: '+JSON.stringify(r));
     }
     assert.equal(layout.overflow, false, 'Language control must remain on screen at ' + width + 'px');
     assert.equal(await page.locator('.saved').count(), 0, 'Routine save badge must be hidden');
