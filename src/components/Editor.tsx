@@ -39,14 +39,14 @@ function pointToSegmentDistance(
   return Math.hypot(p.x - (ax + dx * t), p.y - (ay + dy * t));
 }
 
-function touchesStroke(p: Point, stroke: ImageStroke): boolean {
+function touchesStroke(p: Point, stroke: ImageStroke, tolerance: number): boolean {
   const points = stroke.points;
   if (points.length < 2) return false;
 
   const realWidth = stroke.width *
     (stroke.penStyle === 'marker' ? 3 :
       stroke.penStyle === 'sparkle' ? 1.4 : 1);
-  const radius = realWidth / 2 + 9;
+  const radius = realWidth / 2 + tolerance;
   for (let i = 2; i < points.length; i += 2) {
     if (pointToSegmentDistance(
       p,
@@ -617,6 +617,15 @@ export function Editor() {
   const sRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const erasing = useRef(false);
+  const erasedImage = useRef<string | null>(null);
+  const [guides, setGuides] = useState<{ x?: number; y?: number }>({});
+  useEffect(() => {
+    const alignment = (event: Event) => setGuides((event as CustomEvent<{ x?: number; y?: number }>).detail ?? {});
+    const clear = () => setGuides({});
+    window.addEventListener('jomon-pix:alignment', alignment);
+    window.addEventListener('blur', clear);
+    return () => { window.removeEventListener('jomon-pix:alignment', alignment); window.removeEventListener('blur', clear); };
+  }, []);
   const gesture = useRef<Gesture | null>(null);
 
   const [scale, setScale] = useState(0.4);
@@ -794,7 +803,10 @@ export function Editor() {
     };
 
     setDraft(null);
+    setGuides({});
     erasing.current = false;
+    useEditor.getState().endHistoryGroup();
+    erasedImage.current = null;
   };
 
   // 2本指で拡大縮小・移動
@@ -884,8 +896,15 @@ export function Editor() {
     if (target) {
       const { image, point } = target;
       const drawings = image.drawings ?? [];
+      const nodeScale = sRef.current?.findOne('#' + image.id)?.getAbsoluteScale();
+      const screenScale = Math.min(Math.abs(nodeScale?.x ?? scale), Math.abs(nodeScale?.y ?? scale)) * zoom;
+      const tolerance = Math.max(1, Math.min(24, 5 / Math.max(0.01, screenScale)));
       for (let i = drawings.length - 1; i >= 0; i--) {
-        if (touchesStroke(point, drawings[i])) {
+        if (touchesStroke(point, drawings[i], tolerance)) {
+          if (erasedImage.current !== image.id) {
+            useEditor.getState().beginHistoryGroup(image.id);
+            erasedImage.current = image.id;
+          }
           useEditor.getState().update(image.id, {
             drawings: drawings.filter((_, index) => index !== i),
           });
@@ -936,7 +955,8 @@ export function Editor() {
       });
     } else if (tool === 'eraser') {
       erasing.current = true;
-      eraseAt();
+      erasedImage.current = null;
+      // A second finger may be about to start a pinch. Erase on move/up, not touch-down.
     } else if (
       e.target === stage ||
       e.target.name() === 'bg'
@@ -975,7 +995,10 @@ export function Editor() {
   };
 
   const up = () => {
+    if (erasing.current && !gesture.current && !erasedImage.current) eraseAt();
     erasing.current = false;
+    if (erasedImage.current) useEditor.getState().endHistoryGroup();
+    erasedImage.current = null;
     if (gesture.current) {
       setDraft(null);
       return;
@@ -1057,15 +1080,18 @@ export function Editor() {
   const onTouchCancel = () => {
     gesture.current = null;
     erasing.current = false;
+    if (erasedImage.current) useEditor.getState().endHistoryGroup();
+    erasedImage.current = null;
     setDraft(null);
+    setGuides({});
   };
 
   const displayWidth = canvasWidth * scale;
   const displayHeight = canvasHeight * scale;
 
   const zoomButtonStyle = {
-    width: 34,
-    height: 34,
+    width: 42,
+    height: 42,
     padding: 0,
     border: '1px solid #f2d7e8',
     borderRadius: 11,
@@ -1185,6 +1211,12 @@ export function Editor() {
             />
           </Layer>
         </Stage>
+        {(guides.x !== undefined || guides.y !== undefined) && <svg aria-hidden="true"
+          viewBox={'0 0 ' + canvasWidth + ' ' + canvasHeight} preserveAspectRatio="none"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+          {guides.x !== undefined && <line x1={guides.x} y1={0} x2={guides.x} y2={canvasHeight} stroke="#ff4fa3" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />}
+          {guides.y !== undefined && <line x1={0} y1={guides.y} x2={canvasWidth} y2={guides.y} stroke="#ff4fa3" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />}
+        </svg>}
       </div>
 
       {tool === 'select' && (
