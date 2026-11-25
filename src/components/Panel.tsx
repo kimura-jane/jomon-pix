@@ -27,6 +27,7 @@ import { removeBg } from '../lib/removeBg';
 import { PhotoCropModal } from './PhotoCropModal';
 import { CanvasCropModal } from './CanvasCropModal';
 import { HistorySlider } from './HistorySlider';
+import { stageRef } from '../lib/stageRef';
 import { MosaicPanel } from './MosaicPanel';
 import { BeautyPanel } from './BeautyPanel';
 import { SmartEraserPanel } from './SmartEraserPanel';
@@ -48,6 +49,22 @@ import type {
   SpeechBubbleStyle,
   Tab,
 } from '../types';
+
+// Rotate around the visible element center, not the top-left transform origin.
+function rotateElement(el: CanvasEl, angle: number) {
+  if (el.locked || el.transformLocked || el.type === 'line') return;
+  const node = stageRef.current?.findOne('#' + el.id);
+  if (!node) return;
+  const bounds = node.getClientRect({ relativeTo: node, skipShadow: true });
+  const cx = (bounds.x + bounds.width / 2) * el.scaleX;
+  const cy = (bounds.y + bounds.height / 2) * el.scaleY;
+  const a = el.rotation * Math.PI / 180, b = angle * Math.PI / 180;
+  useEditor.getState().update(el.id, {
+    rotation: angle,
+    x: el.x + cx * (Math.cos(a) - Math.cos(b)) - cy * (Math.sin(a) - Math.sin(b)),
+    y: el.y + cx * (Math.sin(a) - Math.sin(b)) + cy * (Math.cos(a) - Math.cos(b)),
+  });
+}
 
 const COLORS = [
   '#ff4fa3', '#ff5e5e', '#ffb84d',
@@ -792,12 +809,12 @@ function PenTab() {
 
   return (
     <>
-      <div className="label">ペンを描く写真</div>
+      {photos.length > 1 && <div className="label">ペンを描く写真</div>}
       {photos.length === 0 ? (
         <p className="hint-s">
           先に写真を追加してください。
         </p>
-      ) : (
+      ) : photos.length > 1 ? (
         <>
           <div
             className="row"
@@ -848,7 +865,7 @@ function PenTab() {
             ))}
           </div>
         </>
-      )}
+      ) : null}
       <Seg
         items={['ペン', '消しゴム']}
         value={
@@ -867,41 +884,11 @@ function PenTab() {
 
       {tool !== 'eraser' && (
         <>
-          {(
-            [
-              'まじめ',
-              'かわいい',
-            ] as const
-          ).map((group) => (
-            <div key={group}>
-              <div className="label">
-                {group}
-              </div>
-
-              <div className="row">
-                {PENS.filter(
-                  (p) =>
-                    p.group === group,
-                ).map((p) => (
-                  <button
-                    key={p.style}
-                    className={`chip ${
-                      pen.style === p.style
-                        ? 'on'
-                        : ''
-                    }`}
-                    onClick={() =>
-                      setPen({
-                        style: p.style,
-                      })
-                    }
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="pen-style-list">
+            {PENS.map((p) => <button type="button" key={p.style}
+              className={'chip ' + (pen.style === p.style ? 'on' : '')}
+              onClick={() => setPen({ style: p.style })}>{p.label}</button>)}
+          </div>
 
           <div className="label">
             色
@@ -917,7 +904,7 @@ function PenTab() {
 
           <Slider
             label={`太さ ${pen.width}px`}
-            min={2}
+            min={1}
             max={40}
             value={pen.width}
             onChange={(width) =>
@@ -1234,6 +1221,11 @@ function StampTab({
     setStickerView(selectedSticker ? 'edit' : 'browse');
   }, [selectedSticker?.id]);
   const editingSticker = stickerView === 'edit' && !!selectedSticker;
+  useEffect(() => {
+    const show = () => { if (useEditor.getState().elements.some((el) => el.type === 'sticker' && el.id === useEditor.getState().selectedId)) setStickerView('edit'); };
+    window.addEventListener('jomon-pix:show-editor', show);
+    return () => window.removeEventListener('jomon-pix:show-editor', show);
+  }, []);
 
   // Changing the selected hair sticker also updates the highlighted hair color.
   useEffect(() => {
@@ -1649,12 +1641,15 @@ function StampTab({
             </button>
           </div>
 
+          <HistorySlider label={`回転 ${Math.round(selectedSticker.rotation)}°`} min={-180} max={180} step={1}
+            value={((selectedSticker.rotation % 360) + 540) % 360 - 180} elementId={selectedSticker.id}
+            disabled={!!selectedSticker.locked || !!selectedSticker.transformLocked} onChange={(value) => rotateElement(selectedSticker, value)} />
           <HistorySlider label="透明度" min={0} max={100} step={1}
             value={Math.round(selectedSticker.opacity * 100)} elementId={selectedSticker.id}
             disabled={!!selectedSticker.locked} onChange={(value) => s.update(selectedSticker.id, { opacity: value / 100 })} />
           <div className="row" style={{ margin: '8px 0' }}>
             <button type="button" className="chip" disabled={!!selectedSticker.locked || !!selectedSticker.transformLocked}
-              onClick={() => s.update(selectedSticker.id, { rotation: (selectedSticker.rotation + 90) % 360 })}>↻ 90°</button>
+              onClick={() => rotateElement(selectedSticker, (selectedSticker.rotation + 90) % 360)}>↻ 90°</button>
             <button type="button" className="chip" onClick={() => setStickerView('browse')}>＋ スタンプを追加</button>
           </div>
           <PhotoAttachmentControls el={selectedSticker} />
@@ -2115,6 +2110,8 @@ function EditTab({
             >
               ⇵ 上下反転
             </button>
+            <button type="button" className="chip" disabled={!el || !!el.locked || !!el.transformLocked}
+              onClick={() => el && rotateElement(el, (el.rotation + 90) % 360)}>↻ 90°</button>
 
             <button
               className="chip"
@@ -2154,6 +2151,9 @@ function EditTab({
             </button>
           </div>
 
+          {el && el.type !== 'line' && <HistorySlider label={`回転 ${Math.round(el.rotation)}°`} min={-180} max={180}
+            value={((el.rotation % 360) + 540) % 360 - 180} elementId={el.id}
+            disabled={!!el.locked || !!el.transformLocked} onChange={(angle) => rotateElement(el, angle)} />}
           {el && (el.type === 'sticker' || el.type === 'text') && (
             <PhotoAttachmentControls el={el} />
           )}
@@ -2838,6 +2838,13 @@ export function Panel() {
       if (bodyRef.current) bodyRef.current.scrollTop = 0;
     }
   }, [selectedId, tab]);
+  useEffect(() => {
+    const showHome = () => { setToolMenu(false); setHeight((old) => old === 'min' ? 'normal' : old); };
+    const showEditor = () => { setToolMenu(false); setHeight((old) => old === 'min' ? 'normal' : old); };
+    window.addEventListener('jomon-pix:home', showHome);
+    window.addEventListener('jomon-pix:show-editor', showEditor);
+    return () => { window.removeEventListener('jomon-pix:home', showHome); window.removeEventListener('jomon-pix:show-editor', showEditor); };
+  }, []);
   const activate = (id: Tab) => {
     useEditor.getState().setTab(id);
     setToolMenu(false);
@@ -2934,7 +2941,7 @@ export function Panel() {
           onClick={() => activate(item.id)}><span className="ic">{item.icon}</span>{item.label}</button>)}
         <button type="button" className={'tab ' + (toolMenu || moreActive ? 'on' : '')}
           aria-expanded={toolMenu} onClick={() => { setToolMenu((old) => !old); setHeight((old) => old === 'min' ? 'normal' : old); }}>
-          <span className="ic">▦</span>加工
+          <span className="ic">🎚</span>加工
         </button>
       </nav>
     </section>
