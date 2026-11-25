@@ -70,7 +70,8 @@ type Gesture = {
 };
 
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 4;
+const MAX_ZOOM = 12;
+const EDIT_WIDTH_FRACTION = 0.75;
 
 // 操作ハンドルは固定サイズにする。
 // Stageの縮小率で割ると巨大化するため禁止。
@@ -610,6 +611,7 @@ export function Editor() {
     socialTemplate,
     canvasWidth,
     canvasHeight,
+    tab,
     tool,
     pen,
     select,
@@ -637,6 +639,7 @@ export function Editor() {
   const { zoom, offset } = camera;
   const pinchSession = useRef(false);
   const viewportRef = useRef({ width: 0, height: 0, scale: 0.4 });
+  const hasPhoto = elements.some((el) => el.type === 'image' && !el.hidden);
   const updateCamera = (next: Camera) => {
     const z = limitZoom(next.zoom);
     const v = viewportRef.current;
@@ -691,9 +694,23 @@ export function Editor() {
       );
 
       const fittedScale = Math.max(0.01, nextScale * 0.96);
+      const previous = viewportRef.current;
+      const current = cameraRef.current;
+      // The fit scale changes when the panel opens. Keep the actual displayed
+      // canvas size, rather than keeping its old multiplier against a smaller fit.
+      const renderedScale = previous.width > 0
+        ? previous.scale * current.zoom * (width / previous.width)
+        : fittedScale;
+      const nextZoom = limitZoom(renderedScale / fittedScale);
+      const ratio = (fittedScale * nextZoom) / Math.max(0.0001, previous.scale * current.zoom);
       viewportRef.current = { width, height, scale: fittedScale };
       setScale(fittedScale);
-      updateCamera(cameraRef.current);
+      updateCamera({
+        zoom: nextZoom,
+        offset: previous.width > 0
+          ? { x: current.offset.x * ratio, y: current.offset.y * ratio }
+          : { x: 0, y: 0 },
+      });
     };
 
     resize();
@@ -710,20 +727,35 @@ export function Editor() {
     gesture.current = null;
   }, [canvasWidth, canvasHeight]);
 
-  // モザイク適用後は作品の座標を変えず、表示だけ中央の全体表示へ戻す。
+  // Opening a tool makes a portrait canvas large enough for detailed work.
+  // Preserve any larger user zoom; only the explicit Fit button shrinks to fit.
+  useEffect(() => {
+    if (!hasPhoto || tab === 'image' || tab === 'layer') return;
+    const v = viewportRef.current;
+    if (!v.width || !v.height) return;
+    const targetZoom = limitZoom(v.width * EDIT_WIDTH_FRACTION / (canvasWidth * v.scale));
+    const c = cameraRef.current;
+    if (targetZoom > c.zoom + 0.001) {
+      updateCamera({ zoom: targetZoom, offset: { x: 0, y: 0 } });
+    }
+  }, [tab, hasPhoto, canvasWidth, canvasHeight]);
+
+  // Applying an image effect must not make an enlarged preview suddenly tiny.
+  // Recenter the viewport, but keep its current scale and the artwork geometry.
   useEffect(() => {
     const resetView = () => {
       gesture.current = null;
+      pinchSession.current = false;
+      sRef.current?.setAttr('jomonPinching', false);
       erasing.current = false;
       setDraft(null);
-      cameraRef.current = FIT_CAMERA;
-      setCamera(FIT_CAMERA);
+      updateCamera({ zoom: cameraRef.current.zoom, offset: { x: 0, y: 0 } });
       const element = wrap.current;
       if (element) { element.scrollLeft = 0; element.scrollTop = 0; }
     };
     window.addEventListener('jomon-pix:fit-canvas', resetView);
     return () => window.removeEventListener('jomon-pix:fit-canvas', resetView);
-  }, []);
+  }, [canvasWidth, canvasHeight]);
 
 
   // 保存処理で使うStage参照
@@ -770,18 +802,22 @@ export function Editor() {
   ]);
 
   // キャンバス表示倍率の変更
-  const changeZoom = (amount: number) => {
-    if (pinchSession.current) return;
+  const endPinchForControl = () => {
+    pinchSession.current = false;
+    gesture.current = null;
+    sRef.current?.setAttr('jomonPinching', false);
+  };
+  const changeZoom = (factor: number) => {
+    endPinchForControl();
     const c = cameraRef.current;
-    const z = limitZoom(Math.round((c.zoom + amount) * 100) / 100);
+    const z = limitZoom(c.zoom * factor);
     updateCamera({ zoom: z, offset: { x: c.offset.x * z / c.zoom, y: c.offset.y * z / c.zoom } });
   };
 
   // 全体表示に戻す
   const fitCanvas = () => {
-    if (pinchSession.current) return;
+    endPinchForControl();
     updateCamera(FIT_CAMERA);
-    gesture.current = null;
   };
 
   // 2本指操作の開始
@@ -1041,6 +1077,12 @@ export function Editor() {
       event.stopImmediatePropagation();
     };
     const start = (event: TouchEvent) => {
+      // A stale pinch must not swallow a subsequent tap on the zoom toolbar.
+      if (event.touches.length === 1 && event.target instanceof Element &&
+          event.target.closest('button')) {
+        endPinchForControl();
+        return;
+      }
       if (event.touches.length < 2 && !pinchSession.current) return;
       intercept(event);
       if (!pinchSession.current) {
@@ -1079,11 +1121,24 @@ export function Editor() {
       setDraft(null); erasing.current = false;
     };
     const options = { capture: true, passive: false };
+    const outsideEnd = (event: TouchEvent) => {
+      if (pinchSession.current && event.touches.length === 0 &&
+          event.target instanceof Node && !element.contains(event.target)) {
+        endPinchForControl();
+      }
+    };
+    const blur = () => endPinchForControl();
+    window.addEventListener('touchend', outsideEnd, true);
+    window.addEventListener('touchcancel', outsideEnd, true);
+    window.addEventListener('blur', blur);
     element.addEventListener('touchstart', start, options);
     element.addEventListener('touchmove', move, options);
     element.addEventListener('touchend', finish, options);
     element.addEventListener('touchcancel', cancel, options);
     return () => {
+      window.removeEventListener('touchend', outsideEnd, true);
+      window.removeEventListener('touchcancel', outsideEnd, true);
+      window.removeEventListener('blur', blur);
       element.removeEventListener('touchstart', start, true);
       element.removeEventListener('touchmove', move, true);
       element.removeEventListener('touchend', finish, true);
@@ -1271,7 +1326,7 @@ export function Editor() {
         <button
           type="button"
           style={zoomButtonStyle}
-          onClick={() => changeZoom(0.25)}
+          onClick={() => changeZoom(1.25)}
           disabled={zoom >= MAX_ZOOM}
           aria-label="拡大"
         >
@@ -1281,7 +1336,7 @@ export function Editor() {
         <button
           type="button"
           style={zoomButtonStyle}
-          onClick={() => changeZoom(-0.25)}
+          onClick={() => changeZoom(0.8)}
           disabled={zoom <= MIN_ZOOM}
           aria-label="縮小"
         >

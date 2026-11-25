@@ -309,8 +309,8 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 .top { gap: 4px; padding-bottom: 4px; }
 .editor-panel { display: flex; flex-direction: column; flex: none; min-height: 0; padding: 0; overflow: hidden; height: 36dvh; }
 .editor-panel.panel-min { height: auto; }
-.editor-panel.panel-normal { height: clamp(180px, 36dvh, 400px); }
-.editor-panel.panel-max { height: min(62dvh, 560px); }
+.editor-panel.panel-normal { height: clamp(156px, 29dvh, 340px); }
+.editor-panel.panel-max { height: min(48dvh, 470px); }
 .panel-grip { flex: none; display: grid; place-items: center; width: 100%; height: 26px; border: 0; background: transparent; touch-action: none; cursor: ns-resize; }
 .panel-grip span { width: 42px; height: 5px; background: #c9aabd; border-radius: 8px; pointer-events: none; }
 .panel-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 10px; }
@@ -326,8 +326,8 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 .panel-content textarea { font-size: 16px; }
 .panel-content .label, .panel-content .slider { color: #78576d; }
 @media (max-height: 480px) and (max-width: 899px) {
-  .editor-panel.panel-normal { height: 32dvh; }
-  .editor-panel.panel-max { height: 52dvh; }
+  .editor-panel.panel-normal { height: 29dvh; }
+  .editor-panel.panel-max { height: 43dvh; }
   .panel-grip { height: 20px; }
 }
 @media (min-width: 900px) {

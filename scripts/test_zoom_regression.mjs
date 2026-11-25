@@ -121,10 +121,13 @@ try {
   const original=geometryOfArt(initial);
   await fitCheck('initial portrait');
   for(let i=0;i<3;i++) {
-    await plus.click();await settle();checkBounds(await geometry(),'button zoom '+i);
+    const before=await geometry();
+    await plus.click();await settle();const after=await geometry();
+    assert(after.card.w > before.card.w * 1.15, 'Each + must visibly enlarge the canvas');
+    checkBounds(after,'button zoom '+i);
   }
   assert((await geometry()).zoom>1.5,'Zoom buttons must actually enlarge canvas');
-  for(let i=0;i<3;i++) { await minus.click(); await settle(); checkBounds(await geometry(),'button shrink '+i); }
+  for(let i=0;i<3;i++) { const before=await geometry(); await minus.click(); await settle(); const after=await geometry(); assert(after.card.w < before.card.w - 1, 'Each − must visibly shrink the canvas'); checkBounds(after,'button shrink '+i); }
   await fitCheck('button reset');
   report.checks.push('Repeated plus/minus preserves centered geometry');
   for(const shift of [160,-160,800,-800]) {
@@ -134,6 +137,9 @@ try {
     assert(g.zoom>2.5,'Pinch must actually enlarge canvas');
     checkBounds(g,'pinch shift '+shift);
   }
+  const beforePlusAfterPinch=await geometry();
+  await plus.click();await settle();
+  assert((await geometry()).card.w > beforePlusAfterPinch.card.w * 1.15,'Plus after pinch must enlarge, not reset');
   await fitCheck('after pinches');
   report.checks.push('Two-finger zoom and extreme pan stay bounded; remaining finger is ignored');
   const grip=page.locator('.panel-grip');
@@ -144,10 +150,22 @@ try {
     await page.mouse.move(r.x+r.width/2,r.y+r.height/2+dy,{steps:5});
     await page.mouse.up();await settle();
   };
-  await plus.click();await plus.click();await settle();
+  // Open an actual editing tool from a fitted portrait photo. It must be
+  // large enough for precise work even when the controls occupy screen space.
+  await page.locator('.bottom-tools button.tab').filter({hasText:'ペン'}).click();
+  await settle();
+  const editing=await geometry();
+  assert(editing.card.w >= editing.view.w * .73, 'Tool opening must show a large portrait preview');
+  await plus.click();await settle();const beforeExpand=await geometry();
+  assert(beforeExpand.card.w > editing.card.w * 1.15, 'Plus in editing mode must enlarge');
   await moveGrip(-70);
   await page.locator('.editor-panel.panel-max').waitFor();
-  await settle();checkBounds(await geometry(),'expanded panel at zoom');
+  await settle();const expanded=await geometry();checkBounds(expanded,'expanded panel at zoom');
+  assert(expanded.card.w >= beforeExpand.card.w - 3, 'Opening the larger control panel must not shrink the preview');
+  await plus.click();await settle();const enlarged=await geometry();
+  assert(enlarged.card.w > expanded.card.w * 1.15, 'Plus after panel resize must enlarge, not reset');
+  await minus.click();await settle();
+  assert((await geometry()).card.w < enlarged.card.w - 1, 'Minus after panel resize must shrink');
   await fitCheck('expanded panel reset');
   await moveGrip(70);
   await page.locator('.editor-panel.panel-normal').waitFor();
@@ -155,7 +173,7 @@ try {
   await page.locator('.editor-panel.panel-min').waitFor();
   await settle();checkBounds(await geometry(),'collapsed panel');
   await fitCheck('collapsed panel reset');
-  report.checks.push('Panel resizing clamps the camera without moving artwork');
+  report.checks.push('Editing tool opens at 75% width; panel expansion preserves visible size; plus/minus remain monotonic');
   for(const viewport of [{width:375,height:667},{width:430,height:932},{width:844,height:390},{width:390,height:844}]) {
     await page.setViewportSize(viewport);await settle();await fitCheck('viewport '+viewport.width+'x'+viewport.height);
     await plus.click();await settle();checkBounds(await geometry(),'viewport zoom');
