@@ -552,7 +552,7 @@ export function TopBar() {
 
       <div className="bar">
         <button type="button" className={`tab ${tab === 'image' ? 'on' : ''}`}
-          onClick={() => setTab('image')}>
+          onClick={() => { setTab('image'); window.dispatchEvent(new Event('jomon-pix:home')); }}>
           <span className="ic">🏠</span>ホーム
         </button>
 
@@ -563,10 +563,10 @@ export function TopBar() {
 
         <div className="bar-spacer" />
 
-        <button type="button" className="icon-btn project-file-btn"
+        <button type="button" className="project-file-btn"
           aria-label="作品のバックアップと復元" title="作品のバックアップと復元"
           onClick={() => setWorkOpen(true)}>
-          📁
+          <span aria-hidden="true">📁</span><span>作品</span>
         </button>
 
         <button type="button" className="save" onClick={save} disabled={busy}>
