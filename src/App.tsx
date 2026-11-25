@@ -11,6 +11,31 @@ export default function App() {
 
   useEffect(() => mountUiTranslation(), []);
 
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      const active = document.activeElement;
+      const editing = active instanceof HTMLTextAreaElement ||
+        (active instanceof HTMLInputElement && ['text','search','email','url','tel','number','password'].includes(active.type)) ||
+        (active instanceof HTMLElement && active.isContentEditable);
+      const open = !!editing && window.innerHeight - viewport.height > 100;
+      setKeyboardOpen(open);
+      if (open) document.documentElement.style.setProperty('--editor-viewport-height', Math.round(viewport.height) + 'px');
+      else document.documentElement.style.removeProperty('--editor-viewport-height');
+    };
+    viewport.addEventListener('resize', update);
+    window.addEventListener('focusin', update);
+    window.addEventListener('focusout', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      window.removeEventListener('focusin', update);
+      window.removeEventListener('focusout', update);
+      document.documentElement.style.removeProperty('--editor-viewport-height');
+    };
+  }, []);
+
   useEffect(() => {
     // The editor used to hydrate synchronously from localStorage.
     // IndexedDB requires an asynchronous read. Do not mount editable
@@ -57,7 +82,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={keyboardOpen ? "app keyboard-open" : "app"}>
       <TopBar />
       <Editor />
       <Panel />
