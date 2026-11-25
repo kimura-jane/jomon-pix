@@ -72,14 +72,23 @@ try {
   // 9 styles + 8 colors; choosing a new style REPLACES the same sticker.
   await page.locator('.bottom-tools button.tab').filter({ hasText: 'スタンプ' }).click();
   await page.getByRole('button', { name: '髪型', exact: true }).click();
-  const controlLabels = (await page.locator('.panel .label').allTextContents())
-    .map((label) => label.trim());
-  const positions = ['配置', '髪色', '髪型'].map((label) =>
-    controlLabels.indexOf(label));
-  assert.ok(positions.every((index) => index >= 0),
-    'The placement, hair color and hairstyle labels must all be visible');
-  assert.ok(positions[0] < positions[1] && positions[1] < positions[2],
-    'Control order must be placement → hair color → hairstyle');
+  // The compact UI intentionally removed redundant headings. Verify the
+  // actual controls and their order instead of requiring deleted text.
+  const placement = page.getByRole('group', { name: '配置方法' });
+  const colorGroup = page.getByRole('group', { name: '髪色を選択' });
+  const styles = page.getByRole('button', { name: /髪型:.*を自動配置/ });
+  await placement.waitFor();
+  await colorGroup.waitFor();
+  await styles.first().waitFor();
+  const ordered = await page.evaluate(() => {
+    const placement = document.querySelector('[role="group"][aria-label="配置方法"]');
+    const colors = document.querySelector('[role="group"][aria-label="髪色を選択"]');
+    const style = document.querySelector('button[aria-label^="髪型:"]');
+    return !!placement && !!colors && !!style &&
+      !!(placement.compareDocumentPosition(colors) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+      !!(colors.compareDocumentPosition(style) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  assert.ok(ordered, 'Control order must be placement → hair color → hairstyle');
   const firstSelected = page.getByRole('group', { name: '髪色を選択' })
     .getByRole('button', { name: 'ダークブラウン' });
   assert.equal(await firstSelected.getAttribute('aria-pressed'), 'true');
