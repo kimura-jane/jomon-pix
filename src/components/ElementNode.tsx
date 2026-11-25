@@ -111,6 +111,7 @@ function useCommon(el: CanvasEl) {
     if (nextTab && !(['frame', 'beauty'].includes(tab) && el.type === 'image')) {
       setTab(nextTab);
     }
+    if (el.type === 'sticker' || el.type === 'text') window.dispatchEvent(new Event('jomon-pix:show-editor'));
   };
 
   return {
@@ -128,12 +129,44 @@ function useCommon(el: CanvasEl) {
     onClick: selectElement,
     onTap: selectElement,
 
+    onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => {
+      const node = e.target;
+      if (node.id() !== el.id || !canMove || el.type === 'line') return;
+      e.cancelBubble = true;
+      const stage = node.getStage();
+      if (!stage) return;
+      const state = useEditor.getState();
+      const bounds = node.getClientRect({ relativeTo: stage, skipShadow: true });
+      if (!bounds.width || !bounds.height) return;
+      const scale = stage.scaleX() * (stage.container().getBoundingClientRect().width / Math.max(1, stage.width()));
+      const tolerance = 5 / Math.max(0.01, scale);
+      const nearest = (edges: number[], targets: number[]) => {
+        let best: { delta: number; line: number } | null = null;
+        for (const edge of edges) for (const line of targets) {
+          const delta = line - edge;
+          if (Math.abs(delta) <= tolerance && (!best || Math.abs(delta) < Math.abs(best.delta))) best = { delta, line };
+        }
+        return best;
+      };
+      const x = nearest([bounds.x, bounds.x + bounds.width / 2, bounds.x + bounds.width], [0, state.canvasWidth / 2, state.canvasWidth]);
+      const y = nearest([bounds.y, bounds.y + bounds.height / 2, bounds.y + bounds.height], [0, state.canvasHeight / 2, state.canvasHeight]);
+      if (x || y) {
+        const transform = stage.getAbsoluteTransform();
+        const zero = transform.point({ x: 0, y: 0 });
+        const delta = transform.point({ x: x?.delta ?? 0, y: y?.delta ?? 0 });
+        const current = node.getAbsolutePosition();
+        node.absolutePosition({ x: current.x + delta.x - zero.x, y: current.y + delta.y - zero.y });
+      }
+      window.dispatchEvent(new CustomEvent('jomon-pix:alignment', { detail: { x: x?.line, y: y?.line } }));
+    },
+
     onDragEnd: (
       e: Konva.KonvaEventObject<DragEvent>,
     ) => {
       // ネストした子のDragEndを親写真で処理しない。
       if (e.target.id() !== el.id) return;
       e.cancelBubble = true;
+      window.dispatchEvent(new CustomEvent('jomon-pix:alignment', { detail: {} }));
       if (el.locked || el.transformLocked) {
         e.target.position({ x: el.x, y: el.y });
         return;
