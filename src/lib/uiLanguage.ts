@@ -34,6 +34,17 @@ export function onUiLanguageChange(callback: () => void): () => void {
 
 // These translations refer exclusively to app chrome, not captions/artwork.
 const messages: Record<string, string> = {
+  '作品': 'Project',
+  '顔補正': 'Face',
+  'メイク': 'Makeup',
+  '体型': 'Body',
+  '＋ スタンプを追加': '+ Add Sticker',
+  '移動': 'Move',
+  '回転': 'Rotation',
+  '操作パネルの高さを変更': 'Resize editing panel',
+  '加工メニュー': 'Editing tools',
+  '画像の表示倍率': 'Image zoom',
+  'アイコン設定': 'App icon settings',
   '作品を読み込み中…': 'Loading your project…',
   '文字': 'Text', 'ペン': 'Draw', 'スタンプ': 'Stickers',
   'モザイク': 'Mosaic', 'スマート消去': 'Smart Erase', 'ビューティー': 'Beauty',
