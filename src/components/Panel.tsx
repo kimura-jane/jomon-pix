@@ -55,7 +55,7 @@ function rotateElement(el: CanvasEl, angle: number) {
   if (el.locked || el.transformLocked || el.type === 'line') return;
   const node = stageRef.current?.findOne('#' + el.id);
   if (!node) return;
-  const bounds = node.getClientRect({ relativeTo: node, skipShadow: true });
+  const bounds = node.getClientRect({ skipTransform: true, skipShadow: true });
   const cx = (bounds.x + bounds.width / 2) * el.scaleX;
   const cy = (bounds.y + bounds.height / 2) * el.scaleY;
   const a = el.rotation * Math.PI / 180, b = angle * Math.PI / 180;
@@ -1647,6 +1647,9 @@ function StampTab({
           <HistorySlider label="透明度" min={0} max={100} step={1}
             value={Math.round(selectedSticker.opacity * 100)} elementId={selectedSticker.id}
             disabled={!!selectedSticker.locked} onChange={(value) => s.update(selectedSticker.id, { opacity: value / 100 })} />
+          <HistorySlider label={`ふちどり ${selectedSticker.outlineWidth ?? 0}px`} min={0} max={30} step={1}
+            value={selectedSticker.outlineWidth ?? 0} elementId={selectedSticker.id}
+            disabled={!!selectedSticker.locked} onChange={(value) => s.update(selectedSticker.id, { outlineWidth: value })} />
           <div className="row" style={{ margin: '8px 0' }}>
             <button type="button" className="chip" disabled={!!selectedSticker.locked || !!selectedSticker.transformLocked}
               onClick={() => rotateElement(selectedSticker, (selectedSticker.rotation + 90) % 360)}>↻ 90°</button>
