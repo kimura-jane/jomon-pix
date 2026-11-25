@@ -67,6 +67,7 @@ type S = Snapshot & {
   attachToImage: (id: string, photoId: string) => boolean;
   detachFromImage: (id: string) => boolean;
   move: (id: string, dir: Dir) => void;
+  reorderLayer: (id: string, targetId: string) => void;
   select: (id: string | null) => void;
 
   setBg: (color: string) => void;
@@ -783,6 +784,19 @@ export const useEditor = create<S>()(
             arr.splice(Math.max(index - 1, 0), 0, el);
           }
 
+          commit({ elements: arr });
+        },
+
+        reorderLayer: (id, targetId) => {
+          const arr = [...get().elements];
+          const from = arr.findIndex((el) => el.id === id);
+          const to = arr.findIndex((el) => el.id === targetId);
+          if (from < 0 || to < 0 || from === to || arr[from].locked) return;
+          // Attached decorations render within their photo; never silently detach them.
+          const parent = (el: CanvasEl) => isPhotoAttachment(el) ? el.parentImageId : undefined;
+          if (parent(arr[from]) !== parent(arr[to])) return;
+          const [item] = arr.splice(from, 1);
+          arr.splice(to, 0, item);
           commit({ elements: arr });
         },
 
