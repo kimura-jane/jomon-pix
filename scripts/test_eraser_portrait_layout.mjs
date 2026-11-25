@@ -151,7 +151,7 @@ try {
   assert.equal(await dialog.locator('svg rect').count(), 0);
   assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).isDisabled(), true);
   await dialog.getByRole('button', {name:'拡大',exact:true}).click();
-  const enlarged = await photo.boundingBox();
+  const enlarged = await dialog.getByRole('img', { name: '消去する写真' }).boundingBox();
   assert(enlarged && enlarged.width > portrait.img.width*1.4, 'Eraser zoom must increase displayed size');
   const frameBox=await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
   assert(frameBox);
