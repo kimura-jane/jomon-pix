@@ -102,7 +102,7 @@ function useCommon(el: CanvasEl) {
     event: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
   ) => {
     event.cancelBubble = true;
-    if (tool !== 'select') return;
+    if (tool !== 'select' || event.target.getStage()?.getAttr('jomonPinching')) return;
 
     select(el.id);
 
@@ -135,7 +135,7 @@ function useCommon(el: CanvasEl) {
       if (node.id() !== el.id || !canMove || el.type === 'line') return;
       e.cancelBubble = true;
       const stage = node.getStage();
-      if (!stage) return;
+      if (!stage || stage.getAttr('jomonPinching')) return;
       const state = useEditor.getState();
       const bounds = node.getClientRect({ relativeTo: stage, skipShadow: true });
       if (!bounds.width || !bounds.height) return;
@@ -168,7 +168,7 @@ function useCommon(el: CanvasEl) {
       if (e.target.id() !== el.id) return;
       e.cancelBubble = true;
       window.dispatchEvent(new CustomEvent('jomon-pix:alignment', { detail: {} }));
-      if (el.locked || el.transformLocked) {
+      if (el.locked || el.transformLocked || e.target.getStage()?.getAttr('jomonPinching')) {
         e.target.position({ x: el.x, y: el.y });
         return;
       }
@@ -185,7 +185,7 @@ function useCommon(el: CanvasEl) {
       const node = e.target;
       if (node.id() !== el.id) return;
       e.cancelBubble = true;
-      if (el.locked || el.transformLocked) {
+      if (el.locked || el.transformLocked || node.getStage()?.getAttr('jomonPinching')) {
         node.position({ x: el.x, y: el.y });
         node.rotation(el.rotation);
         node.scale({ x: el.scaleX, y: el.scaleY });

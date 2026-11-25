@@ -59,6 +59,9 @@ function touchesStroke(p: Point, stroke: ImageStroke, tolerance: number): boolea
   return Math.hypot(p.x - points[0], p.y - points[1]) <= radius;
 }
 
+type Camera = { zoom: number; offset: Point };
+const FIT_CAMERA: Camera = { zoom: 1, offset: { x: 0, y: 0 } };
+
 type Gesture = {
   distance: number;
   zoom: number;
@@ -629,12 +632,23 @@ export function Editor() {
   const gesture = useRef<Gesture | null>(null);
 
   const [scale, setScale] = useState(0.4);
-  const [zoom, setZoom] = useState(1);
-
-  const [offset, setOffset] = useState<Point>({
-    x: 0,
-    y: 0,
-  });
+  const [camera, setCamera] = useState<Camera>(FIT_CAMERA);
+  const cameraRef = useRef<Camera>(FIT_CAMERA);
+  const { zoom, offset } = camera;
+  const pinchSession = useRef(false);
+  const viewportRef = useRef({ width: 0, height: 0, scale: 0.4 });
+  const updateCamera = (next: Camera) => {
+    const z = limitZoom(next.zoom);
+    const v = viewportRef.current;
+    const maxX = z === MIN_ZOOM ? 0 : Math.max(0, (canvasWidth * v.scale * z - v.width) / 2);
+    const maxY = z === MIN_ZOOM ? 0 : Math.max(0, (canvasHeight * v.scale * z - v.height) / 2);
+    const bounded = { zoom: z, offset: {
+      x: Math.max(-maxX, Math.min(maxX, next.offset.x)),
+      y: Math.max(-maxY, Math.min(maxY, next.offset.y)),
+    } };
+    cameraRef.current = bounded;
+    setCamera((old) => old.zoom === bounded.zoom && old.offset.x === bounded.offset.x && old.offset.y === bounded.offset.y ? old : bounded);
+  };
 
   const [draft, setDraft] = useState<DraftStroke | null>(
     null,
@@ -676,9 +690,10 @@ export function Editor() {
         availableHeight / canvasHeight,
       );
 
-      setScale(
-        Math.max(0.01, nextScale * 0.96),
-      );
+      const fittedScale = Math.max(0.01, nextScale * 0.96);
+      viewportRef.current = { width, height, scale: fittedScale };
+      setScale(fittedScale);
+      updateCamera(cameraRef.current);
     };
 
     resize();
@@ -691,8 +706,7 @@ export function Editor() {
 
   // キャンバス比率変更時は全体表示に戻す
   useEffect(() => {
-    setZoom(1);
-    setOffset({ x: 0, y: 0 });
+    updateCamera(FIT_CAMERA);
     gesture.current = null;
   }, [canvasWidth, canvasHeight]);
 
@@ -702,8 +716,8 @@ export function Editor() {
       gesture.current = null;
       erasing.current = false;
       setDraft(null);
-      setZoom(1);
-      setOffset({ x: 0, y: 0 });
+      cameraRef.current = FIT_CAMERA;
+      setCamera(FIT_CAMERA);
       const element = wrap.current;
       if (element) { element.scrollLeft = 0; element.scrollTop = 0; }
     };
@@ -711,11 +725,6 @@ export function Editor() {
     return () => window.removeEventListener('jomon-pix:fit-canvas', resetView);
   }, []);
 
-  // 最小倍率に戻ったらパンの残りを消す。
-  useEffect(() => {
-    if (zoom === MIN_ZOOM) setOffset((current) =>
-      current.x === 0 && current.y === 0 ? current : { x: 0, y: 0 });
-  }, [zoom]);
 
   // 保存処理で使うStage参照
   useEffect(() => {
@@ -762,19 +771,16 @@ export function Editor() {
 
   // キャンバス表示倍率の変更
   const changeZoom = (amount: number) => {
-    setZoom((current) =>
-      limitZoom(
-        Math.round(
-          (current + amount) * 100,
-        ) / 100,
-      ),
-    );
+    if (pinchSession.current) return;
+    const c = cameraRef.current;
+    const z = limitZoom(Math.round((c.zoom + amount) * 100) / 100);
+    updateCamera({ zoom: z, offset: { x: c.offset.x * z / c.zoom, y: c.offset.y * z / c.zoom } });
   };
 
   // 全体表示に戻す
   const fitCanvas = () => {
-    setZoom(1);
-    setOffset({ x: 0, y: 0 });
+    if (pinchSession.current) return;
+    updateCamera(FIT_CAMERA);
     gesture.current = null;
   };
 
@@ -793,14 +799,10 @@ export function Editor() {
     const centerY =
       rect.top + rect.height / 2;
 
-    gesture.current = {
-      distance: Math.max(1, info.distance),
-      zoom,
-      anchorX:
-        (info.x - centerX - offset.x) / zoom,
-      anchorY:
-        (info.y - centerY - offset.y) / zoom,
-    };
+    const c = cameraRef.current;
+    gesture.current = { distance: Math.max(1, info.distance), zoom: c.zoom,
+      anchorX: (info.x - centerX - c.offset.x) / c.zoom,
+      anchorY: (info.y - centerY - c.offset.y) / c.zoom };
 
     setDraft(null);
     setGuides({});
@@ -840,8 +842,7 @@ export function Editor() {
         g.anchorY * nextZoom,
     };
 
-    setZoom(nextZoom);
-    setOffset(nextZoom === MIN_ZOOM ? { x: 0, y: 0 } : nextOffset);
+    updateCamera({ zoom: nextZoom, offset: nextOffset });
   };
 
   // ペンをキャンバスではなく画像のローカル座標へ変換する。
@@ -1017,66 +1018,90 @@ export function Editor() {
     }
     setDraft(null);
   };
-  const onTouchStart = (
-    e: Konva.KonvaEventObject<TouchEvent>,
-  ) => {
-    if (e.evt.touches.length >= 2) {
-      if (e.evt.cancelable) {
-        e.evt.preventDefault();
+  // Multi-touch belongs to the viewport, not Konva's element drag handlers.
+  useEffect(() => {
+    const element = wrap.current;
+    const stage = sRef.current;
+    if (!element || !stage) return;
+    const stopElementManipulation = () => {
+      stage.setAttr('jomonPinching', true);
+      if (trRef.current?.isTransforming()) trRef.current.stopTransform();
+      for (const item of useEditor.getState().elements) {
+        const node = stage.findOne('#' + item.id);
+        if (!node) continue;
+        if (node.isDragging() || node.draggable()) node.stopDrag();
+        node.position({ x: item.x, y: item.y });
+        node.rotation(item.rotation);
+        node.scale({ x: item.scaleX, y: item.scaleY });
       }
-
-      if (!gesture.current) {
-        beginPinch(e.evt.touches);
+      stage.batchDraw();
+    };
+    const intercept = (event: TouchEvent) => {
+      if (event.cancelable) event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const start = (event: TouchEvent) => {
+      if (event.touches.length < 2 && !pinchSession.current) return;
+      intercept(event);
+      if (!pinchSession.current) {
+        pinchSession.current = true;
+        stopElementManipulation();
       }
+      if (event.touches.length >= 2 && !gesture.current) beginPinch(event.touches);
+    };
+    const move = (event: TouchEvent) => {
+      if (event.touches.length < 2 && !pinchSession.current) return;
+      intercept(event);
+      if (!pinchSession.current) {
+        pinchSession.current = true;
+        stopElementManipulation();
+      }
+      if (event.touches.length >= 2) {
+        if (!gesture.current) beginPinch(event.touches);
+        else movePinch(event.touches);
+      }
+    };
+    const finish = (event: TouchEvent) => {
+      if (!pinchSession.current) return;
+      intercept(event);
+      if (event.touches.length < 2) gesture.current = null;
+      if (event.touches.length === 0) {
+        pinchSession.current = false;
+        stage.setAttr('jomonPinching', false);
+        setDraft(null); setGuides({}); erasing.current = false;
+      }
+    };
+    const cancel = (event: TouchEvent) => {
+      if (!pinchSession.current) return;
+      intercept(event);
+      gesture.current = null; pinchSession.current = false;
+      stage.setAttr('jomonPinching', false);
+      setDraft(null); erasing.current = false;
+    };
+    const options = { capture: true, passive: false };
+    element.addEventListener('touchstart', start, options);
+    element.addEventListener('touchmove', move, options);
+    element.addEventListener('touchend', finish, options);
+    element.addEventListener('touchcancel', cancel, options);
+    return () => {
+      element.removeEventListener('touchstart', start, true);
+      element.removeEventListener('touchmove', move, true);
+      element.removeEventListener('touchend', finish, true);
+      element.removeEventListener('touchcancel', cancel, true);
+      stage.setAttr('jomonPinching', false);
+      gesture.current = null; pinchSession.current = false;
+    };
+  }, [canvasWidth, canvasHeight]);
 
-      return;
-    }
-
-    if (!gesture.current) {
-      down(e);
-    }
+  const onTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (!pinchSession.current && e.evt.touches.length === 1) down(e);
   };
-
-  const onTouchMove = (
-    e: Konva.KonvaEventObject<TouchEvent>,
-  ) => {
-    if (e.evt.touches.length >= 2) {
-      if (e.evt.cancelable) {
-        e.evt.preventDefault();
-      }
-
-      if (!gesture.current) {
-        beginPinch(e.evt.touches);
-      } else {
-        movePinch(e.evt.touches);
-      }
-
-      return;
-    }
-
-    if (!gesture.current) {
-      moveH();
-    }
+  const onTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (!pinchSession.current && e.evt.touches.length === 1) moveH();
   };
-
-  const onTouchEnd = (
-    e: Konva.KonvaEventObject<TouchEvent>,
-  ) => {
-    if (gesture.current) {
-      if (e.evt.touches.length < 2) {
-        gesture.current = null;
-        erasing.current = false;
-        setDraft(null);
-      }
-
-      return;
-    }
-
-    if (e.evt.touches.length === 0) {
-      up();
-    }
+  const onTouchEnd = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (!pinchSession.current && e.evt.touches.length === 0) up();
   };
-
   const onTouchCancel = () => {
     gesture.current = null;
     erasing.current = false;
@@ -1112,6 +1137,7 @@ export function Editor() {
         position: 'relative',
         overflow: 'clip',
         minWidth: 0,
+        touchAction: 'none',
       }}
     >
       <div
@@ -1122,8 +1148,9 @@ export function Editor() {
           position: 'absolute',
           left: '50%',
           top: '50%',
-          transform:
-            `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+          marginLeft: offset.x - displayWidth / 2,
+          marginTop: offset.y - displayHeight / 2,
+          transform: `scale(${zoom})`,
           transformOrigin: 'center center',
         }}
       >
