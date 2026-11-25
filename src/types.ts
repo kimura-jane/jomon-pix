@@ -159,6 +159,7 @@ export type StickerEl = Base & {
   parentImageId?: string;
   emoji: string;
   size: number;
+  outlineWidth?: number;
   src?: string;
   label?: string;
   // Beauty sunglasses remain ordinary editable, photo-attached stickers.
