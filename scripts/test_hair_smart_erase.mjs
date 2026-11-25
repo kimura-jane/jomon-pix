@@ -177,6 +177,10 @@ try {
   assert.equal(await dialog.getByRole('button', { name: 'AI補完' }).getAttribute('aria-pressed'), 'true');
   await dialog.getByRole('button', { name: '囲む', exact: true }).click();
   const picture = dialog.locator('img[alt="消去する写真"]');
+  await picture.waitFor();
+  await picture.evaluate(async el => { await el.decode(); await document.fonts.ready; });
+  await dialog.locator('[data-testid="eraser-preview-frame"]').scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const box = await picture.boundingBox();
   assert.ok(box && box.width > 0 && box.height > 0);
   const fitScale = Math.min(box.width / 240, box.height / 180);

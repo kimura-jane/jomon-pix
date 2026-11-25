@@ -10,10 +10,12 @@ const page = await browser.newPage({
   hasTouch: true,
 });
 const errors = [];
+const settle = () => page.evaluate(async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
 page.on('pageerror', (e) => errors.push(e.message));
 
 async function checkBounds(viewport) {
-  await page.setViewportSize(viewport);
+  if (page.viewportSize().width !== viewport.width || page.viewportSize().height !== viewport.height) await page.setViewportSize(viewport);
+  await settle();
   const dialog = page.getByRole('dialog', { name: 'スマート消去' });
   const frame = dialog.locator('[data-testid="eraser-preview-frame"]');
   const photo = dialog.getByRole('img', { name: '消去する写真' });
@@ -107,7 +109,7 @@ try {
     const img = document.querySelector('img[alt="消去する写真"]');
     return img && img.complete && img.naturalWidth === 360;
   });
-  await page.waitForTimeout(120);
+  await settle();
 
   for (const viewport of [
     { width: 390, height: 844 },
@@ -121,19 +123,30 @@ try {
   // A drawn rectangle must use picture-local rather than modal-local coords.
   await page.setViewportSize({ width: 390, height: 844 });
   await dialog.getByRole('button', { name: '囲む', exact: true }).click();
+  const frame = dialog.locator('[data-testid="eraser-preview-frame"]');
+  await frame.scrollIntoViewIfNeeded();
+  await settle();
   const portrait = await checkBounds({ width: 390, height: 844 });
   const rect = portrait.content;
-  const stableFrame = await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
+  const stableFrame = await frame.boundingBox();
   assert.ok(rect && stableFrame);
   const start = { x: rect.x + rect.width * .2, y: rect.y + rect.height * .3 };
   const end = { x: rect.x + rect.width * .6, y: rect.y + rect.height * .55 };
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(end.x, end.y, { steps: 6 });
-  await page.mouse.up();
-  const afterFrame = await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();
-  assert.ok(afterFrame && Math.abs(afterFrame.y - stableFrame.y) < 1,
-    'Opening selection controls must not move the preview during painting');
+  const assertStable = async (phase) => {
+    const current = await frame.boundingBox();
+    assert.ok(current && ['x','y','width','height'].every(key => Math.abs(current[key]-stableFrame[key]) < 1),
+      phase + ': preview moved during painting ' + JSON.stringify({before:stableFrame,after:current}));
+  };
+  try {
+    await settle(); await assertStable('pointer down');
+    for (let step=1; step<=6; step++) {
+      await page.mouse.move(start.x+(end.x-start.x)*step/6,start.y+(end.y-start.y)*step/6);
+      await settle(); await assertStable('stroke '+step);
+    }
+  } finally { await page.mouse.up(); }
+  await settle(); await assertStable('pointer up');
   const mask = dialog.locator('svg rect').first();
   assert.ok(await mask.count(), 'Selection overlay must appear');
   const xy = await mask.evaluate((el) => ({
@@ -151,6 +164,7 @@ try {
   assert.equal(await dialog.locator('svg rect').count(), 0);
   assert.equal(await dialog.getByRole('button', { name: '選択をクリア' }).isDisabled(), true);
   await dialog.getByRole('button', {name:'拡大',exact:true}).click();
+  await settle();
   const enlarged = await dialog.getByRole('img', { name: '消去する写真' }).boundingBox();
   assert(enlarged && enlarged.width > portrait.img.width*1.4, 'Eraser zoom must increase displayed size');
   const frameBox=await dialog.locator('[data-testid="eraser-preview-frame"]').boundingBox();

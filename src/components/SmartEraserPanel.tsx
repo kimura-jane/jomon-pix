@@ -154,6 +154,8 @@ function SelectionDialog({
     if (working || !image || (event.pointerType === 'mouse' && event.button !== 0)) return;
     const screen = { x: event.clientX, y: event.clientY };
     event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+    if (pointers.current.size === 0 && document.activeElement instanceof HTMLElement &&
+        document.activeElement !== event.currentTarget) document.activeElement.blur();
     pointers.current.set(event.pointerId, screen);
     if (pointers.current.size >= 2) {
       cancelStroke(); pan.current = null; suppress.current = true;
@@ -320,7 +322,7 @@ function SelectionDialog({
   };
 
   return createPortal(
-    <div className="modal-bg" role="dialog" aria-modal="true"
+    <div className="modal-bg smart-eraser-overlay" role="dialog" aria-modal="true"
       aria-label="スマート消去" style={{ zIndex: 100, padding: 10 }}>
       <div className="modal smart-eraser-dialog" style={{
         maxWidth: 650, maxHeight: 'calc(100dvh - 20px)',
@@ -329,7 +331,7 @@ function SelectionDialog({
         <div className="mosaic-dialog-heading"><h3>AI消しゴム</h3>
           <button type="button" className="btn mosaic-undo" aria-label="戻す" disabled={working || (!history.length && !preview)} onClick={undo}>↶ <span>戻す</span></button>
         </div>
-        <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div className="seg eraser-mode-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button type="button" className={engine === 'ai' ? 'on' : ''}
             disabled={working} aria-pressed={engine === 'ai'}
             onClick={() => { setEngine('ai'); setPreview(null); setShowOriginal(false); setError(''); }}>AI補完</button>
@@ -337,7 +339,7 @@ function SelectionDialog({
             disabled={working} aria-pressed={engine === 'simple'}
             onClick={() => { setEngine('simple'); setPreview(null); setShowOriginal(false); setError(''); }}>軽量補完</button>
         </div>
-        <div className="seg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
+        <div className="seg eraser-mode-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
           <button type="button" className={mode === 'brush' ? 'on' : ''}
             disabled={working || !!preview} onClick={() => changeMode('brush')}>なぞる</button>
           <button type="button" className={mode === 'rectangle' ? 'on' : ''}
@@ -347,7 +349,7 @@ function SelectionDialog({
             style={{ paddingInline: 8 }}
             onClick={() => { if (pointers.current.size) return; remember(); setStrokes([]); setRectangle(null); setError(''); }}>クリア</button>
         </div>
-        <div role="group" aria-label="画像の表示倍率" style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+        <div className="eraser-zoom-row" role="group" aria-label="画像の表示倍率">
           <button type="button" className="chip" aria-label="縮小" disabled={working || camera.zoom <= 1} onClick={() => zoomBy(1/1.5)}>−</button>
           <span style={{fontSize:12,fontWeight:700}}>{Math.round(camera.zoom*100)}%</span>
           <button type="button" className="chip" aria-label="拡大" disabled={working || camera.zoom >= 6} onClick={() => zoomBy(1.5)}>＋</button>

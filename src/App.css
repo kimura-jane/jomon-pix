@@ -356,5 +356,13 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
 }
 
 /* Keep the image origin fixed when mask/Undo status or action labels change. */
-.smart-eraser-dialog { height: min(660px, calc(100dvh - 20px)); scrollbar-gutter: stable; }
+.smart-eraser-overlay { overflow: hidden; overflow-anchor: none; }
+.smart-eraser-dialog { height: min(660px, calc(100dvh - 20px)); min-height: 0; min-width: 0; overflow-anchor: none; scrollbar-gutter: stable; scroll-behavior: auto; }
 .smart-eraser-dialog > * { flex-shrink: 0; }
+.smart-eraser-dialog .mosaic-dialog-heading { height: 49px; min-height: 49px; }
+.smart-eraser-dialog .eraser-mode-row { height: 46px; min-height: 46px; margin-bottom: 0; align-items: stretch; overflow: hidden; }
+.smart-eraser-dialog .eraser-mode-row button { min-width: 0; padding: 4px; }
+.smart-eraser-dialog .eraser-zoom-row { display: grid; grid-template-columns: 40px minmax(35px, 1fr) 40px 40px minmax(58px, auto); gap: 4px; align-items: center; height: 42px; min-height: 42px; }
+.smart-eraser-dialog .eraser-zoom-row button { min-width: 0; height: 40px; padding: 4px; white-space: nowrap; }
+.smart-eraser-dialog .eraser-zoom-row span { white-space: nowrap; }
+.smart-eraser-dialog [data-testid="eraser-preview-frame"] { overflow-anchor: none; }

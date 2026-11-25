@@ -40,14 +40,24 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Typecheck and production build
         run: npm run typecheck && npm run build
-      - name: Verify mosaic output, undo, modes and localized UI
+      - name: Start preview server
+        id: preview
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/jomon-mosaic.log 2>&1 &
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
             sleep 2
           done
-          node scripts/test_mosaic_effects.mjs
-          JOMON_BROWSER=webkit node scripts/test_mosaic_effects.mjs
-          node scripts/test_eraser_portrait_layout.mjs
-          node scripts/test_hair_smart_erase.mjs
+          curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null
+      - name: Mosaic output and undo (Chromium)
+        if: ${{ !cancelled() && steps.preview.outcome == 'success' }}
+        run: node scripts/test_mosaic_effects.mjs
+      - name: Mosaic output and undo (WebKit)
+        if: ${{ !cancelled() && steps.preview.outcome == 'success' }}
+        run: JOMON_BROWSER=webkit node scripts/test_mosaic_effects.mjs
+      - name: Smart eraser portrait, zoom and stable coordinates
+        if: ${{ !cancelled() && steps.preview.outcome == 'success' }}
+        run: node scripts/test_eraser_portrait_layout.mjs
+      - name: Hair replacement, AI inpainting, pixel output and undo
+        if: ${{ !cancelled() && steps.preview.outcome == 'success' }}
+        run: node scripts/test_hair_smart_erase.mjs
