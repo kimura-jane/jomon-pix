@@ -300,3 +300,38 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
   .brand > .logo { grid-column: 1 / -1; }
   .brand > .app-icon-setting { margin-left: 0; }
 }
+
+/* Editing workspace: stable toolbar, resizable controls and bottom navigation. */
+.bar-spacer { flex: 1; min-width: 0; }
+.top .bar { gap: 8px; padding: 4px 8px; border-radius: 17px; }
+.top .bar .icon-btn { width: 44px; height: 44px; }
+.top .bar .save { min-height: 44px; }
+.top { gap: 4px; padding-bottom: 4px; }
+.editor-panel { display: flex; flex-direction: column; flex: none; min-height: 0; padding: 0; overflow: hidden; height: 36dvh; }
+.editor-panel.panel-min { height: auto; }
+.editor-panel.panel-normal { height: clamp(180px, 36dvh, 400px); }
+.editor-panel.panel-max { height: min(62dvh, 560px); }
+.panel-grip { flex: none; display: grid; place-items: center; width: 100%; height: 26px; border: 0; background: transparent; touch-action: none; cursor: ns-resize; }
+.panel-grip span { width: 42px; height: 5px; background: #c9aabd; border-radius: 8px; pointer-events: none; }
+.panel-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 10px; }
+.panel-content[hidden] { display: none; }
+.bottom-tools { flex: none; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 3px; padding: 5px 5px max(5px,env(safe-area-inset-bottom,0px)); background: #fff9fc; border-top: 1px solid #efdce9; }
+.bottom-tools .tab { min-width: 0; min-height: 48px; padding: 4px 1px; font-size: 11px; color: #79576e; white-space: nowrap; }
+.bottom-tools .tab.on { color: #b32978; }
+.extra-tool-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.extra-tool-grid .tab { min-width: 0; min-height: 66px; background: #fff; color: #80516f; white-space: normal; }
+.extra-tool-grid .tab.on { background: #ffe8f4; color: #b32978; }
+.panel-content .chip, .panel-content .seg button { min-height: 40px; }
+.panel-content input[type=range] { min-width: 0; min-height: 34px; accent-color: var(--pink); }
+.panel-content textarea { font-size: 16px; }
+.panel-content .label, .panel-content .slider { color: #78576d; }
+@media (max-height: 480px) and (max-width: 899px) {
+  .editor-panel.panel-normal { height: 32dvh; }
+  .editor-panel.panel-max { height: 52dvh; }
+  .panel-grip { height: 20px; }
+}
+@media (min-width: 900px) {
+  .editor-panel { align-self: stretch; height: auto !important; min-height: 0; }
+  .editor-panel.panel-min { align-self: end; }
+  .bottom-tools { padding-bottom: 5px; }
+}
