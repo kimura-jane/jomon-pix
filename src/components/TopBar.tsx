@@ -7,18 +7,8 @@ import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
 import { AppIconPicker } from './AppIconPicker';
 import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
-import type { CanvasEl, Tab } from '../types';
+import type { CanvasEl } from '../types';
 import { SCENE_IDS, SOCIAL_IDS, type SceneId, type SocialId } from '../lib/scenePresets';
-
-const TABS: { id: Tab; ic: string; label: string }[] = [
-  { id: 'text', ic: '🔤', label: '文字' },
-  { id: 'pen', ic: '✏️', label: 'ペン' },
-  { id: 'stamp', ic: '🐶', label: 'スタンプ' },
-  { id: 'mosaic', ic: '▦', label: 'モザイク' },
-  { id: 'magic', ic: '✦', label: 'スマート消去' },
-  { id: 'beauty', ic: '💄', label: 'ビューティー' },
-  { id: 'frame', ic: '🖼', label: 'フレーム' },
-];
 
 type Artwork = {
   elements: CanvasEl[];
@@ -571,17 +561,9 @@ export function TopBar() {
           disabled={!past.length} aria-label="戻す">↶</button>
         <div className="sep" />
 
-        <div className="tabs">
-          {TABS.map((item) => (
-            <button key={item.id} type="button"
-              className={`tab ${tab === item.id ? 'on' : ''}`}
-              onClick={() => setTab(item.id)}>
-              <span className="ic">{item.ic}</span>{item.label}
-            </button>
-          ))}
-        </div>
+        <div className="bar-spacer" />
 
-        <button type="button" className="icon-btn"
+        <button type="button" className="icon-btn project-file-btn"
           aria-label="作品のバックアップと復元" title="作品のバックアップと復元"
           onClick={() => setWorkOpen(true)}>
           📁
