@@ -335,3 +335,20 @@ textarea.input { width: 100%; border: 0; border-radius: 14px; padding: 10px 12px
   .editor-panel.panel-min { align-self: end; }
   .bottom-tools { padding-bottom: 5px; }
 }
+
+.project-file-btn { display: flex; flex: none; align-items: center; justify-content: center; gap: 4px; min-height: 44px; padding: 6px 10px; border: 0; border-radius: 14px; background: #fff; color: #74506a; font-size: 12px; font-weight: 700; }
+.project-file-btn > span:first-child { font-size: 19px; }
+.beauty-compare-bar { position: sticky; top: -4px; z-index: 11; padding: 5px 0; background: #fff9fc; }
+.beauty-compare-bar .chip:disabled { opacity: .45; }
+.pen-style-list { display: flex; flex-wrap: nowrap; gap: 5px; overflow-x: auto; padding: 3px 1px 7px; }
+.pen-style-list .chip { white-space: nowrap; flex: none; }
+.app { height: var(--editor-viewport-height, 100dvh); min-height: 0; overflow: hidden; }
+.app.keyboard-open .editor-panel.panel-normal, .app.keyboard-open .editor-panel.panel-max { height: 45%; }
+.app.keyboard-open .top .brand { display: none; }
+.app.keyboard-open .panel-grip { height: 18px; }
+@media (max-width: 350px) {
+  .top .bar { gap: 4px; }
+  .top .bar .save { padding: 9px; }
+  .project-file-btn { padding: 6px; }
+  .bottom-tools .tab { font-size: 10px; }
+}
