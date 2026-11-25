@@ -46,6 +46,7 @@ import type {
   StickerEl,
   TextEl,
   SpeechBubbleStyle,
+  Tab,
 } from '../types';
 
 const COLORS = [
@@ -1225,6 +1226,15 @@ function StampTab({
         ? selected
         : undefined;
 
+  // Keep browsing and editing separate. A newly selected/added sticker opens
+  // its editor; the add button returns to the material list without deselecting
+  // the photo attachment target.
+  const [stickerView, setStickerView] = useState<'browse' | 'edit'>(selectedSticker ? 'edit' : 'browse');
+  useEffect(() => {
+    setStickerView(selectedSticker ? 'edit' : 'browse');
+  }, [selectedSticker?.id]);
+  const editingSticker = stickerView === 'edit' && !!selectedSticker;
+
   // Changing the selected hair sticker also updates the highlighted hair color.
   useEffect(() => {
     if (sub !== '髪型' || !selectedSticker || !isHairSticker(selectedSticker)) return;
@@ -1320,7 +1330,7 @@ function StampTab({
 
   return (
     <>
-      {placedStickers.length > 0 && (
+      {!editingSticker && placedStickers.length > 0 && (
         <div
           style={{
             background: '#fff9fd',
@@ -1356,7 +1366,7 @@ function StampTab({
                   type="button"
                   aria-label={`配置済みスタンプ${index + 1}を選択`}
                   aria-pressed={selected}
-                  onClick={() => s.select(sticker.id)}
+                  onClick={() => { s.select(sticker.id); setStickerView('edit'); }}
                   style={{
                     flex: '0 0 auto',
                     display: 'grid',
@@ -1402,14 +1412,12 @@ function StampTab({
         </div>
       )}
 
-      {selectedSticker && (
+      {editingSticker && selectedSticker && (
         <div
           style={{
             // The sticky sticker editor must not cover the auto face-deco
             // picker when the long panel scrolls on iPhone.
-            position: sub === '顔デコ' || sub === '髪型' ? 'relative' : 'sticky',
-            top: 0,
-            zIndex: sub === '顔デコ' || sub === '髪型' ? 1 : 10,
+            position: 'relative',
             background: '#fff9fd',
             border: '1px solid #f4c7df',
             borderRadius: 16,
@@ -1452,7 +1460,7 @@ function StampTab({
                 type="button"
                 className="chip"
                 style={{ padding: '6px 10px', fontSize: 12 }}
-                onClick={() => s.select(null)}
+                onClick={() => setStickerView('browse')}
               >
                 完了
               </button>
@@ -1641,11 +1649,20 @@ function StampTab({
             </button>
           </div>
 
+          <HistorySlider label="透明度" min={0} max={100} step={1}
+            value={Math.round(selectedSticker.opacity * 100)} elementId={selectedSticker.id}
+            disabled={!!selectedSticker.locked} onChange={(value) => s.update(selectedSticker.id, { opacity: value / 100 })} />
+          <div className="row" style={{ margin: '8px 0' }}>
+            <button type="button" className="chip" disabled={!!selectedSticker.locked || !!selectedSticker.transformLocked}
+              onClick={() => s.update(selectedSticker.id, { rotation: (selectedSticker.rotation + 90) % 360 })}>↻ 90°</button>
+            <button type="button" className="chip" onClick={() => setStickerView('browse')}>＋ スタンプを追加</button>
+          </div>
           <PhotoAttachmentControls el={selectedSticker} />
 
         </div>
       )}
 
+      {!editingSticker && <>
       <Seg
         items={[
           '顔デコ',
@@ -1955,6 +1972,7 @@ function StampTab({
 
         </>
       )}
+      </>}
     </>
   );
 }
@@ -2802,8 +2820,77 @@ export function Panel() {
       item.id === selectedId,
   );
 
+  const [height, setHeight] = useState<'min' | 'normal' | 'max'>('normal');
+  const [toolMenu, setToolMenu] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ y: number; id: number; height: typeof height } | null>(null);
+  const previousTab = useRef(tab);
+  useEffect(() => {
+    if (previousTab.current !== tab) {
+      previousTab.current = tab;
+      setToolMenu(false);
+      setHeight((old) => old === 'min' ? 'normal' : old);
+      if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    }
+  }, [tab]);
+  useEffect(() => {
+    if (tab === 'stamp' || tab === 'glasses') {
+      if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    }
+  }, [selectedId, tab]);
+  const activate = (id: Tab) => {
+    useEditor.getState().setTab(id);
+    setToolMenu(false);
+    setHeight((old) => old === 'min' ? 'normal' : old);
+  };
+  const directTools: { id: Tab; icon: string; label: string }[] = [
+    { id: 'text', icon: '🔤', label: '文字' },
+    { id: 'pen', icon: '✏️', label: 'ペン' },
+    { id: 'stamp', icon: '🐶', label: 'スタンプ' },
+    { id: 'mosaic', icon: '▦', label: 'モザイク' },
+  ];
+  const extraTools: { id: Tab; icon: string; label: string }[] = [
+    { id: 'edit', icon: '🎚', label: '加工' },
+    { id: 'magic', icon: '✦', label: 'スマート消去' },
+    { id: 'beauty', icon: '💄', label: 'ビューティー' },
+    { id: 'frame', icon: '🖼', label: 'フレーム' },
+    { id: 'layer', icon: '▱', label: 'レイヤー' },
+  ];
+  const levels = ['min', 'normal', 'max'] as const;
+  const moreActive = extraTools.some((item) => item.id === tab);
   return (
-    <section className="panel">
+    <section className={'panel editor-panel panel-' + height}>
+      <button type="button" className="panel-grip" aria-label="操作パネルの高さを変更"
+        onPointerDown={(event) => {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          drag.current = { y: event.clientY, id: event.pointerId, height };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerUp={(event) => {
+          const start = drag.current;
+          if (!start || start.id !== event.pointerId) return;
+          drag.current = null;
+          const dy = event.clientY - start.y;
+          const index = levels.indexOf(start.height);
+          if (Math.abs(dy) >= 24) {
+            setHeight(levels[Math.max(0, Math.min(2, index + (dy < 0 ? 1 : -1)))]);
+          } else setHeight(start.height === 'min' ? 'normal' : start.height === 'max' ? 'normal' : 'min');
+        }}
+        onPointerCancel={() => { drag.current = null; }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault(); setHeight((old) => old === 'min' ? 'normal' : 'min');
+          } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            event.preventDefault();
+            setHeight((old) => levels[Math.max(0, Math.min(2, levels.indexOf(old) + (event.key === 'ArrowUp' ? 1 : -1)))]);
+          }
+        }}><span aria-hidden="true" /></button>
+      <div className="panel-content" ref={bodyRef} hidden={height === 'min'}>
+      {toolMenu ? <div className="extra-tool-grid">
+        {extraTools.map((item) => <button type="button" key={item.id}
+          className={'tab ' + (tab === item.id ? 'on' : '')}
+          onClick={() => activate(item.id)}><span className="ic">{item.icon}</span>{item.label}</button>)}
+      </div> : <>
 
       {tab === 'image' && <ImageTab />}
 
@@ -2839,6 +2926,17 @@ export function Panel() {
       {tab === 'frame' && <FrameTab />}
 
       {tab === 'layer' && <LayerTab />}
+      </>}
+      </div>
+      <nav className="bottom-tools" aria-label="加工メニュー">
+        {directTools.map((item) => <button type="button" key={item.id}
+          className={'tab ' + (!toolMenu && (tab === item.id || (item.id === 'stamp' && tab === 'glasses')) ? 'on' : '')}
+          onClick={() => activate(item.id)}><span className="ic">{item.icon}</span>{item.label}</button>)}
+        <button type="button" className={'tab ' + (toolMenu || moreActive ? 'on' : '')}
+          aria-expanded={toolMenu} onClick={() => { setToolMenu((old) => !old); setHeight((old) => old === 'min' ? 'normal' : old); }}>
+          <span className="ic">▦</span>加工
+        </button>
+      </nav>
     </section>
   );
 }
