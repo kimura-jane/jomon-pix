@@ -57,7 +57,8 @@ try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/',{
     waitUntil:'networkidle',timeout:45000,
   });
-  await page.locator('button.tab').filter({hasText:'フレーム'}).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'フレーム'}).click();
   await verifyImages('scene');
   await switchSection('配信・SNS');
   await verifyImages('social');
@@ -89,7 +90,8 @@ try {
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles({name:'frame-test.png',mimeType:'image/png',
       buffer:Buffer.from(png.split(',')[1],'base64')});
-  await page.locator('button.tab').filter({hasText:'フレーム'}).click();
+  await page.locator('.bottom-tools button').filter({hasText:'加工'}).click();
+  await page.locator('.extra-tool-grid button').filter({hasText:'フレーム'}).click();
   await switchSection('枠');
   const targetButton=page.locator('button:has(img.frame-reference)')
     .filter({hasText:'ポラロイド'});

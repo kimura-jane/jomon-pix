@@ -74,7 +74,7 @@ try {
   assert.equal(shell, 'rgb(253, 247, 251)');
   report.checks.push('Theme-color and app header use one light, status-bar-safe color');
   // No-photo guidance is visible even though automatic placement is disabled.
-  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'スタンプ'}).click();
   await page.getByRole('status').filter({ hasText: '先に写真を追加してください。' })
     .waitFor({ timeout: 15000 });
   assert.equal(await page.getByRole('button', { name: 'ねこ耳を自動配置' }).isDisabled(), true);
@@ -82,7 +82,7 @@ try {
   await page.locator('.bar button.tab').filter({ hasText: 'ホーム' }).click();
   await page.locator('input[type="file"][accept="image/*"]').first()
     .setInputFiles('/tmp/face-deco-portrait.jpg');
-  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'スタンプ'}).click();
 
   assert.equal(await page.getByRole('button', { name: /セットを自動配置/ }).count(), 0);
   await page.getByRole('status').filter({ hasText: '顔を1人認識しました' })
@@ -109,6 +109,7 @@ try {
   await waitForState((saved) => stickers(saved).length === 1, 're-add after undo');
   report.checks.push('Undo removes one sticker; re-adding creates only one');
 
+  await page.getByRole('button', { name: '完了', exact: true }).click();
   await page.getByRole('button', { name: '配置済みスタンプ1を選択' }).click();
   await page.getByRole('slider', { name: 'スタンプの大きさ' }).focus();
   await page.keyboard.press('End');
@@ -135,13 +136,13 @@ try {
     ctx.drawImage(image, image.naturalWidth, 0);
     return canvas.toDataURL('image/png');
   }, portrait64);
-  await page.locator('button.tab').first().click();
+  await page.locator('.bar button.tab').filter({hasText:'ホーム'}).click();
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
     name: 'two-people.png',
     mimeType: 'image/png',
     buffer: Buffer.from(data.split(',')[1], 'base64'),
   });
-  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'スタンプ'}).click();
   await page.getByRole('button', { name: '左から2人目', exact: true })
     .waitFor({ timeout: 65000 });
   await page.getByRole('status').filter({ hasText: '顔を2人認識しました' })
@@ -161,6 +162,7 @@ try {
   assert.equal(firstGroup[0].label, 'いぬの鼻');
   report.checks.push('TWO people detected, but first tap adds ONE nose on leftmost face');
 
+  await page.getByRole('button', { name: '完了', exact: true }).click();
   await page.getByRole('button', { name: '左から2人目', exact: true }).click();
   await page.getByRole('button', { name: 'ねこ耳を自動配置' }).click();
   const both = stickers(await waitForState(
@@ -177,6 +179,7 @@ try {
   report.checks.push('Choosing rightmost face places ONE ear on the right, without duplicating');
   await page.screenshot({ path: `${output}/face-deco-${name}-two-faces.png`, fullPage: true });
 
+  await page.getByRole('button', { name: '完了', exact: true }).click();
   await page.getByRole('button', { name: '手動配置', exact: true }).click();
   await page.getByRole('button', { name: 'ねこの鼻を追加' }).click();
   const manual = stickers(await waitForState(
@@ -205,13 +208,13 @@ try {
     }
     return canvas.toDataURL('image/jpeg', 0.94);
   }, portrait64);
-  await page.locator('button.tab').first().click();
+  await page.locator('.bar button.tab').filter({hasText:'ホーム'}).click();
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
     name: 'six-person-group.jpg',
     mimeType: 'image/jpeg',
     buffer: Buffer.from(groupData.split(',')[1], 'base64'),
   });
-  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'スタンプ'}).click();
   await page.getByRole('status').filter({
     hasText: /顔を(?:[3-9]|10)人認識しました/,
   }).waitFor({ timeout: 120000 });
@@ -229,6 +232,7 @@ try {
     (saved) => images(saved).length === 3, 'six-person photo saved',
   )).at(-1);
   const originalSrc = hairPhoto.src;
+  await page.getByRole('button', { name: '完了', exact: true }).click();
   await page.getByRole('button', { name: '髪型', exact: true }).click();
   const switcher = page.getByRole('group', { name: '配置方法' });
   await switcher.getByRole('button', { name: '自動配置', exact: true }).click();
@@ -283,6 +287,7 @@ try {
       hair = [resized];
     }
     hairResults.push(hair[0]);
+    if (label !== '角刈り') await page.getByRole('button', { name: '完了', exact: true }).click();
   }
   assert(hairResults[0].hairAutoPlacement.size > hairResults[2].hairAutoPlacement.size,
     'Different silhouettes must use their own face-relative sizes');

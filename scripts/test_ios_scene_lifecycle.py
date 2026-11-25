@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 import plistlib
 import re
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "ios" / "App" / "App"
@@ -46,8 +47,24 @@ assert "class SceneDelegate: UIResponder, UIWindowSceneDelegate" in scene_swift
 assert "var window: UIWindow?" in scene_swift, (
     "UIKit needs a window property to attach the storyboard scene"
 )
-assert "CAPBridgeViewController" in storyboard
-assert 'initialViewController="BYZ-38-t0r"' in storyboard
+root = ET.fromstring(storyboard)
+initial = root.attrib.get("initialViewController")
+assert initial == "BYZ-38-t0r"
+controllers = root.findall(".//viewController")
+controller = next((item for item in controllers if item.attrib.get("id") == initial), None)
+assert controller is not None, "Missing initial scene view controller"
+assert controller.attrib.get("customClass") == "JomonBridgeViewController"
+assert controller.attrib.get("customModule") == "App"
+bridge_swift = (APP / "JomonBridgeViewController.swift").read_text(encoding="utf-8")
+assert re.search(r"class\s+JomonBridgeViewController\s*:\s*CAPBridgeViewController\b", bridge_swift), (
+    "Custom storyboard controller must inherit the Capacitor bridge"
+)
+assert "override func capacitorDidLoad()" in bridge_swift
+assert "bridge?.registerPluginInstance(IconSwitcherPlugin())" in bridge_swift
+for source in ("JomonBridgeViewController.swift", "IconSwitcherPlugin.swift"):
+    assert (APP / source).is_file(), f"Missing native source {source}"
+    assert project.count(f"/* {source} in Sources */") == 2, f"{source} not compiled into app target"
+    assert project.count(f"/* {source} */") >= 2, f"{source} missing from project group"
 assert "configurationForConnecting connectingSceneSession: UISceneSession" in app_swift
 assert 'name: "Default Configuration"' in app_swift
 assert "ApplicationDelegateProxy.shared.application" in scene_swift, (

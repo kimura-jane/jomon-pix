@@ -16,6 +16,11 @@ on:
       - scripts/test_verify_ios_pod_targets.py
       - scripts/prepare-ios.sh
       - scripts/test_ios_scene_lifecycle.py
+      - ios/App/App/Base.lproj/Main.storyboard
+      - ios/App/App/JomonBridgeViewController.swift
+      - ios/App/App/IconSwitcherPlugin.swift
+      - ios/App/App/SceneDelegate.swift
+      - ios/App/App/AppDelegate.swift
       - scripts/bundle_native_offline.py
       - scripts/fetch_pose_model.py
       - scripts/test_bundle_native_offline.py
@@ -43,6 +48,11 @@ on:
       - scripts/test_verify_ios_pod_targets.py
       - scripts/prepare-ios.sh
       - scripts/test_ios_scene_lifecycle.py
+      - ios/App/App/Base.lproj/Main.storyboard
+      - ios/App/App/JomonBridgeViewController.swift
+      - ios/App/App/IconSwitcherPlugin.swift
+      - ios/App/App/SceneDelegate.swift
+      - ios/App/App/AppDelegate.swift
       - scripts/bundle_native_offline.py
       - scripts/fetch_pose_model.py
       - scripts/test_bundle_native_offline.py

@@ -1141,6 +1141,7 @@ function StampTab({
       } else {
         latest.add(result.sticker);
       }
+      setStickerView('edit');
       setAutoMessage('');
     } catch (error) {
       setAutoMessage(
@@ -1912,6 +1913,7 @@ function StampTab({
                     if (!addOrReplaceHairSticker(sticker)) {
                       setAutoMessage('髪型を変更できません。写真や既存の髪型のロックを解除してください。');
                     } else {
+                      setStickerView('edit');
                       setAutoMessage('');
                     }
                   } else {

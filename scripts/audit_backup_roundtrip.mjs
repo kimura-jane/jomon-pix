@@ -61,6 +61,10 @@ const waitWork = async (predicate, label) => {
   throw new Error('Saved work did not reach expected state: ' + label);
 };
 const onlyStickers = (work) => work.elements.filter((el) => el.type === 'sticker');
+const browseStickers = async () => {
+  const done = page.getByRole('button', { name: '完了', exact: true });
+  if (await done.isVisible()) await done.click();
+};
 const expectedSuffixes = [
   'taf-dog/v2/taf_dog_01.webp',
   'archaeology/v1/haniwa/h01.webp',
@@ -99,7 +103,8 @@ try {
     await policyPage.close();
   }
   await page.goto(`http://127.0.0.1:${port}${base}`, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'スタンプ'}).click();
+  await browseStickers();
 
   for (const [category, name] of [
     ['犬', 'TAF DOG #01を追加'],
@@ -108,6 +113,7 @@ try {
   ]) {
     await page.getByRole('button', { name: category, exact: true }).click();
     await page.getByRole('button', { name, exact: true }).click();
+    await page.getByRole('button', { name: '完了', exact: true }).click();
   }
   const original = onlyStickers(await waitWork(
     (work) => onlyStickers(work).length === 3, 'three bundled stickers',
@@ -195,10 +201,12 @@ try {
   // Real user-facing vector stickers are encoded SVG data URLs with leading
   // whitespace. Both must survive backup and restore (on both asset bases).
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
-  await page.getByRole('button', { name: /スタンプ/ }).first().click();
+  await page.locator('.bottom-tools button').filter({hasText:'スタンプ'}).click();
+  await browseStickers();
   await page.getByRole('button', { name: 'サングラス', exact: true }).click();
   await page.getByRole('button', { name: '手動配置', exact: true }).click();
   await page.getByRole('button', { name: '定番ブラックを追加' }).click();
+  await page.getByRole('button', { name: '完了', exact: true }).click();
   await page.getByRole('button', { name: '顔デコ', exact: true }).click();
   await page.getByRole('button', { name: '手動配置', exact: true }).click();
   await page.getByRole('button', { name: 'ねこ耳を追加' }).click();
