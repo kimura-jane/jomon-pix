@@ -14,6 +14,10 @@ type Region = { start: Point; end: Point };
 type Stroke = { points: Point[]; size: number };
 type View = { width: number; height: number };
 type DraftSelection = { mode: Mode; region: Region | null; strokes: Stroke[] };
+type Camera = { zoom: number; x: number; y: number };
+const FIT: Camera = { zoom: 1, x: 0, y: 0 };
+const MAX_ZOOM = 6;
+const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
 const OPTIONS: { id: Mode; label: string }[] = [
   { id: 'rectangle', label: '範囲指定' },
@@ -66,7 +70,7 @@ function pixelate(
 
   // Small, temporary preview canvas avoids repeated full-resolution effects
   // while the user adjusts a selection or strength slider.
-  const scale = preview ? Math.min(1, 480 / Math.max(originalWidth, originalHeight)) : 1;
+  const scale = preview ? Math.min(1, 1200 / Math.max(originalWidth, originalHeight)) : 1;
   const width = Math.max(1, Math.round(originalWidth * scale));
   const height = Math.max(1, Math.round(originalHeight * scale));
   const output = createCanvas(width, height);
@@ -164,6 +168,14 @@ function MosaicDialog({
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [history, setHistory] = useState<DraftSelection[]>([]);
   const [view, setView] = useState<View>({ width: 0, height: 0 });
+  const [camera, setCamera] = useState<Camera>(FIT);
+  const [moveMode, setMoveMode] = useState(false);
+  const cameraRef = useRef<Camera>(FIT);
+  const pointers = useRef(new Map<number, Point>());
+  const pinch = useRef<{ distance: number; anchor: Point; zoom: number } | null>(null);
+  const suppressDraw = useRef(false);
+  const beforeStroke = useRef<DraftSelection | null>(null);
+  const pan = useRef<{ point: Point; camera: Camera } | null>(null);
   const spaceRef = useRef<HTMLDivElement>(null);
   const pictureRef = useRef<HTMLDivElement>(null);
   const drawingRef = useRef<number | null>(null);
@@ -193,16 +205,15 @@ function MosaicDialog({
     if (!source || !spaceRef.current) return;
     const element = spaceRef.current;
     const resize = () => {
-      const maxWidth = Math.max(100, element.clientWidth);
-      const maxHeight = Math.max(180, window.innerHeight * 0.43);
+      const maxWidth = Math.max(1, element.clientWidth - 8);
+      const maxHeight = Math.max(1, element.clientHeight - 8);
       const ratio = Math.min(
         maxWidth / source.naturalWidth,
         maxHeight / source.naturalHeight,
       );
-      setView({
-        width: Math.max(1, Math.round(source.naturalWidth * ratio)),
-        height: Math.max(1, Math.round(source.naturalHeight * ratio)),
-      });
+      const next = { width: Math.max(1, Math.round(source.naturalWidth * ratio)),
+        height: Math.max(1, Math.round(source.naturalHeight * ratio)) };
+      setView((old) => old.width === next.width && old.height === next.height ? old : next);
     };
     resize();
     const observer = new ResizeObserver(resize);
@@ -213,6 +224,25 @@ function MosaicDialog({
       window.removeEventListener('resize', resize);
     };
   }, [source]);
+
+  const updateCamera = (next: Camera) => {
+    const el = spaceRef.current;
+    if (!el || !view.width || !view.height) return;
+    const zoom = clamp(next.zoom, 1, MAX_ZOOM);
+    const maxX = Math.max(0, (view.width * zoom - el.clientWidth) / 2);
+    const maxY = Math.max(0, (view.height * zoom - el.clientHeight) / 2);
+    const bounded = { zoom, x: clamp(next.x, -maxX, maxX), y: clamp(next.y, -maxY, maxY) };
+    cameraRef.current = bounded;
+    setCamera(bounded);
+  };
+  useEffect(() => { updateCamera(cameraRef.current); }, [view.width, view.height]);
+
+  const changeZoom = (factor: number) => {
+    if (working || pointers.current.size) return;
+    const current = cameraRef.current;
+    const zoom = clamp(current.zoom * factor, 1, MAX_ZOOM);
+    updateCamera({ zoom, x: current.x * zoom / current.zoom, y: current.y * zoom / current.zoom });
+  };
 
   // Use one high-contrast sample for every style so even a white screenshot
   // shows recognizable patterns. The live preview still uses the user's photo.
@@ -321,13 +351,53 @@ function MosaicDialog({
     };
   };
 
+  const cancelStroke = () => {
+    const before = beforeStroke.current;
+    if (before) { setRegion(before.region); setStrokes(before.strokes); }
+    beforeStroke.current = null;
+    drawingRef.current = null;
+    regionStartRef.current = null;
+  };
+  const pinchInfo = () => {
+    const [a, b] = Array.from(pointers.current.values());
+    const rect = spaceRef.current?.getBoundingClientRect();
+    if (!a || !b || !rect) return null;
+    return { distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+      center: { x: (a.x + b.x) / 2 - rect.left - rect.width / 2,
+        y: (a.y + b.y) / 2 - rect.top - rect.height / 2 } };
+  };
+  const beginPinch = () => {
+    const info = pinchInfo();
+    const current = cameraRef.current;
+    if (info) pinch.current = { distance: info.distance, zoom: current.zoom,
+      anchor: { x: (info.center.x - current.x) / current.zoom,
+        y: (info.center.y - current.y) / current.zoom } };
+  };
+
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (working || drawingRef.current !== null || (mode !== 'rectangle' && mode !== 'brush') || !source) return;
-    const p = getPoint(event.clientX, event.clientY);
-    if (!p) return;
+    if (working || !source || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    const point = { x: event.clientX, y: event.clientY };
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    rememberSelection();
+    pointers.current.set(event.pointerId, point);
+    if (pointers.current.size >= 2) {
+      // Switch to navigation without committing a stray first-finger stroke.
+      cancelStroke();
+      pan.current = null;
+      suppressDraw.current = true;
+      if (pointers.current.size === 2) beginPinch();
+      return;
+    }
+    if (suppressDraw.current) return;
+    if (moveMode || mode === 'all' || mode === 'background') {
+      pan.current = { point, camera: cameraRef.current };
+      return;
+    }
+    const rect = pictureRef.current?.getBoundingClientRect();
+    if (!rect || point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom) return;
+    const p = getPoint(point.x, point.y);
+    if (!p) return;
+    beforeStroke.current = { mode, region, strokes };
     drawingRef.current = event.pointerId;
     if (mode === 'rectangle') {
       regionStartRef.current = p;
@@ -342,6 +412,25 @@ function MosaicDialog({
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    const point = { x: event.clientX, y: event.clientY };
+    pointers.current.set(event.pointerId, point);
+    event.preventDefault();
+    if (pinch.current && pointers.current.size >= 2) {
+      const info = pinchInfo();
+      if (!info) return;
+      const g = pinch.current;
+      const zoom = clamp(g.zoom * info.distance / g.distance, 1, MAX_ZOOM);
+      updateCamera({ zoom, x: info.center.x - g.anchor.x * zoom, y: info.center.y - g.anchor.y * zoom });
+      return;
+    }
+    if (suppressDraw.current) return;
+    if (pan.current) {
+      const start = pan.current;
+      updateCamera({ zoom: start.camera.zoom, x: start.camera.x + point.x - start.point.x,
+        y: start.camera.y + point.y - start.point.y });
+      return;
+    }
     if (drawingRef.current !== event.pointerId) return;
     const p = getPoint(event.clientX, event.clientY);
     if (!p) return;
@@ -359,10 +448,30 @@ function MosaicDialog({
     }
   };
 
-  const stopDrawing = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (drawingRef.current !== event.pointerId) return;
-    drawingRef.current = null;
-    regionStartRef.current = null;
+  const stopDrawing = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.delete(event.pointerId);
+    if (drawingRef.current === event.pointerId) {
+      const before = beforeStroke.current;
+      const end = getPoint(event.clientX, event.clientY);
+      const start = regionStartRef.current;
+      if (cancelled || (mode === 'rectangle' && (!start || !end ||
+          Math.abs(end.x - start.x) < 2 || Math.abs(end.y - start.y) < 2))) {
+        cancelStroke();
+      } else {
+        if (mode === 'rectangle' && start && end) setRegion({ start, end });
+        if (before) setHistory((old) => [...old.slice(-49), before]);
+        beforeStroke.current = null;
+        drawingRef.current = null;
+        regionStartRef.current = null;
+      }
+    }
+    if (pointers.current.size < 2) pinch.current = null;
+    else if (suppressDraw.current) beginPinch();
+    if (pointers.current.size === 0) {
+      suppressDraw.current = false;
+      pan.current = null;
+    }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -487,34 +596,56 @@ function MosaicDialog({
           </p>
         )}
 
+        <div role="group" aria-label="画像の表示倍率" style={{
+          display: 'flex', alignItems: 'center', gap: 6, flex: 'none', flexWrap: 'wrap',
+        }}>
+          <button type="button" className="chip" aria-label="縮小" disabled={working || camera.zoom <= 1}
+            onClick={() => changeZoom(1 / 1.5)} style={{ minWidth: 40, minHeight: 40 }}>−</button>
+          <span style={{ fontSize: 12, fontWeight: 700, minWidth: 40, textAlign: 'center' }}>{Math.round(camera.zoom * 100)}%</span>
+          <button type="button" className="chip" aria-label="拡大" disabled={working || camera.zoom >= MAX_ZOOM}
+            onClick={() => changeZoom(1.5)} style={{ minWidth: 40, minHeight: 40 }}>＋</button>
+          <button type="button" className="chip" aria-label="全体表示" disabled={working}
+            onClick={() => { if (!pointers.current.size) updateCamera(FIT); }} style={{ minHeight: 40 }}>⤢</button>
+          <button type="button" className={`chip ${moveMode ? 'on' : ''}`} aria-pressed={moveMode}
+            disabled={working} onClick={() => { if (!pointers.current.size) setMoveMode((old) => !old); }}
+            style={{ minHeight: 40, marginLeft: 'auto' }}>✋ <span>移動</span></button>
+        </div>
         <div
           ref={spaceRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={(event) => stopDrawing(event)}
+          onPointerCancel={(event) => stopDrawing(event, true)}
+          onLostPointerCapture={(event) => stopDrawing(event, true)}
           style={{
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
+            position: 'relative',
+            flex: 'none',
             width: '100%',
-            minHeight: 160,
+            height: 'clamp(200px, 43dvh, 520px)',
+            overflow: 'hidden',
+            touchAction: 'none',
+            userSelect: 'none',
             borderRadius: 12,
-            padding: 4,
             background: '#f7eef4',
+            cursor: moveMode ? 'grab' : mode === 'rectangle' || mode === 'brush' ? 'crosshair' : 'default',
           }}
         >
           {source && view.width > 0 ? (
             <div
               ref={pictureRef}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={stopDrawing}
-              onPointerCancel={stopDrawing}
               style={{
-                position: 'relative',
-                flexShrink: 0,
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
                 width: view.width,
                 height: view.height,
+                transform: `translate(-50%, -50%) translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
+                transformOrigin: 'center',
                 overflow: 'hidden',
-                touchAction: 'none',
-                cursor: mode === 'rectangle' || mode === 'brush' ? 'crosshair' : 'default',
+                pointerEvents: 'none',
               }}
             >
               <img
@@ -531,6 +662,7 @@ function MosaicDialog({
               />
               <svg
                 viewBox={'0 0 ' + source.naturalWidth + ' ' + source.naturalHeight}
+                preserveAspectRatio="none"
                 style={{
                   position: 'absolute',
                   inset: 0,
@@ -604,7 +736,7 @@ function MosaicDialog({
             ブラシの太さ {brushPercent}%
             <input
               type="range"
-              min={2}
+              min={1}
               max={35}
               step={1}
               value={brushPercent}
