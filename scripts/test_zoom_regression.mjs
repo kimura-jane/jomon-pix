@@ -155,7 +155,13 @@ try {
   await page.locator('.bottom-tools button.tab').filter({hasText:'ペン'}).click();
   await settle();
   const editing=await geometry();
-  assert(editing.card.w >= editing.view.w * .73, 'Tool opening must show a large portrait preview');
+  const photo=initial.elements.find(e=>e.type==='image');
+  const renderedPhotoWidth = g => g.card.w * photo.width * Math.abs(photo.scaleX) / initial.canvasWidth;
+  assert(renderedPhotoWidth(editing) >= editing.view.w * .73, 'Tool opening must show the actual photo at useful width');
+  const centerX=editing.card.x+(photo.x+photo.width*photo.scaleX/2)*editing.card.w/initial.canvasWidth;
+  const centerY=editing.card.y+(photo.y+photo.height*photo.scaleY/2)*editing.card.h/initial.canvasHeight;
+  assert(centerX>=editing.view.x && centerX<=editing.view.x+editing.view.w &&
+    centerY>=editing.view.y && centerY<=editing.view.y+editing.view.h, 'Photo center must be visible after tool opening');
   await plus.click();await settle();const beforeExpand=await geometry();
   assert(beforeExpand.card.w > editing.card.w * 1.15, 'Plus in editing mode must enlarge');
   await moveGrip(-70);

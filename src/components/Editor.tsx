@@ -70,7 +70,7 @@ type Gesture = {
 };
 
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 12;
+const MAX_ZOOM = 16;
 const EDIT_WIDTH_FRACTION = 0.75;
 
 // 操作ハンドルは固定サイズにする。
@@ -639,7 +639,12 @@ export function Editor() {
   const { zoom, offset } = camera;
   const pinchSession = useRef(false);
   const viewportRef = useRef({ width: 0, height: 0, scale: 0.4 });
-  const hasPhoto = elements.some((el) => el.type === 'image' && !el.hidden);
+  const selected = elements.find((el) => el.id === selectedId);
+  const focusId = selected?.type === 'image' ? selected.id :
+    selected?.type === 'sticker' || selected?.type === 'text' ? selected.parentImageId : undefined;
+  const visiblePhotos = elements.filter((el): el is ImageEl => el.type === 'image' && !el.hidden);
+  const focusPhoto = visiblePhotos.find((el) => el.id === focusId) ?? visiblePhotos[visiblePhotos.length - 1];
+  const focusPhotoId = focusPhoto?.id;
   const updateCamera = (next: Camera) => {
     const z = limitZoom(next.zoom);
     const v = viewportRef.current;
@@ -727,18 +732,28 @@ export function Editor() {
     gesture.current = null;
   }, [canvasWidth, canvasHeight]);
 
-  // Opening a tool makes a portrait canvas large enough for detailed work.
-  // Preserve any larger user zoom; only the explicit Fit button shrinks to fit.
+  // Focus the selected photograph, not the entire (often much larger) artwork.
+  // Use the photo's true rotated bounds and center without editing saved layers.
   useEffect(() => {
-    if (!hasPhoto || tab === 'image' || tab === 'layer') return;
+    if (!focusPhoto || tab === 'image' || tab === 'layer') return;
     const v = viewportRef.current;
     if (!v.width || !v.height) return;
-    const targetZoom = limitZoom(v.width * EDIT_WIDTH_FRACTION / (canvasWidth * v.scale));
+    const angle = focusPhoto.rotation * Math.PI / 180;
+    const wx = focusPhoto.width * focusPhoto.scaleX, hy = focusPhoto.height * focusPhoto.scaleY;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const photoWidth = Math.abs(wx * cos) + Math.abs(hy * sin);
+    if (!Number.isFinite(photoWidth) || photoWidth <= 0) return;
+    const targetZoom = limitZoom(v.width * EDIT_WIDTH_FRACTION / (photoWidth * v.scale));
     const c = cameraRef.current;
     if (targetZoom > c.zoom + 0.001) {
-      updateCamera({ zoom: targetZoom, offset: { x: 0, y: 0 } });
+      const centerX = focusPhoto.x + (wx * cos - hy * sin) / 2;
+      const centerY = focusPhoto.y + (wx * sin + hy * cos) / 2;
+      updateCamera({ zoom: targetZoom, offset: {
+        x: (canvasWidth / 2 - centerX) * v.scale * targetZoom,
+        y: (canvasHeight / 2 - centerY) * v.scale * targetZoom,
+      } });
     }
-  }, [tab, hasPhoto, canvasWidth, canvasHeight]);
+  }, [tab, focusPhotoId, canvasWidth, canvasHeight]);
 
   // Applying an image effect must not make an enlarged preview suddenly tiny.
   // Recenter the viewport, but keep its current scale and the artwork geometry.
