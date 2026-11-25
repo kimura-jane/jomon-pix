@@ -29,6 +29,24 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Block deployment on viewport zoom regressions
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/jomon-zoom-test.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/test_zoom_regression.mjs chromium
+          node scripts/test_zoom_regression.mjs webkit
+      - name: Save zoom regression reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoom-regression
+          path: docs/audit/zoom-regression-*.json
+          if-no-files-found: warn
       - name: Include local AI model for leg controls
         run: python3 scripts/fetch_pose_model.py --out dist/mediapipe/pose_landmarker_lite.task
       - name: Create installable PWABuilder assets and offline app shell

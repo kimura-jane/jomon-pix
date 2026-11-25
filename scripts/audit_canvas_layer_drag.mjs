@@ -99,6 +99,7 @@ try {
     state.elements.some((el) => el.type === 'image'), 'image save');
   const photo = photoState.elements.find((el) => el.type === 'image');
   const initialPhotoPosition = { x: photo.x, y: photo.y };
+  await page.getByRole('button', { name: 'レイヤー一覧を開く', exact: true }).click();
   await page.getByRole('button', { name: '画像1の位置とサイズを固定' }).click();
   await waitForSaved((state) =>
     state.elements.find((el) => el.id === photo.id)?.transformLocked === true,
@@ -109,7 +110,7 @@ try {
   report.checks.push('Photo lock toggles and is saved independently of edit lock');
 
   // The photo is locked but may still be the parent of a newly added stamp.
-  await page.locator('.bar button.tab').filter({ hasText: 'スタンプ' }).click();
+  await page.locator('.bottom-tools button.tab').filter({ hasText: 'スタンプ' }).click();
   await page.getByRole('button', { name: '絵文字', exact: true }).click();
   await page.getByRole('button', { name: '🐰を追加', exact: true }).click();
   const withSticker = await waitForSaved((state) =>
@@ -228,6 +229,7 @@ try {
   assert.equal(await page.getByRole('status').filter({ hasText: '自動保存' }).count(), 0);
   await page.waitForTimeout(400);
   await page.reload({ waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'レイヤー一覧を開く', exact: true }).click();
   await grip.waitFor({ timeout: 15000 });
   const persisted = await waitForSaved((state) =>
     state.elements.find((el) => el.id === photo.id)?.transformLocked === true &&

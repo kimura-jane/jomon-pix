@@ -249,7 +249,7 @@ function FloatingLayers({
     observer.observe(parent);
     observer.observe(panel);
     return () => observer.disconnect();
-  }, [elements.some((element) => element.type !== 'line')]);
+  }, [open, elements.some((element) => element.type !== 'line')]);
 
   // Safari's finger gestures use TouchEvents, while desktop mouse/pen
   // uses PointerEvents. Both move the SAME panel and never drag the image.

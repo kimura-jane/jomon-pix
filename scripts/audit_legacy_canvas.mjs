@@ -75,7 +75,7 @@ try {
     await verifyRatio(page, 1, 'pre-canvas localStorage project');
     assert.equal((await readSaved(page))?.canvasPreset, undefined,
       'Original legacy contents must be preserved before user edits');
-    await page.locator('.bar button.tab').filter({ hasText: '文字' }).click();
+    await page.locator('.bottom-tools button.tab').filter({ hasText: '文字' }).click();
     await page.getByRole('button', { name: '＋ 文字を入れる' }).click();
     const saved = await waitForSaved(page, (state) =>
       state.canvasPreset === 'square' && state.canvasWidth === 800 &&

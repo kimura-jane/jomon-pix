@@ -6,6 +6,9 @@ on:
     paths:
       - 'src/components/Panel.tsx'
       - 'src/components/Editor.tsx'
+      - 'src/components/ElementNode.tsx'
+      - 'src/App.css'
+      - 'scripts/test_zoom_regression.mjs'
       - 'src/store.ts'
       - 'src/components/TopBar.tsx'
       - 'scripts/audit_canvas_layer_drag.mjs'
@@ -15,6 +18,9 @@ on:
     paths:
       - 'src/components/Panel.tsx'
       - 'src/components/Editor.tsx'
+      - 'src/components/ElementNode.tsx'
+      - 'src/App.css'
+      - 'scripts/test_zoom_regression.mjs'
       - 'src/store.ts'
       - 'src/components/TopBar.tsx'
       - 'scripts/audit_canvas_layer_drag.mjs'
@@ -48,6 +54,8 @@ jobs:
             if curl -fsS http://127.0.0.1:4173/jomon-pix/ >/dev/null; then break; fi
             sleep 2
           done
+          node scripts/test_zoom_regression.mjs chromium
+          node scripts/test_zoom_regression.mjs webkit
           node scripts/audit_canvas_layer_drag.mjs chromium
           node scripts/audit_canvas_layer_drag.mjs webkit
           node scripts/audit_legacy_canvas.mjs chromium
@@ -57,5 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: canvas-layer-drag-qa
-          path: docs/audit/canvas-layer-drag-*.json
+          path: |
+            docs/audit/canvas-layer-drag-*.json
+            docs/audit/zoom-regression-*.json
           if-no-files-found: warn
