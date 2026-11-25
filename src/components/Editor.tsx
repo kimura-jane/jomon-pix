@@ -654,6 +654,27 @@ export function Editor() {
     gesture.current = null;
   }, [canvasWidth, canvasHeight]);
 
+  // モザイク適用後は作品の座標を変えず、表示だけ中央の全体表示へ戻す。
+  useEffect(() => {
+    const resetView = () => {
+      gesture.current = null;
+      erasing.current = false;
+      setDraft(null);
+      setZoom(1);
+      setOffset({ x: 0, y: 0 });
+      const element = wrap.current;
+      if (element) { element.scrollLeft = 0; element.scrollTop = 0; }
+    };
+    window.addEventListener('jomon-pix:fit-canvas', resetView);
+    return () => window.removeEventListener('jomon-pix:fit-canvas', resetView);
+  }, []);
+
+  // 最小倍率に戻ったらパンの残りを消す。
+  useEffect(() => {
+    if (zoom === MIN_ZOOM) setOffset((current) =>
+      current.x === 0 && current.y === 0 ? current : { x: 0, y: 0 });
+  }, [zoom]);
+
   // 保存処理で使うStage参照
   useEffect(() => {
     stageRef.current = sRef.current;
@@ -775,7 +796,7 @@ export function Editor() {
     };
 
     setZoom(nextZoom);
-    setOffset(nextOffset);
+    setOffset(nextZoom === MIN_ZOOM ? { x: 0, y: 0 } : nextOffset);
   };
 
   // ペンをキャンバスではなく画像のローカル座標へ変換する。
@@ -1030,7 +1051,8 @@ export function Editor() {
       ref={wrap}
       style={{
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'clip',
+        minWidth: 0,
       }}
     >
       <div
@@ -1038,9 +1060,11 @@ export function Editor() {
         style={{
           width: displayWidth,
           height: displayHeight,
-          flexShrink: 0,
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
           transform:
-            `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+            `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
           transformOrigin: 'center center',
         }}
       >
