@@ -1,6 +1,6 @@
 import { uiMessage } from '../lib/uiLanguage';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import type { ImageEl } from '../types';
 
@@ -53,6 +53,60 @@ export function PhotoCropModal({ el, onClose }: Props) {
   });
   const [preset, setPreset] = useState('自由');
   const [busy, setBusy] = useState(false);
+  const pictureRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ id: number; kind: 'move' | 'tl' | 'tr' | 'bl' | 'br';
+    x: number; y: number; edges: Edges; width: number; height: number } | null>(null);
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+  const startDrag = (event: React.PointerEvent<HTMLDivElement>, kind: 'move' | 'tl' | 'tr' | 'bl' | 'br') => {
+    const rect = pictureRef.current?.getBoundingClientRect();
+    if (!rect || !rect.width || !rect.height || busy || drag.current ||
+        (event.pointerType === 'mouse' && event.button !== 0)) return;
+    event.preventDefault(); event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { id: event.pointerId, kind, x: event.clientX, y: event.clientY,
+      edges: { ...edges }, width: rect.width, height: rect.height };
+  };
+  const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== event.pointerId) return;
+    event.preventDefault(); event.stopPropagation();
+    const dx = (event.clientX - d.x) / d.width * 100;
+    const dy = (event.clientY - d.y) / d.height * 100;
+    const e = d.edges;
+    if (d.kind === 'move') {
+      const x = clamp(dx, -e.left, e.right);
+      const y = clamp(dy, -e.top, e.bottom);
+      setEdges({ left: e.left + x, right: e.right - x, top: e.top + y, bottom: e.bottom - y });
+      return;
+    }
+    const left = d.kind.endsWith('l');
+    const top = d.kind.startsWith('t');
+    const ax = left ? 100 - e.right : e.left;
+    const ay = top ? 100 - e.bottom : e.top;
+    const targetX = (left ? e.left : 100 - e.right) + dx;
+    const targetY = (top ? e.top : 100 - e.bottom) + dy;
+    const maxW = left ? ax : 100 - ax;
+    const maxH = top ? ay : 100 - ay;
+    let w = clamp((left ? ax - targetX : targetX - ax), Math.min(10, maxW), maxW);
+    let h = clamp((top ? ay - targetY : targetY - ay), Math.min(10, maxH), maxH);
+    if (preset !== '自由') {
+      // Preserve the selected aspect ratio in source coordinates.
+      const ratio = (100 - e.left - e.right) / (100 - e.top - e.bottom);
+      const max = Math.min(maxW, maxH * ratio);
+      const min = Math.min(max, Math.max(10, 10 * ratio));
+      const targetW = Math.abs(dx) / Math.max(1, 100 - e.left - e.right) >=
+        Math.abs(dy) / Math.max(1, 100 - e.top - e.bottom) ? w : h * ratio;
+      w = clamp(targetW, min, max);
+      h = w / ratio;
+    }
+    setEdges({ left: left ? ax - w : ax, right: left ? 100 - ax : 100 - ax - w,
+      top: top ? ay - h : ay, bottom: top ? 100 - ay : 100 - ay - h });
+  };
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (drag.current?.id !== event.pointerId) return;
+    drag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
 
   const changeEdge = (edge: Edge, value: number) => {
     setEdges((current) => ({
@@ -216,19 +270,21 @@ export function PhotoCropModal({ el, onClose }: Props) {
           style={{
             display: 'flex',
             justifyContent: 'center',
-            padding: 8,
+            padding: 20,
             overflow: 'hidden',
             borderRadius: 14,
             background: '#f7eef4',
           }}
         >
           <div
+            ref={pictureRef}
             style={{
               position: 'relative',
               display: 'inline-block',
               maxWidth: '100%',
-              overflow: 'hidden',
+              overflow: 'visible',
               lineHeight: 0,
+              touchAction: 'none',
             }}
           >
             <img
@@ -244,13 +300,17 @@ export function PhotoCropModal({ el, onClose }: Props) {
               style={{
                 display: 'block',
                 maxWidth: '100%',
-                maxHeight: '32dvh',
+                maxHeight: '43dvh',
+                userSelect: 'none',
+                pointerEvents: 'none',
                 width: 'auto',
                 height: 'auto',
               }}
             />
 
             <div
+              onPointerDown={(event) => startDrag(event, 'move')}
+              onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}
               style={{
                 position: 'absolute',
                 left: `${edges.left}%`,
@@ -260,9 +320,21 @@ export function PhotoCropModal({ el, onClose }: Props) {
                 border: '2px solid #ff4fa3',
                 boxShadow:
                   '0 0 0 999px rgba(0,0,0,0.45)',
-                pointerEvents: 'none',
+                touchAction: 'none', cursor: 'move',
               }}
-            />
+            >
+              {[1, 2].map((n) => <div key={n} aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', borderLeft: '1px solid rgba(255,255,255,.75)', left: (n * 100 / 3) + '%' }} />)}
+              {[1, 2].map((n) => <div key={n} aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', borderTop: '1px solid rgba(255,255,255,.75)', top: (n * 100 / 3) + '%' }} />)}
+              {(['tl','tr','bl','br'] as const).map((corner) => <div key={corner}
+                onPointerDown={(event) => startDrag(event, corner)} onPointerMove={moveDrag}
+                onPointerUp={endDrag} onPointerCancel={endDrag}
+                style={{ position: 'absolute', width: 36, height: 36, display: 'grid', placeItems: 'center',
+                  left: corner.endsWith('l') ? -18 : undefined, right: corner.endsWith('r') ? -18 : undefined,
+                  top: corner.startsWith('t') ? -18 : undefined, bottom: corner.startsWith('b') ? -18 : undefined,
+                  cursor: 'nwse-resize', touchAction: 'none' }}>
+                <span style={{ width: 16, height: 16, border: '2px solid #ff4fa3', borderRadius: 5, background: '#fff', pointerEvents: 'none' }} />
+              </div>)}
+            </div>
           </div>
         </div>
 
@@ -274,6 +346,7 @@ export function PhotoCropModal({ el, onClose }: Props) {
             { label: '1:1', ratio: 1 },
             { label: '4:5', ratio: 4 / 5 },
             { label: '9:16', ratio: 9 / 16 },
+            { label: '16:9', ratio: 16 / 9 },
           ].map((item) => (
             <button
               key={item.label}
