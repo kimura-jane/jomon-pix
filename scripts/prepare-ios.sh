@@ -36,6 +36,8 @@ path = Path('ios/App/App/Info.plist')
 with path.open('rb') as f:
     info = plistlib.load(f)
 info['CFBundleDisplayName'] = 'JOMON PIX'
+# The web UI implements Japanese and English localization itself.
+info['CFBundleLocalizations'] = ['en', 'ja']
 info['NSCameraUsageDescription'] = '写真を撮影してJOMON PIXで加工するために使用します。'
 info['NSPhotoLibraryUsageDescription'] = '写真を選択してJOMON PIXで加工するために使用します。'
 info['NSPhotoLibraryAddUsageDescription'] = '加工した写真を端末に保存するために使用します。'

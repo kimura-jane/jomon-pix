@@ -2,6 +2,7 @@ import { uiMessage } from '../lib/uiLanguage';
 
 import { useEffect, useMemo, useState } from 'react';
 import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
+import { recordSuccessfulPhotoSave } from '../lib/appReview';
 
 type Props = {
   blob: Blob;
@@ -42,7 +43,12 @@ export function SaveModal({ blob, onClose }: Props) {
     setSaving(true);
     try {
       if (native) {
-        await shareNativeFile(blob, file.name);
+        const activity = await shareNativeFile(blob, file.name);
+        // The iOS plugin resolves only on a completed activity. Do not count
+        // a canceled share, an external share, or a project-file export.
+        if (activity === 'com.apple.UIKit.activity.SaveToCameraRoll') {
+          void recordSuccessfulPhotoSave();
+        }
       } else {
         await navigator.share({ files: [file] });
       }

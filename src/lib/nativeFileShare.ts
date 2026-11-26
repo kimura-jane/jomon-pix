@@ -33,7 +33,7 @@ const NATIVE_CHUNK_BYTES = 1024 * 1024;
 export async function shareNativeFile(
   file: Blob,
   filename: string,
-): Promise<void> {
+): Promise<string | undefined> {
   if (!isNativeApp()) {
     throw new Error('アプリ内でのみ利用できます。');
   }
@@ -62,11 +62,12 @@ export async function shareNativeFile(
     if (stat.size !== file.size) {
       throw new Error('保存したファイルのサイズが一致しません。');
     }
-    await Share.share({
+    const result = await Share.share({
       title: 'JOMON PIX',
       files: [uri],
       dialogTitle: '画像・作品を保存',
     });
+    return result.activityType;
   } catch (error) {
     if (uri) {
       // Partial files must never be offered to the user after a failed write.
