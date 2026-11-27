@@ -6,7 +6,7 @@ import { flushAutosave, useAutosaveStatus, useEditor, type CanvasPreset } from '
 import { exportBlob } from '../lib/stageRef';
 import { SaveModal } from './SaveModal';
 import { AppIconPicker } from './AppIconPicker';
-import { isNativeApp, shareNativeFile } from '../lib/nativeFileShare';
+import { isNativeApp, isNativeIOS, saveNativeProjectBackup, shareNativeFile } from '../lib/nativeFileShare';
 import type { CanvasEl } from '../types';
 import { SCENE_IDS, SOCIAL_IDS, type SceneId, type SocialId } from '../lib/scenePresets';
 
@@ -419,13 +419,23 @@ export function TopBar() {
   };
 
   // JSONには写真やスタンプのデータも含まれる。
-  // iPhoneでは共有シートを優先し、非対応環境ではダウンロードする。
+  // iOSはファイルアプリに直接保存し、その他の環境の動作は維持する。
   const exportWork = async () => {
     if (workBusy) return;
     setWorkBusy(true);
 
     try {
       const file = createBackupFile();
+      if (file.size > 100 * 1024 * 1024) {
+        throw new Error(uiLanguage === 'en' ? 'Project file exceeds 100 MB.' : '作品ファイルが大きすぎます（上限100MB）。');
+      }
+      if (isNativeIOS()) {
+        const filename = await saveNativeProjectBackup(file);
+        alert(uiLanguage === 'en'
+          ? 'Backup saved.\nFiles > On My iPhone > JOMON PIX > backups\n' + filename
+          : 'バックアップしました。\nファイル → このiPhone内 → JOMON PIX → backups\n' + filename);
+        return;
+      }
       if (isNativeApp()) {
         await shareNativeFile(file, file.name);
         return;
