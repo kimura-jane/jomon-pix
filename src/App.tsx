@@ -12,6 +12,11 @@ export default function App() {
   useEffect(() => mountUiTranslation(), []);
 
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [layersOpen, setLayersOpen] = useState(false);
+  const layersAvailable = useEditor((state) => state.elements.some((el) => el.type !== 'line'));
+  useEffect(() => {
+    if (!layersAvailable) setLayersOpen(false);
+  }, [layersAvailable]);
   useEffect(() => {
     const viewport = window.visualViewport;
     if (!viewport) return;
@@ -83,8 +88,10 @@ export default function App() {
 
   return (
     <div className={keyboardOpen ? "app keyboard-open" : "app"}>
-      <TopBar />
-      <Editor />
+      <TopBar layersOpen={layersOpen && layersAvailable} layersAvailable={layersAvailable}
+        onToggleLayers={() => setLayersOpen((open) => !open)}
+        onCloseLayers={() => setLayersOpen(false)} />
+      <Editor layersOpen={layersOpen && layersAvailable} onCloseLayers={() => setLayersOpen(false)} />
       <Panel />
     </div>
   );
