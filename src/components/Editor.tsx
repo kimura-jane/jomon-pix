@@ -184,11 +184,12 @@ function LayerPreview({ el }: { el: CanvasEl }) {
 function FloatingLayers({
   elements,
   selectedId,
+  onClose,
 }: {
   elements: CanvasEl[];
   selectedId: string | null;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const reorder = useRef<{ pointerId: number; id: string } | null>(null);
   const [dropId, setDropId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -250,7 +251,7 @@ function FloatingLayers({
     observer.observe(parent);
     observer.observe(panel);
     return () => observer.disconnect();
-  }, [open, elements.some((element) => element.type !== 'line')]);
+  }, [elements.some((element) => element.type !== 'line')]);
 
   // Safari's finger gestures use TouchEvents, while desktop mouse/pen
   // uses PointerEvents. Both move the SAME panel and never drag the image.
@@ -344,6 +345,7 @@ function FloatingLayers({
 
   return (
     <div
+      id="floating-layer-list"
       ref={panelRef}
       style={{
         position: 'absolute',
@@ -351,7 +353,7 @@ function FloatingLayers({
         left: position?.x,
         right: position ? undefined : 8,
         zIndex: 8,
-        width: open ? 104 : 46,
+        width: 104,
         maxHeight: 'calc(100% - 72px)',
         display: 'flex',
         flexDirection: 'column',
@@ -366,8 +368,6 @@ function FloatingLayers({
       }}
     >
       <div style={{ display: 'flex', gap: 3, minHeight: 36 }}>
-        {!open ? <button type="button" aria-label="レイヤー一覧を開く" aria-expanded={false}
-          onClick={() => setOpen(true)} style={{ width: 36, height: 36, border: 0, borderRadius: 9, background: '#fff0f7', color: '#c13781', fontSize: 22 }}>▱</button> : <>
         <button
           type="button"
           aria-label="重なり順パネルを移動"
@@ -401,9 +401,8 @@ function FloatingLayers({
         </button>
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く'}
-          aria-expanded={open}
+          onClick={onClose}
+          aria-label="レイヤー一覧を閉じる"
           style={{
             width: 32,
             flexShrink: 0,
@@ -417,13 +416,10 @@ function FloatingLayers({
             touchAction: 'manipulation',
           }}
         >
-          {open ? '▴' : '▾'}
+          ×
         </button>
-        </>}
       </div>
 
-      {open && (
-        <>
           <div
             role="list"
             aria-label="レイヤー一覧（上ほど手前）"
@@ -582,7 +578,7 @@ function FloatingLayers({
               type="button"
               title="レイヤーの詳細設定"
               aria-label="レイヤーの詳細設定"
-              onClick={() => useEditor.getState().setTab('layer')}
+              onClick={() => { onClose(); useEditor.getState().setTab('layer'); }}
               style={{
                 flex: 1,
                 border: 0,
@@ -596,13 +592,14 @@ function FloatingLayers({
               ⋯
             </button>
           </div>
-        </>
-      )}
     </div>
   );
 }
 
-export function Editor() {
+export function Editor({ layersOpen, onCloseLayers }: {
+  layersOpen: boolean;
+  onCloseLayers: () => void;
+}) {
   const {
     elements,
     selectedId,
@@ -1316,10 +1313,11 @@ export function Editor() {
         </svg>}
       </div>
 
-      {tool === 'select' && (
+      {layersOpen && (
         <FloatingLayers
           elements={elements}
           selectedId={selectedId}
+          onClose={onCloseLayers}
         />
       )}
 
