@@ -36,6 +36,11 @@ with zipfile.ZipFile(ipa, "r") as archive:
         sys.exit(f"Expected one app Info.plist in IPA: {plist_paths!r}")
     info = plistlib.loads(archive.read(plist_paths[0]))
 
+# Validate the actual signed bundle, not just the tracked source plist.
+localizations = info.get("CFBundleLocalizations")
+if info.get("CFBundleDevelopmentRegion") != "ja" or not isinstance(localizations, list) or not all(lang in localizations for lang in ("ja", "en")):
+    sys.exit(f"IPA rejected before upload: expected Japanese default and Japanese/English localizations, got {info.get('CFBundleDevelopmentRegion')!r}, {localizations!r}")
+
 version = str(info.get("CFBundleVersion", ""))
 marketing = str(info.get("CFBundleShortVersionString", ""))
 identifier = str(info.get("CFBundleIdentifier", ""))

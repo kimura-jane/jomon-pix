@@ -36,6 +36,9 @@ path = Path('ios/App/App/Info.plist')
 with path.open('rb') as f:
     info = plistlib.load(f)
 info['CFBundleDisplayName'] = 'JOMON PIX'
+# The embedded editor handles Japanese and English localization itself.
+info['CFBundleDevelopmentRegion'] = 'ja'
+info['CFBundleLocalizations'] = ['ja', 'en']
 info['NSCameraUsageDescription'] = '写真を撮影してJOMON PIXで加工するために使用します。'
 info['NSPhotoLibraryUsageDescription'] = '写真を選択してJOMON PIXで加工するために使用します。'
 info['NSPhotoLibraryAddUsageDescription'] = '加工した写真を端末に保存するために使用します。'
@@ -138,6 +141,11 @@ if build_id not in text:
         if text.count(old) != 1:
             raise RuntimeError('Cannot attach privacy manifest to Xcode project: ' + old)
         text = text.replace(old, new)
+# Keep the Xcode project's development language and localization list aligned.
+text, region_count = re.subn(r'developmentRegion\s*=\s*[^;]+;', 'developmentRegion = ja;', text)
+text, localization_count = re.subn(r'knownRegions\s*=\s*\([^)]*\);', 'knownRegions = (\n\t\t\t\tja,\n\t\t\t\ten,\n\t\t\t\tBase,\n\t\t\t);', text)
+if region_count != 1 or localization_count != 1:
+    raise RuntimeError('Could not set iOS project localizations')
 project.write_text(text)
 PY
 
