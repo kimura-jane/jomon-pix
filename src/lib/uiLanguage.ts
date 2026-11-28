@@ -35,6 +35,7 @@ export function onUiLanguageChange(callback: () => void): () => void {
 // These translations refer exclusively to app chrome, not captions/artwork.
 const messages: Record<string, string> = {
   '作品': 'Project',
+  'ファイル保存': 'Save File',
   '顔補正': 'Face',
   'メイク': 'Makeup',
   '体型': 'Body',
