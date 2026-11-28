@@ -567,7 +567,7 @@ export function TopBar() {
         <button type="button" className="project-file-btn"
           aria-label="作品のバックアップと復元" title="作品のバックアップと復元"
           onClick={() => setWorkOpen(true)}>
-          <span aria-hidden="true">📁</span><span>作品</span>
+          <span aria-hidden="true">📁</span><span>ファイル保存</span>
         </button>
 
         <button type="button" className="save" onClick={save} disabled={busy}>
