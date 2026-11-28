@@ -541,71 +541,37 @@ function TextTab({
             />
           )}
 
-          <div className="label">
-            スタイル
-          </div>
-
-          <div className="row">
+          <div className="label">文字デザイン</div>
+          <div className="row" role="group" aria-label="文字デザイン">
             {TEXT_PRESETS.map((preset) => (
               <button
-                key={preset.label}
+                key={`preset-${preset.label}`}
+                type="button"
                 className="chip"
                 disabled={!!el?.locked}
-                style={{
-                  fontFamily:
-                    preset.style.fontFamily,
-                }}
-                onClick={() =>
-                  el
-                    ? up(preset.style)
-                    : addText(preset.style)
-                }
+                style={{ fontFamily: preset.style.fontFamily }}
+                onClick={() => el ? up(preset.style) : addText(preset.style)}
               >
                 {preset.label}
+              </button>
+            ))}
+            {FONTS.map((font) => (
+              <button
+                key={`font-${font.family}`}
+                type="button"
+                className={`chip ${el?.fontFamily === font.family ? 'on' : ''}`}
+                aria-pressed={el?.fontFamily === font.family}
+                disabled={!!el?.locked}
+                style={{ fontFamily: font.family }}
+                onClick={() => el ? up({ fontFamily: font.family }) : addText({ fontFamily: font.family })}
+              >
+                {font.label}
               </button>
             ))}
           </div>
 
           {el && (
             <>
-              <div className="label">
-                フォント
-              </div>
-
-              <Seg
-                items={FONT_GROUPS}
-                value={group}
-                onChange={setGroup}
-              />
-
-              <div className="row">
-                {FONTS.filter(
-                  (font) =>
-                    font.group === group,
-                ).map((font) => (
-                  <button
-                    key={font.family}
-                    className={`chip ${
-                      el.fontFamily ===
-                      font.family
-                        ? 'on'
-                        : ''
-                    }`}
-                    disabled={!!el.locked}
-                    style={{
-                      fontFamily: font.family,
-                    }}
-                    onClick={() =>
-                      up({
-                        fontFamily: font.family,
-                      })
-                    }
-                  >
-                    {font.label}
-                  </button>
-                ))}
-              </div>
-
               <div className="label">色</div>
 
               <Dots

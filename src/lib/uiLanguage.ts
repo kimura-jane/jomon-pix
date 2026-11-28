@@ -83,7 +83,7 @@ const messages: Record<string, string> = {
   '写真を選択': 'Select photo', '写真を選ぶと使えるよ': 'Select a photo to use this.',
   '＋ 写真を追加': '+ Add Photos', '✨ 新しく作る': '✨ New Project',
   '＋ 文字を入れる': '+ Add Text', '＋ もう1つ文字を入れる': '+ Add Another Text',
-  '文字を入力': 'Enter text', 'スタイル': 'Style', 'フォント': 'Font',
+  '文字を入力': 'Enter text', 'スタイル': 'Style', 'フォント': 'Font', '文字デザイン': 'Text Design',
   '色': 'Color', 'ふちどり': 'Outline', '光る': 'Glow',
   '形': 'Layout', '横書き': 'Horizontal', '縦書き': 'Vertical',
   '左': 'Left', '中央': 'Center', '右': 'Right',

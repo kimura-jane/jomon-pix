@@ -37,12 +37,12 @@ try {
   await page.goto('http://127.0.0.1:4173/jomon-pix/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: /スタンプ/ }).first().click();
   assert.equal(await page.getByRole('button', { name: 'マイスタンプ' }).count(), 0);
-  await page.locator('.bar button.tab').filter({ hasText: '文字' }).click();
+  await page.locator('.bottom-tools button').filter({ hasText: '文字' }).click();
   await page.getByRole('button', { name: '吹き出し', exact: true }).click();
   assert.equal(await page.getByRole('group', { name: '吹き出しの形' }).getByRole('button').count(), 4);
   await page.getByRole('button', { name: '丸の吹き出し' }).click();
 
-  // The same four groups and 15 choices as the normal Text editor.
+  // Speech bubbles retain their four font groups and 15 choices.
   const fontChoices = page.getByRole('group', { name: '吹き出しのフォント' });
   let totalFonts = 0;
   for (const group of ['かわいい', '手書き', 'まじめ', 'インパクト']) {
@@ -76,7 +76,7 @@ try {
   await page.getByRole('button', { name: '画像保存', exact: true }).click();
   await page.getByRole('heading', { name: 'できあがり！' }).waitFor({ timeout: 30000 });
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.locator('.bar button.tab').filter({ hasText: '文字' }).click();
+  await page.locator('.bottom-tools button').filter({ hasText: '文字' }).click();
   await waitFor((state) => state.elements.some((item) =>
     item.id === id && item.bubble?.tail === 'left' &&
     item.fontFamily === 'Yomogi'), 'reload font persistence');
@@ -101,6 +101,16 @@ try {
     item.type === 'text' && !item.bubble), 'new ordinary text layer');
   const ordinary = withText.elements.find((item) => item.type === 'text' && !item.bubble);
   const textId = ordinary.id;
+  // Ordinary text combines all eight presets and fifteen fonts in one list.
+  const designs = page.getByRole('group', { name: '文字デザイン', exact: true });
+  assert.equal(await designs.getByRole('button').count(), 23);
+  assert.equal(await page.locator('.panel-content .seg').getByRole('button', { name: 'かわいい', exact: true }).count(), 0);
+  await designs.getByRole('button', { name: 'ネオン', exact: true }).click();
+  await waitFor((s) => s.elements.some((e) => e.id === textId &&
+    e.fontFamily === 'Zen Maru Gothic' && e.stroke === '#ff2fd0' && e.glow === '#ff2fd0'), 'neon design');
+  await designs.getByRole('button', { name: 'キウイ丸', exact: true }).click();
+  await waitFor((s) => s.elements.some((e) => e.id === textId &&
+    e.fontFamily === 'Kiwi Maru' && e.stroke === '#ff2fd0' && e.glow === '#ff2fd0'), 'font-only selection preserves decoration');
   const deleteText = page.getByRole('button', { name: '🗑 文字を削除' });
   await deleteText.waitFor();
   assert.equal(await deleteText.isEnabled(), true);
