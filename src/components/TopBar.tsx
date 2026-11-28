@@ -379,7 +379,12 @@ function createBackupFile(): File {
   );
 }
 
-export function TopBar() {
+export function TopBar({ layersOpen, layersAvailable, onToggleLayers, onCloseLayers }: {
+  layersOpen: boolean;
+  layersAvailable: boolean;
+  onToggleLayers: () => void;
+  onCloseLayers: () => void;
+}) {
   const {
     tab, setTab, undo, past, select,
   } = useEditor();
@@ -553,24 +558,34 @@ export function TopBar() {
 
       <div className="bar">
         <button type="button" className={`tab ${tab === 'image' ? 'on' : ''}`}
-          onClick={() => { setTab('image'); window.dispatchEvent(new Event('jomon-pix:home')); }}>
+          onClick={() => { onCloseLayers(); setTab('image'); window.dispatchEvent(new Event('jomon-pix:home')); }}>
           <span className="ic">🏠</span>ホーム
         </button>
 
-        <div className="sep" />
         <button type="button" className="icon-btn" onClick={undo}
           disabled={!past.length} aria-label="戻す">↶</button>
-        <div className="sep" />
+
+        <button type="button" className={'icon-btn top-layer-btn' + (layersOpen ? ' on' : '')}
+          aria-label={layersOpen ? 'レイヤー' : 'レイヤー一覧を開く'}
+          title={layersOpen ? 'レイヤー一覧を閉じる' : 'レイヤー一覧を開く'}
+          aria-expanded={layersOpen} aria-controls={layersOpen ? 'floating-layer-list' : undefined}
+          disabled={!layersAvailable} onClick={onToggleLayers}>
+          <svg aria-hidden="true" width="23" height="23" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+            <path d="m3 12 9 5 9-5M3 16l9 5 9-5" />
+          </svg>
+        </button>
 
         <div className="bar-spacer" />
 
         <button type="button" className="project-file-btn"
           aria-label="作品のバックアップと復元" title="作品のバックアップと復元"
-          onClick={() => setWorkOpen(true)}>
+          onClick={() => { onCloseLayers(); setWorkOpen(true); }}>
           <span aria-hidden="true">📁</span><span>ファイル保存</span>
         </button>
 
-        <button type="button" className="save" onClick={save} disabled={busy}>
+        <button type="button" className="save" onClick={() => { onCloseLayers(); void save(); }} disabled={busy}>
           {busy ? '作成中…' : '画像保存'}
         </button>
       </div>
